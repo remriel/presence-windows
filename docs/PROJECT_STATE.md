@@ -80,4 +80,4 @@
 - Fresh ResolveIpNetEntry2 ARP remains the evidence gate. Cached neighbor-table rows remain candidates only. Gateway/local MAC replies for another target are discarded to reduce proxy-ARP false positives.
 - Added tests/Presence.Tests/Program.cs as a deterministic executable check for baseline silence, grace-period departure, reconnect arrival, and first-seen unknown-device behavior.
 - Added .github/workflows/build.yml to run the core behavior checks and publish the Windows app on Windows CI.
-- Source commit: 4ad08347a13f07c6a86c00037a9b4e4712913c05. This is an unreleased source reliability update until a Windows build/live LAN acceptance is completed.
+- Source commit: 4ad08347a13f07c6a86c00037a9b4e4712913c05. This is an unreleased source reliability update. Windows CI core checks and publish build passed; live LAN acceptance is still required.

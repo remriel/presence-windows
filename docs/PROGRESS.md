@@ -2,7 +2,7 @@
 
 Current objective: make LAN join/leave detection responsive and reliable after the owner reported that reconnect/disconnect tests appeared to do nothing.
 
-Implementation progress: **90%** `[██████████████████░░]` for the detection reliability pass. Source changes and deterministic checks are committed; a Windows CI/live-LAN acceptance result is still needed before calling runtime behavior verified.
+Implementation progress: **95%** `[███████████████████░]` for the detection reliability pass. Deterministic core checks and the Windows publish build passed in GitHub Actions; a real Wi-Fi off/on LAN acceptance test remains.
 
 - [x] Read current AGENTS, state/progress, git state and affected source.
 - [x] Inspect the live Codex Usage Counter reference popup/sound implementation.
@@ -45,7 +45,7 @@ Manual acceptance for owner: Settings > Test alert should display the custom ico
 - [x] Ignore gateway/local MAC returned for other target addresses to reduce proxy-ARP false positives.
 - [x] Add deterministic core checks for baseline, departure, reconnect, and unknown-device event semantics.
 - [x] Add Windows GitHub Actions build/publish workflow.
-- [ ] Windows CI result observed.
+- [x] Windows CI result observed: run 37237103022 passed core behavior checks and the Windows publish build.
 - [ ] Live physical device Wi-Fi off/on test observed.
 
 Current source head for this pass: 4ad08347a13f07c6a86c00037a9b4e4712913c05.
