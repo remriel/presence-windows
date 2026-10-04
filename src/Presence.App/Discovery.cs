@@ -24,9 +24,10 @@ public sealed class Discovery
 {
     private string scope = "";
     private uint cursor;
-    private int sweeps;
+    private bool baselinePending = true;
     private readonly Dictionary<string, string> names = [];
     private readonly VendorLookup vendors = new();
+
     public static List<Lan> Interfaces()
     {
         var result = new List<Lan>();
@@ -43,59 +44,97 @@ public sealed class Discovery
         }
         return result.OrderByDescending(n => NetworkInterface.GetAllNetworkInterfaces().Any(i => i.Id == n.Id && i.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)).ToList();
     }
+
     public async Task<ScanResult> ScanAsync(Settings settings, IReadOnlyList<Device> devices, CancellationToken ct)
     {
         var interfaces = Interfaces();
         var lan = settings.InterfaceId == "" ? interfaces.FirstOrDefault() : interfaces.FirstOrDefault(n => n.Id == settings.InterfaceId);
         if (lan is null) throw new IOException("No connected home LAN. Monitoring is paused.");
+
         var gatewayMac = await Task.Run(() => NativeNeighbors.Resolve(lan, lan.Gateway), ct);
         if (gatewayMac == "") throw new IOException("The gateway did not respond. Monitoring is paused.");
+
         var key = lan.Id + "|" + Lan.Ip(lan.First) + "/" + lan.Prefix + "|" + gatewayMac;
-        if (scope != key) { scope = key; cursor = lan.First + 1; sweeps = 0; names.Clear(); }
-        var targets = new HashSet<string> { lan.Gateway.ToString() };
+        if (scope != key)
+        {
+            scope = key;
+            cursor = lan.First + 1;
+            baselinePending = true;
+            names.Clear();
+        }
+
+        var initial = baselinePending;
+        var targets = new List<string>();
+        var scheduled = new HashSet<string>(StringComparer.Ordinal);
+
+        void AddTarget(IPAddress ip)
+        {
+            if (!lan.Contains(ip) || ip.Equals(lan.Address) || ip.Equals(lan.Gateway)) return;
+            if (scheduled.Add(ip.ToString())) targets.Add(ip.ToString());
+        }
+
+        // Known devices are always re-probed first, so departure detection never waits
+        // for the rotating discovery sweep.
         foreach (var d in devices.Where(d => d.Network == key && d.Kind != DeviceKind.Ignore))
-            if (IPAddress.TryParse(d.Ip, out var ip) && lan.Contains(ip) && !ip.Equals(lan.Address)) targets.Add(ip.ToString());
-        // Cached neighbor entries are candidates, never evidence. Resolve flushes and sends a new ARP request.
-        foreach (var row in NativeNeighbors.Read(lan.Index)) if (lan.Contains(row.Ip) && !row.Ip.Equals(lan.Address)) targets.Add(row.Ip.ToString());
-        bool initial = sweeps < 1;
+            if (IPAddress.TryParse(d.Ip, out var ip)) AddTarget(ip);
+
+        // Neighbor entries are candidates only. Resolve() below flushes the matching
+        // entry and sends a fresh ARP request before it counts as presence evidence.
+        foreach (var row in NativeNeighbors.Read(lan.Index)) AddTarget(row.Ip);
+
         var count = (int)(lan.Last - lan.First - 1);
-        var batch = Math.Min(count, 128);
+        // Typical home /24 and /23 networks are fully swept every cycle. Larger
+        // subnets rotate in bounded chunks while known/cached devices remain priority.
+        var batch = Math.Min(count, 512);
         for (var i = 0; i < batch; i++)
         {
-            if (cursor >= lan.Last) { cursor = lan.First + 1; sweeps++; }
-            var ip = Lan.Ip(cursor++); if (!ip.Equals(lan.Address)) targets.Add(ip.ToString());
+            if (cursor >= lan.Last) cursor = lan.First + 1;
+            AddTarget(Lan.Ip(cursor++));
         }
-        if (cursor >= lan.Last) { cursor = lan.First + 1; sweeps++; }
+
         var mdns = MdnsAsync(lan, ct);
-        var found = new ConcurrentDictionary<string, Observation>();
-        found[lan.Mac] = new(lan.Mac, lan.Address.ToString(), Environment.MachineName, vendors.Find(lan.Mac), "local-interface");
+        var found = new ConcurrentDictionary<string, Observation>(StringComparer.OrdinalIgnoreCase);
+        if (lan.Mac != "") found[lan.Mac] = new(lan.Mac, lan.Address.ToString(), Environment.MachineName, vendors.Find(lan.Mac), "local-interface");
         found[gatewayMac] = new(gatewayMac, lan.Gateway.ToString(), "", vendors.Find(gatewayMac), "fresh-arp");
-        await Parallel.ForEachAsync(targets.Take(512), new ParallelOptions { MaxDegreeOfParallelism = 48, CancellationToken = ct }, async (target, token) =>
+
+        await Parallel.ForEachAsync(targets, new ParallelOptions { MaxDegreeOfParallelism = 64, CancellationToken = ct }, async (target, token) =>
         {
             var ip = IPAddress.Parse(target);
             var mac = await Task.Run(() => NativeNeighbors.Resolve(lan, ip), token);
             if (mac == "") return;
-            string signal = "fresh-arp";
-            using var ping = new Ping();
-            try { if ((await ping.SendPingAsync(ip, 250)).Status == IPStatus.Success) signal += "+icmp"; } catch (PingException) { }
-            found[mac] = new(mac, target, "", vendors.Find(mac), signal);
+
+            // Proxy ARP can make the gateway answer on behalf of other addresses.
+            // Never turn that into a fake device observation.
+            if (mac == gatewayMac || mac == lan.Mac) return;
+
+            found[mac] = new(mac, target, "", vendors.Find(mac), "fresh-arp");
         });
+
         var multicast = await mdns;
         foreach (var pair in multicast)
         {
             names[pair.Key] = pair.Value;
-            // Only a new multicast response received in this scan supplies evidence.
             var ip = IPAddress.Parse(pair.Key);
             var mac = await Task.Run(() => NativeNeighbors.Resolve(lan, ip), ct);
             if (mac == "") mac = NativeNeighbors.Read(lan.Index).FirstOrDefault(r => r.Ip.Equals(ip))?.Mac ?? "";
-            if (mac != "") found[mac] = new(mac, pair.Key, pair.Value, vendors.Find(mac), "mdns-response");
+            if (mac != "" && mac != gatewayMac && mac != lan.Mac)
+                found[mac] = new(mac, pair.Key, pair.Value, vendors.Find(mac), "mdns-response");
         }
+
         foreach (var pair in found.ToArray())
-        {
-            if (names.TryGetValue(pair.Value.Ip, out var hostname)) found[pair.Key] = pair.Value with { Hostname = hostname };
-        }
-        return new(key, lan.Name + " · " + Lan.Ip(lan.First) + "/" + lan.Prefix, found.Values.ToList(), initial, initial ? Math.Min(count, (int)(cursor - lan.First - 1)) : count, count);
+            if (names.TryGetValue(pair.Value.Ip, out var hostname))
+                found[pair.Key] = pair.Value with { Hostname = hostname };
+
+        baselinePending = false;
+        return new(
+            key,
+            lan.Name + " · " + Lan.Ip(lan.First) + "/" + lan.Prefix,
+            found.Values.ToList(),
+            initial,
+            initial ? Math.Min(count, batch) : count,
+            count);
     }
+
     private static async Task<Dictionary<string, string>> MdnsAsync(Lan lan, CancellationToken ct)
     {
         var names = new Dictionary<string, string>();
@@ -179,12 +218,14 @@ internal static class NativeNeighbors
     [DllImport("iphlpapi.dll")] private static extern uint ResolveIpNetEntry2(ref Row row, ref Sockaddr source);
     [DllImport("iphlpapi.dll")] private static extern uint GetIpNetTable2(ushort family, out IntPtr table);
     [DllImport("iphlpapi.dll")] private static extern void FreeMibTable(IntPtr table);
+
     public static string Resolve(Lan lan, IPAddress ip)
     {
         var row = new Row { InterfaceIndex = (uint)lan.Index, Address = new Sockaddr { Family = 2, Address = BitConverter.ToUInt32(ip.GetAddressBytes()) } };
         var source = new Sockaddr { Family = 2, Address = BitConverter.ToUInt32(lan.Address.GetAddressBytes()) };
         return ResolveIpNetEntry2(ref row, ref source) == 0 && row.Length == 6 ? Identity.NormalizeMac(Convert.ToHexString(BitConverter.GetBytes(row.Mac0)[..6])) : "";
     }
+
     public static List<Neighbor> Read(int index)
     {
         var rows = new List<Neighbor>();

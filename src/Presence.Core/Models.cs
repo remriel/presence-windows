@@ -37,8 +37,8 @@ public sealed record PresenceEvent(string Id, DateTimeOffset At, string Type, st
 }
 public sealed class Settings
 {
-    public int ScanSeconds { get; set; } = 120;
-    public int DepartureMinutes { get; set; } = 5;
+    public int ScanIntervalSeconds { get; set; } = 10;
+    public int DepartureGraceSeconds { get; set; } = 45;
     public bool Arrivals { get; set; } = true;
     public bool Departures { get; set; } = true;
     public bool UnknownDevices { get; set; } = true;

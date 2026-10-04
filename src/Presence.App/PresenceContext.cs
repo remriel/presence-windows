@@ -41,7 +41,7 @@ internal sealed class PresenceContext : ApplicationContext
         var menu = new ContextMenuStrip(); menu.Items.Add("Open Presence", null, (_, _) => Activate("")); menu.Items.Add("Activity", null, (_, _) => window.ShowActivity());
         menu.Items.Add("Scan now", null, async (_, _) => await Scan()); menu.Items.Add("Settings", null, (_, _) => window.ShowSettings()); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Quit Presence", null, (_, _) => Exit()); tray.ContextMenuStrip = menu;
         tray.DoubleClick += (_, _) => Activate("");
-        timer = new System.Windows.Forms.Timer { Interval = 250 }; timer.Tick += async (_, _) => { timer.Interval = Engine.Data.Settings.ScanSeconds * 1000; await Scan(); }; timer.Start();
+        timer = new System.Windows.Forms.Timer { Interval = 250 }; timer.Tick += async (_, _) => { timer.Interval = Engine.Data.Settings.ScanIntervalSeconds * 1000; await Scan(); }; timer.Start();
         SystemEvents.PowerModeChanged += PowerChanged;
         StartupTrace.Mark("tray-created; hidden=" + hidden);
         if (!hidden) window.Show();
@@ -107,7 +107,7 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public void Save()
     {
-        Engine.ReconcilePeople(DateTimeOffset.UtcNow); Store.Save(Engine.Data); timer.Interval = Engine.Data.Settings.ScanSeconds * 1000; Refresh();
+        Engine.ReconcilePeople(DateTimeOffset.UtcNow); Store.Save(Engine.Data); timer.Interval = Engine.Data.Settings.ScanIntervalSeconds * 1000; Refresh();
     }
     public void ApplyStartup(bool enabled)
     {

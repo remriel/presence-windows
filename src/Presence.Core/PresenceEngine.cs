@@ -25,7 +25,7 @@ public sealed class PresenceEngine(Snapshot snapshot)
         }
         var delta = previous.HasValue ? (now - previous.Value).TotalSeconds : 0;
         // A suspend, long scan failure or clock jump forces a silent re-baseline.
-        if (delta < 0 || delta > Math.Max(90, Data.Settings.ScanSeconds * 3))
+        if (delta < 0 || delta > Math.Max(90, Data.Settings.ScanIntervalSeconds * 3))
         {
             delta = 0; baselineScans = 0; baselineDevices.Clear();
             foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
@@ -67,7 +67,7 @@ public sealed class PresenceEngine(Snapshot snapshot)
             d.Consecutive = 0; d.MissingSeconds += Math.Max(0, delta);
             if (d.State is PresenceState.Home or PresenceState.ProbablyHome)
             {
-                if (d.MissingSeconds >= Data.Settings.DepartureMinutes * 60)
+                if (d.MissingSeconds >= Data.Settings.DepartureGraceSeconds)
                 {
                     d.State = PresenceState.Away; d.ChangedAt = now;
                     if (!silent && d.Kind != DeviceKind.Ignore) events.Add(PresenceEvent.Create(now, "left", EventName(d), d.Mac, d.PersonId));

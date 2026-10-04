@@ -17,7 +17,30 @@ public sealed class Repository : IDisposable
     public Snapshot Load()
     {
         using var c = db.CreateCommand(); c.CommandText = "SELECT Json FROM State WHERE Id=1";
-        return c.ExecuteScalar() is string json ? JsonSerializer.Deserialize<Snapshot>(json) ?? throw new InvalidDataException("Presence state is empty.") : new();
+        if (c.ExecuteScalar() is not string json) return new();
+
+        var data = JsonSerializer.Deserialize<Snapshot>(json) ?? throw new InvalidDataException("Presence state is empty.");
+
+        // 1.0.1 stored very conservative timing as ScanSeconds/DepartureMinutes.
+        // Preserve intentional custom values, but migrate the old 120s/5m defaults
+        // to responsive monitoring. Unknown legacy JSON properties are otherwise safe.
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.TryGetProperty(nameof(Snapshot.Settings), out var settings))
+        {
+            if (!settings.TryGetProperty(nameof(Settings.ScanIntervalSeconds), out _) &&
+                settings.TryGetProperty("ScanSeconds", out var oldScan) &&
+                oldScan.TryGetInt32(out var scanSeconds))
+                data.Settings.ScanIntervalSeconds = scanSeconds == 120 ? 10 : Math.Clamp(scanSeconds, 5, 600);
+
+            if (!settings.TryGetProperty(nameof(Settings.DepartureGraceSeconds), out _) &&
+                settings.TryGetProperty("DepartureMinutes", out var oldDeparture) &&
+                oldDeparture.TryGetInt32(out var departureMinutes))
+                data.Settings.DepartureGraceSeconds = departureMinutes == 5 ? 45 : Math.Clamp(departureMinutes * 60, 15, 3600);
+        }
+
+        data.Settings.ScanIntervalSeconds = Math.Clamp(data.Settings.ScanIntervalSeconds, 5, 600);
+        data.Settings.DepartureGraceSeconds = Math.Clamp(data.Settings.DepartureGraceSeconds, 15, 3600);
+        return data;
     }
     public void Save(Snapshot data, IEnumerable<PresenceEvent>? events = null, IEnumerable<Observation>? observations = null, DateTimeOffset? at = null)
     {

@@ -162,9 +162,9 @@ internal sealed class SettingsWindow : Form
     {
         var s = app.Engine.Data.Settings; Text = "Presence · Settings"; ClientSize = new Size(490, 700); StartPosition = FormStartPosition.CenterParent; MinimizeBox = false; MaximizeBox = false; FormBorderStyle = FormBorderStyle.FixedDialog; AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 10); BackColor = Ui.Background(s); ForeColor = Ui.Text(s);
         var flow = Ui.Flow(440); Controls.Add(flow);
-        var intervals = new FlowLayoutPanel { Width = 430, Height = 66, Margin = Padding.Empty }; var scan = Number(s.ScanSeconds, 30, 600); var left = Number(s.DepartureMinutes, 2, 60);
+        var intervals = new FlowLayoutPanel { Width = 430, Height = 66, Margin = Padding.Empty }; var scan = Number(s.ScanIntervalSeconds, 5, 600); var left = Number(s.DepartureGraceSeconds, 15, 600);
         var a = new FlowLayoutPanel { Width = 206, Height = 65, Margin = Padding.Empty }; a.Controls.Add(Ui.Label("Scan every (seconds)", 200)); a.Controls.Add(scan); intervals.Controls.Add(a);
-        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (minutes)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
+        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (seconds)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
         flow.Controls.Add(Ui.Label("NOTIFICATIONS", 430, 35, true, s));
         var arrive = Check("Arrivals", s.Arrivals); var depart = Check("Departures", s.Departures); var unknown = Check("Unknown devices", s.UnknownDevices); flow.Controls.Add(arrive); flow.Controls.Add(depart); flow.Controls.Add(unknown);
         var sound = Check("Play alert sound", s.AlertSound); flow.Controls.Add(sound);
@@ -179,7 +179,7 @@ internal sealed class SettingsWindow : Form
         {
             try
             {
-                app.ApplyStartup(startup.Checked); s.ScanSeconds = (int)scan.Value; s.DepartureMinutes = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
+                app.ApplyStartup(startup.Checked); s.ScanIntervalSeconds = (int)scan.Value; s.DepartureGraceSeconds = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
             }
             catch (Exception ex) { MessageBox.Show(this, "Could not save settings: " + ex.Message, "Presence"); }
         }); buttons.Controls.Add(save); buttons.Controls.Add(Ui.Button("Test alert", app.TestNotification)); buttons.Controls.Add(Ui.Button("Devices", () => ShowDevices(app))); flow.Controls.Add(buttons); AcceptButton = save;
