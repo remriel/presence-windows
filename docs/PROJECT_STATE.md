@@ -61,10 +61,10 @@
 
 ## Publication and local installation
 - Private GitHub repository: https://github.com/remriel/presence-windows.
-- Latest release v1.0.1: https://github.com/remriel/presence-windows/releases/tag/v1.0.1. Previous v1.0.0 remains available historically.
+- Latest completed release v1.0.1: https://github.com/remriel/presence-windows/releases/tag/v1.0.1. Current request packages the same feature set as 1.0.2 for GitHub; local installation remains on its existing copy.
 - Local stable install: %LOCALAPPDATA%/Programs/Presence. Updated to 1.0.1 and started --tray; startup defaults to enabled via HKCU Run. Data: %LOCALAPPDATA%/Presence/presence.db; existing database/settings were left intact. Preview is a separate Presence-Demo profile.
 - Production build: dotnet publish with win-x64, self-contained, single-file, IncludeNativeLibrariesForSelfExtract, DebugType=None and local --artifacts-path. No trimming. OUI CSV accompanies the executable.
 - GitHub initially rejected a shortened release target SHA with Release.target_commitish is invalid. Using full git rev-parse HEAD resolved the publication blocker.
 
 ## RESUME HERE
-1.0.1 is built, privately published, installed locally and launched --tray. The native floating popup preview was exported with fictional content; audible sound/click/live network acceptance is unverified. Stop without tests/review/cleanup under build-once steering. The owner can use Settings > Test alert, with Windows notification banners still disabled. Devices auto-track with no approval; optional person association remains in Details. On a future request, read actual source/git state; preserve local database/settings and prefer local-disk build artifacts to avoid Google Drive apphost locking.
+User asked to publish the current code on GitHub as a new version. Package it as v1.0.2 with a single Windows x64 self-contained publish, then upload the portable archive, source archive, progress/state documentation and fictional popup preview to the private GitHub release. Do not run tests or repeat a successful publish. Preserve the user's currently running installed copy and database; publishing the download does not require another local installation.

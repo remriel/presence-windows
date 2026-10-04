@@ -1,4 +1,4 @@
-# Presence 1.0.1
+# Presence 1.0.2
 
 Windows 10 x64 portable, self-contained C# tray utility.
 
@@ -12,4 +12,4 @@ Windows 10 x64 portable, self-contained C# tray utility.
 - Light, dark and system appearance; native minimal lists, details, activity and settings.
 - Persistent tray operation, close-to-tray and automatic Windows startup enabled by default.
 
-Under the owner's build-once instruction, automated tests, live LAN/phone tests, popup click/sound and restart acceptance are handed to the owner. The native preview uses fictional devices. Manual acceptance is documented in MANUAL_ACCEPTANCE.md.
+This release packages the current Presence app behavior as Windows x64 single-file self-contained v1.0.2. Under the owner's build-once workflow, automated tests, live LAN and phone checks, popup click/sound checks and restart acceptance are handed to the owner. The included preview has fictional content; see MANUAL_ACCEPTANCE.md.
