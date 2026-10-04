@@ -61,13 +61,13 @@
 
 ## Publication and local installation
 - Private GitHub repository: https://github.com/remriel/presence-windows.
-- Release target: v1.0.2. Previous v1.0.1 and v1.0.0 remain available historically.
+- Latest release v1.0.2: https://github.com/remriel/presence-windows/releases/tag/v1.0.2. Previous v1.0.1 and v1.0.0 remain available historically.
 - Local stable install: %LOCALAPPDATA%/Programs/Presence. Updated to 1.0.1 and started --tray; startup defaults to enabled via HKCU Run. Data: %LOCALAPPDATA%/Presence/presence.db; existing database/settings were left intact. Preview is a separate Presence-Demo profile.
 - Production build: dotnet publish with win-x64, self-contained, single-file, IncludeNativeLibrariesForSelfExtract, DebugType=None and local --artifacts-path. No trimming. OUI CSV accompanies the executable.
 - GitHub initially rejected a shortened release target SHA with Release.target_commitish is invalid. Using full git rev-parse HEAD resolved the publication blocker.
 
 ## RESUME HERE
-The 1.0.2 reliability pass is release-ready: responsive scanning, timing migration, deterministic regression checks, Windows CI packaging, and release automation are in source. The remaining proof boundary is physical LAN behavior that cannot be established in GitHub Actions. Preserve the local database/settings on installation; use the portable x64 release ZIP and keep device/person mappings intact.
+Presence 1.0.2 is published from commit ed6c5c4e080849e8702292892df0d1dcd24b42e1. GitHub Actions passed deterministic presence checks, the self-contained Windows x64 publish, ZIP packaging, checksum generation, artifact upload, and release publication. The release asset is Presence-1.0.2-win-x64.zip with SHA-256 44b262226d2d833ebc68e384defd817c53a1bbabb3a380afac9f6b5606f44d1d. The remaining proof boundary is physical LAN behavior that cannot be established in CI. Preserve the local database/settings when replacing an installed copy.
 
 
 ## Post-1.0.1 presence reliability pass (2026-10-04)
