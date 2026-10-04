@@ -1,4 +1,3 @@
-using CommunityToolkit.WinUI.Notifications;
 using Microsoft.Win32;
 using Presence.Core;
 
@@ -19,6 +18,7 @@ internal sealed class PresenceContext : ApplicationContext
     private readonly NotifyIcon tray;
     private readonly MainWindow window;
     private readonly System.Windows.Forms.Timer timer;
+    private readonly FloatingAlerts alerts;
     private bool scanning;
     private bool suspended;
     private int epoch;
@@ -35,6 +35,7 @@ internal sealed class PresenceContext : ApplicationContext
         ApplyStartup(data.Settings.StartWithWindows);
         if (!demo) Store.Save(data);
         window = new MainWindow(this); _ = window.Handle;
+        alerts = new FloatingAlerts(() => Engine.Data.Settings, () => Screen.FromControl(window).WorkingArea, Activate);
         StartupTrace.Mark("window-created");
         tray = new NotifyIcon { Text = "Presence · starting", Visible = true, Icon = SystemIcons.Application };
         var menu = new ContextMenuStrip(); menu.Items.Add("Open Presence", null, (_, _) => Activate("")); menu.Items.Add("Activity", null, (_, _) => window.ShowActivity());
@@ -61,6 +62,7 @@ internal sealed class PresenceContext : ApplicationContext
         window.DrawToBitmap(bitmap, new Rectangle(Point.Empty, window.ClientSize));
         bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
+    public void ExportAlertPreview(string path) => alerts.ExportPreview(path);
     public async Task Scan()
     {
         if (scanning || suspended || demo || Stopping) return;
@@ -93,15 +95,15 @@ internal sealed class PresenceContext : ApplicationContext
         if (!Engine.Data.Settings.Allows(e, DateTimeOffset.Now) || demo) return;
         try
         {
-            new ToastContentBuilder().AddArgument("device", e.Mac ?? "").AddText(e.Message).AddText("Presence · your local network").Show(toast => { toast.Tag = e.Id[..16]; toast.Group = "presence"; toast.ExpirationTime = DateTimeOffset.Now.AddHours(12); });
+            alerts.Show(e.Message, "Local network · click to open device", e.Mac ?? "");
         }
         catch (Exception ex) { Status = "Monitoring · notifications unavailable: " + ex.Message; }
     }
     public void TestNotification()
     {
         if (demo) return;
-        try { new ToastContentBuilder().AddArgument("device", Engine.Data.Devices.FirstOrDefault()?.Mac ?? "").AddText("Presence is ready").AddText("Tap to open Presence. Your history stays on this computer.").Show(); }
-        catch (Exception ex) { MessageBox.Show("Windows could not display the notification.\n" + ex.Message, "Presence"); }
+        try { alerts.Show("Presence is ready", "Test alert · click to open Presence", "", immediate: true); }
+        catch (Exception ex) { MessageBox.Show("Could not display the floating alert.\n" + ex.Message, "Presence"); }
     }
     public void Save()
     {
@@ -132,7 +134,7 @@ internal sealed class PresenceContext : ApplicationContext
     public void Exit() { Stopping = true; cancel.Cancel(); timer.Stop(); tray.Visible = false; window.AllowClose = true; window.Close(); ExitThread(); }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; timer.Dispose(); tray.Dispose(); activeIcon?.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
+        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; alerts.Dispose(); timer.Dispose(); tray.Dispose(); activeIcon?.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
         base.Dispose(disposing);
     }
     private static void SeedDemo(Snapshot data)

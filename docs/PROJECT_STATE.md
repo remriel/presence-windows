@@ -6,7 +6,7 @@
 - Self-contained Windows x64 portable distribution; no runtime installation needed.
 - MAC is identity. Private MAC changes require explicit reassignment to the existing person; no speculative identity matching.
 - Fresh ARP resolution plus ICMP and local multicast DNS responses. Cached ARP entries provide candidates only; stale cache is never presence evidence.
-- Native toast activation via CommunityToolkit.WinUI.Notifications. No router credentials.
+- App-owned floating icon notifications and embedded WAV playback, independent of Windows notification banners. No router credentials. Legacy toast activation/unregistration compatibility remains for the initial release.
 - Explicit brief overrides generic bold visual design instructions: neutral native styling, light/dark themes, simple lists.
 
 ## Discoveries and constraints
@@ -24,22 +24,33 @@
 - src/Presence.App/Diagnostic.cs: opt-in single-scan sanitized counts for future manual investigation; not run for this release.
 
 ## Implementation decisions
-- PresenceEngine.Apply requires two consecutive detections; per-device missing time accumulates only during healthy monitoring. Primary phones take precedence over auxiliary devices. Unknown is never a departure.
+- PresenceEngine.Apply accepts the first fresh discovery response, with no approval or second scan required (1.0.1 steering). Per-device missing time accumulates only during healthy monitoring. Primary phones take precedence over auxiliary devices. Unknown is never a departure.
 - SQLite snapshot, event and observation records save in one transaction. Events retain 90 days by default; observations at most seven days. Existing data is preserved on startup failure.
 - ResolveIpNetEntry2 flushes a matching neighbor entry and performs fresh ARP resolution. GetIpNetTable2 is candidate-only; fresh mDNS replies can use a cached MAC for identity.
 - /16 through /30 physical IPv4 LANs: 128 new addresses per cycle, known devices and neighbor candidates prioritized, bounded 48-worker discovery. Large subnets take multiple cycles for a full sweep. First full sweep stays silent.
 - Adapter key includes physical interface, subnet and gateway MAC. VPN/virtual adapters are excluded.
 - mDNS uses a local UDP socket and QU replies; names are parsed only from local IPv4 A records. No reverse-DNS internet lookups, packet capture, router credentials or port scanning.
 - Offline IEEE OUI CSV is bundled. Locally administered MACs are labelled private. Existing person selection plus primary-phone replacement links a new private MAC without inventing identity matches.
-- CommunityToolkit.WinUI.Notifications 7.1.2 provides native toasts and click activation; per-user named pipe handles additional launches. Startup defaults to enabled via HKCU Run, following the user's persistent-background request; Settings can disable it.
+- 1.0.0 used CommunityToolkit.WinUI.Notifications 7.1.2 for native toasts; 1.0.1 replaces delivery with FloatingAlerts. The toolkit remains solely for compatibility with legacy toast activation/unregistration. Per-user named pipe handles additional launches. Startup defaults to enabled via HKCU Run; Settings can disable it.
 - SQLite package initially restored a vulnerable native library. Upgraded Microsoft.Data.Sqlite to 10.0.12 and SQLitePCLRaw.bundle_e_sqlite3 to 3.0.5; restore has no vulnerability warning.
 - Initial production build blocked on WinForms WFO1000 for AllowClose. Explicit designer serialization attribute is the fix.
 - Publishing on the Google Drive-backed source directory then failed in CreateAppHost with a user-mapped file section. Use a local-disk artifacts path for obj/bin/publish and copy finished binaries to outputs; do not repeat synced-drive apphost generation.
-- Latest feature steering: automatic scans default to 120 seconds; main header has a manual Refresh button. Settings permits 30–600 seconds. Two detections may therefore take four minutes without manual refresh.
+- Automatic scans default to 120 seconds; main header has a manual Refresh button. Settings permits 30–600 seconds. 1.0.1 removes the two-detection arrival requirement; first fresh discovery is sufficient.
 - Persistent background/tray request: closing hides the main window; Quit Presence ends the process. Startup registration refreshes the stable executable path on normal launch. Install locally under LocalAppData/Programs/Presence and run --tray for this user.
 - Final scope steering: any device joins/leaves the local network. PresenceEngine now emits one event per non-ignored device transition. First unknown confirmation uses only a new-device event, later reconnects use arrivals. Person grouping drives UI without extra person-level notifications. Known devices appear in Home Now/Away alongside people.
 - Windows Computer Use capture failed with FrameArrived/window capture timeouts after one recovery attempt. --preview-image exports the actual native client window through WinForms DrawToBitmap with fictional devices, without scanning. --startup-trace optionally writes sanitized launch-stage markers under LocalAppData/PresenceBuild.
 - Latest user instruction: build once and publish; fix only blocking errors. Skip tests, review, cleanup and repeated validation. Existing test project is an unused skeleton; no automated tests authored or run.
+
+## 1.0.1 notification / automatic tracking change
+- User reports Test alert produces no banner because all Windows notifications are disabled. Replace actual/test delivery with app-owned borderless topmost windows; no OS notification setting changes.
+- Reference inspected live: remriel/codex-usage-counter, TrayMilestonePopup and _play_sound_alert. Popup above tray, application icon and bundled async WAV chime. Reuse owner's assets/usage-orbit-64.png and assets/milestone-alert.wav as embedded local resources, with provenance in notices.
+- FloatingAlerts.cs separates notification lifecycle, bounded FIFO (20), overflow summary, sound and native popup. All presence events remain stored even if popup queue overflows.
+- Popup doesn't steal keyboard focus (ShowWithoutActivation, WS_EX_NOACTIVATE / TOOLWINDOW, MA_NOACTIVATE); click opens device; × dismisses; 10-second default duration (3–60); hover pauses dismissal.
+- WinMM PlaySound plays pinned embedded WAV bytes asynchronously. Sound defaults enabled; Settings can disable it. Windows/system audio volume still applies. No runtime audio download.
+- Real events retain notification category/quiet-hour preferences. Test alert bypasses quiet hours/categories and uses the saved sound setting; it does not create device history.
+- Devices automatically become present on first fresh ARP/mDNS response. Unknown section says Details, not Confirming. Person field is optional and enabled on any non-ignored device; entering a person automatically sets the association without a separate device-type approval.
+- Screenshot export: --preview-alert-image produces the real native popup client bitmap with fictional text, without sound or discovery.
+- Production publish succeeded for 1.0.1; native floating alert preview exported. No testing/review/cleanup added.
 
 ## Unresolved / proof boundary
 - A physical phone disconnect/reconnect/sleep test requires user participation; deterministic tests cannot establish radio behavior.
@@ -56,4 +67,4 @@
 - GitHub initially rejected a shortened release target SHA with Release.target_commitish is invalid. Using full git rev-parse HEAD resolved the publication blocker.
 
 ## RESUME HERE
-The requested build-and-publish workflow is complete. Stop without further tests/review/cleanup. Owner identifies phones/devices and performs optional manual acceptance. On a future explicit fix request, read these docs and inspect actual source/git state, then make only the requested change; prefer local-disk build artifacts to avoid Google Drive apphost locking.
+Publish 1.0.1 once, export requested popup progress image, update the stable local install and restart --tray, package and publish private GitHub release. Preserve local database/settings. Then stop without tests/review/cleanup; hand custom popup/sound and network acceptance to owner. Prefer local-disk build artifacts to avoid Google Drive apphost locking.

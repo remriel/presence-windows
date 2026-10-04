@@ -1,32 +1,34 @@
 # Presence progress
 
-Objective: complete Windows 10 x64 local-only device presence tray utility.
+Current objective: replace disabled Windows toast delivery with a custom floating icon notification/chime, automatically track every non-ignored LAN device without confirmation, retain optional associations with people, and publish/install 1.0.1.
 
-Verified progress: **100%** `[████████████████████]` for the requested build-and-publish handoff. Functional acceptance is unverified and explicitly deferred to the user; this percentage is not a claim of tested detection accuracy.
+Verified progress: **85%** `[█████████████████░░░]` toward this update's build-and-publish handoff. Functional acceptance is deferred under the user's build-once instruction.
 
-- [x] Read full attached brief; inspect workspace, SDK, Windows and network interface capabilities.
-- [x] Establish architecture, privacy boundaries, project repository and documentation.
-- [x] Implement inference and durable SQLite state.
-- [x] Implement safe subnet discovery and fresh multi-signal observations.
-- [x] Implement tray, main lists, device/person editing, activity, settings, light/dark and toast activation.
-- [x] Complete production publish for latest code; export requested native preview image.
-- [ ] Manual acceptance: discovery, phone reconnect/sleep, toast activation, restart persistence (handed to user).
-- [x] Produce portable x64 executable; synchronize private GitHub repository and publish release v1.0.0.
-- [x] Install locally and launch in background tray mode with startup enabled by default.
+- [x] Read current AGENTS, state/progress, git state and affected source.
+- [x] Inspect the live Codex Usage Counter reference popup/sound implementation.
+- [x] Implement app-owned popup, embedded reference icon/chime, queue, click/dismiss, hover pause, sound/duration settings.
+- [x] Route real events and Test alert through custom notification delivery.
+- [x] Remove two-detection/approval requirement; first fresh discovery automatically tracks arrival.
+- [x] Keep people association optional and make it directly available in device details.
+- [x] Publish Windows x64 production build once; no blocking compiler errors.
+- [x] Export requested native popup progress image with fictional content.
+- [ ] Replace stable local install, preserve mappings/settings and restart background/tray process.
+- [ ] Publish portable/source packages and private GitHub release; provide state/progress docs.
 
-Current implementation: complete published source and portable release. Automatic scans every two minutes, manual Refresh, persistent tray/background and startup enabled by default. Every non-ignored device gets join/leave events; known devices appear in Home Now/Away. Latest self-contained x64 production publish succeeded with no warnings/errors. Requested fictional native window preview exported via DrawToBitmap after the Windows screenshot helper timed out twice. Stable local copy is under %LOCALAPPDATA%/Programs/Presence and was launched with --tray.
+Completed previous release: 1.0.0 source and portable published; installed locally and started --tray. This update is prompted by user-reported Test alert failure with Windows notifications disabled.
 
-Blockers: none for packaging/publication. User explicitly requested build once and publish; no linting, tests, review, cleanup, or repeated validation. Manual network/phone acceptance remains owner work.
+Current implementation: self-contained x64 production publish succeeded. Native popup image exported with fictional text. Packaging, local replacement and GitHub 1.0.1 publication are next. Automatic interval stays two minutes with manual Refresh; five-minute absence tolerance and silent first baseline remain. No OS notification settings changed.
 
-Verification performed: production publish succeeded, 0 warnings/errors. Native preview export completed. Initial blockers were fixed; successful builds were repeated only after new user-requested feature changes or the screenshot export addition. No live discovery, phone, restart, toast-click or automated tests performed.
+Blockers: none currently. No tests, linting, code review, cleanup, repeated successful builds or live-network verification authorized under build-once steering.
 
-Exact next steps:
-1. Owner opens Presence from the system tray and identifies devices.
-2. Owner follows docs/MANUAL_ACCEPTANCE.md if functional acceptance is desired.
-3. Further changes/checks require the owner's next request; no additional validation is scheduled.
+Checks performed: source/reference inspection and asset fetch needed for implementation; production publish succeeded. Requested native popup bitmap export completed. No automated or functional tests, audio listening tests or live network verification performed for 1.0.1.
 
-Published source: https://github.com/remriel/presence-windows (private).
+Exact ordered next steps:
+1. Publish the changed Windows x64 code once using local-disk artifacts.
+2. Export native popup preview, package portable files and preserve source.
+3. Replace local installed executable and launch --tray.
+4. Commit/push source, publish v1.0.1, deliver docs and stop.
 
-Published portable release: https://github.com/remriel/presence-windows/releases/tag/v1.0.0.
+Repository: https://github.com/remriel/presence-windows (private).
 
-Source snapshot and current PROGRESS/PROJECT_STATE files are provided in the task outputs alongside the portable ZIP.
+Manual acceptance for owner: Settings > Test alert should display the custom icon popup/chime with Windows notification banners off. Check a real device arrival, click-to-open, quiet hours, optional association, and a tolerated departure when desired.

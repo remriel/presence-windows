@@ -9,7 +9,7 @@ public sealed class PresenceEngine(Snapshot snapshot)
     private int baselineScans;
     private readonly HashSet<string> baselineDevices = [];
     public string Network => network;
-    public bool Baselining => baselineScans < 2;
+    public bool Baselining => baselineScans < 1;
 
     public void Pause()
     {
@@ -45,7 +45,8 @@ public sealed class PresenceEngine(Snapshot snapshot)
             if (o.Hostname != "") d.Hostname = o.Hostname;
             if (o.Vendor != "") d.Vendor = o.Vendor;
             d.MissingSeconds = 0; d.Consecutive++;
-            if (d.Consecutive >= 2)
+            // A fresh ARP/mDNS response is sufficient. No user approval or second scan is required.
+            if (d.Consecutive >= 1)
             {
                 var arrived = d.State is not PresenceState.Home and not PresenceState.ProbablyHome;
                 var firstConfirmation = !d.Announced;

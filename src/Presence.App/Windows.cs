@@ -78,7 +78,7 @@ internal sealed class MainWindow : Form
         if (away.Count == 0 && absentDevices.Count == 0) Empty(people.Count == 0 && known.Count == 0 ? "Identify a device to get started." : "No recognized devices away.");
         Section("UNKNOWN DEVICES");
         var unknown = app.Engine.Data.Devices.Where(d => d.Kind == DeviceKind.Unknown && (app.Engine.Network == "" || d.Network == app.Engine.Network) && (d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).ToList();
-        foreach (var device in unknown) Row("+  " + device.DisplayName, device.Consecutive == 1 ? "Confirming" : "Identify", () => ShowDevice(device), false);
+        foreach (var device in unknown) Row("+  " + device.DisplayName, "Details", () => ShowDevice(device), false);
         if (unknown.Count == 0) Empty("No unidentified devices right now.");
         if (people.Count == 0 && unknown.Count == 0) { var text = Ui.Label("Presence is quietly learning your network.\nOpen a device when it appears and assign its phone to a person.", 365, 75, true, s); text.AutoEllipsis = false; content.Controls.Add(text); }
         status.ForeColor = Ui.Muted(s); status.Text = app.Status + "\n" + (app.NetworkLabel == "" ? "Close this window to keep running in the tray." : app.NetworkLabel);
@@ -129,10 +129,10 @@ internal sealed class DeviceWindow : Form
         var flow = Ui.Flow(422); Controls.Add(flow);
         flow.Controls.Add(Ui.Label("Name", 406)); var name = new TextBox { Width = 404, Text = d.Name, PlaceholderText = d.DisplayName, MaxLength = 80 }; flow.Controls.Add(name);
         flow.Controls.Add(Ui.Label("Use this device as", 406)); var kind = new ComboBox { Width = 404, DropDownStyle = ComboBoxStyle.DropDownList }; kind.Items.AddRange(new object[] { "Unknown device", "Person / presence device", "Known device", "Ignore" }); kind.SelectedIndex = (int)d.Kind; flow.Controls.Add(kind);
-        flow.Controls.Add(Ui.Label("Assigned person · choose existing to link a private MAC", 406)); var person = new ComboBox { Width = 404, DropDownStyle = ComboBoxStyle.DropDown, MaxLength = 80 }; person.Items.AddRange(app.Engine.Data.People.Select(p => (object)p.Name).ToArray()); person.Text = app.Engine.Data.People.FirstOrDefault(p => p.Id == d.PersonId)?.Name ?? ""; flow.Controls.Add(person);
+        flow.Controls.Add(Ui.Label("Person (optional) · choose existing to link a private MAC", 406)); var person = new ComboBox { Width = 404, DropDownStyle = ComboBoxStyle.DropDown, MaxLength = 80 }; person.Items.AddRange(app.Engine.Data.People.Select(p => (object)p.Name).ToArray()); person.Text = app.Engine.Data.People.FirstOrDefault(p => p.Id == d.PersonId)?.Name ?? ""; flow.Controls.Add(person);
         var primary = new CheckBox { Text = "Use as this person's primary phone", Width = 405, Height = 35, Checked = d.IsPrimary || d.PersonId is null }; flow.Controls.Add(primary);
-        void EnabledState() { person.Enabled = kind.SelectedIndex == (int)DeviceKind.Person; primary.Enabled = person.Enabled; }
-        kind.SelectedIndexChanged += (_, _) => EnabledState(); EnabledState();
+        void EnabledState() { person.Enabled = kind.SelectedIndex != (int)DeviceKind.Ignore; primary.Enabled = person.Enabled && !string.IsNullOrWhiteSpace(person.Text); }
+        kind.SelectedIndexChanged += (_, _) => EnabledState(); person.TextChanged += (_, _) => EnabledState(); EnabledState();
         var buttons = new FlowLayoutPanel { Width = 405, Height = 47, Margin = Padding.Empty };
         var save = Ui.Button("Save", () =>
         {
@@ -140,7 +140,7 @@ internal sealed class DeviceWindow : Form
             {
                 if (kind.SelectedIndex == (int)DeviceKind.Person && string.IsNullOrWhiteSpace(person.Text)) { MessageBox.Show(this, "Enter or choose a person's name.", "Presence"); return; }
                 d.Name = name.Text.Trim(); d.Kind = (DeviceKind)kind.SelectedIndex;
-                if (d.Kind == DeviceKind.Person) app.Engine.Assign(d, person.Text, primary.Checked); else { d.PersonId = null; d.IsPrimary = false; }
+                if (d.Kind != DeviceKind.Ignore && !string.IsNullOrWhiteSpace(person.Text)) app.Engine.Assign(d, person.Text, primary.Checked); else { d.PersonId = null; d.IsPrimary = false; }
                 app.Save(); Close();
             }
             catch (Exception ex) { MessageBox.Show(this, "Could not save: " + ex.Message, "Presence"); }
@@ -167,6 +167,8 @@ internal sealed class SettingsWindow : Form
         var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (minutes)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
         flow.Controls.Add(Ui.Label("NOTIFICATIONS", 430, 35, true, s));
         var arrive = Check("Arrivals", s.Arrivals); var depart = Check("Departures", s.Departures); var unknown = Check("Unknown devices", s.UnknownDevices); flow.Controls.Add(arrive); flow.Controls.Add(depart); flow.Controls.Add(unknown);
+        var sound = Check("Play alert sound", s.AlertSound); flow.Controls.Add(sound);
+        var popupRow = new FlowLayoutPanel { Width = 430, Height = 35, Margin = Padding.Empty }; popupRow.Controls.Add(Ui.Label("Floating alert duration (seconds)", 290)); var duration = Number(s.PopupSeconds, 3, 60); duration.Width = 80; popupRow.Controls.Add(duration); flow.Controls.Add(popupRow);
         var quiet = Check("Quiet hours", s.QuietHours); flow.Controls.Add(quiet);
         var hours = new FlowLayoutPanel { Width = 430, Height = 36, Margin = Padding.Empty }; hours.Controls.Add(Ui.Label("From", 45)); var start = Number(s.QuietStart, 0, 23); start.Width = 65; hours.Controls.Add(start); hours.Controls.Add(Ui.Label("until", 42)); var end = Number(s.QuietEnd, 0, 23); end.Width = 65; hours.Controls.Add(end); hours.Controls.Add(Ui.Label("(24-hour time)", 145)); flow.Controls.Add(hours);
         var startup = Check("Start quietly with Windows", s.StartWithWindows); flow.Controls.Add(startup);
@@ -177,7 +179,7 @@ internal sealed class SettingsWindow : Form
         {
             try
             {
-                app.ApplyStartup(startup.Checked); s.ScanSeconds = (int)scan.Value; s.DepartureMinutes = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
+                app.ApplyStartup(startup.Checked); s.ScanSeconds = (int)scan.Value; s.DepartureMinutes = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
             }
             catch (Exception ex) { MessageBox.Show(this, "Could not save settings: " + ex.Message, "Presence"); }
         }); buttons.Controls.Add(save); buttons.Controls.Add(Ui.Button("Test alert", app.TestNotification)); buttons.Controls.Add(Ui.Button("Devices", () => ShowDevices(app))); flow.Controls.Add(buttons); AcceptButton = save;

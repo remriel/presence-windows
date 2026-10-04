@@ -16,7 +16,8 @@ internal static class Program
         if (args.Contains("--unregister")) { ToastNotificationManagerCompat.Uninstall(); return; }
         if (args.Contains("--diagnose")) { Diagnostic.Run(args); return; }
         var previewIndex = Array.IndexOf(args, "--preview-image");
-        var demo = args.Contains("--demo") || previewIndex >= 0;
+        var alertPreviewIndex = Array.IndexOf(args, "--preview-alert-image");
+        var demo = args.Contains("--demo") || previewIndex >= 0 || alertPreviewIndex >= 0;
         var dataDir = System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "Presence" + (demo ? "-Demo" : ""));
         Directory.CreateDirectory(dataDir);
         var name = "Presence-" + Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(dataDir)))[..16];
@@ -63,6 +64,11 @@ internal static class Program
             {
                 var exportContext = context;
                 Application.Idle += (_, _) => { exportContext.ExportPreview(args[previewIndex + 1]); exportContext.Exit(); };
+            }
+            if (alertPreviewIndex >= 0 && args.Length > alertPreviewIndex + 1)
+            {
+                var exportContext = context;
+                Application.Idle += (_, _) => { exportContext.ExportAlertPreview(args[alertPreviewIndex + 1]); exportContext.Exit(); };
             }
             Application.Run(context);
         }

@@ -42,6 +42,8 @@ public sealed class Settings
     public bool Arrivals { get; set; } = true;
     public bool Departures { get; set; } = true;
     public bool UnknownDevices { get; set; } = true;
+    public bool AlertSound { get; set; } = true;
+    public int PopupSeconds { get; set; } = 10;
     public bool QuietHours { get; set; }
     public int QuietStart { get; set; } = 22;
     public int QuietEnd { get; set; } = 7;

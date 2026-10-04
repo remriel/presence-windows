@@ -4,10 +4,14 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <AssemblyName>Presence</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest>
-    <Version>1.0.0</Version><Company>Presence</Company><Product>Presence</Product>
+    <Version>1.0.1</Version><Company>Presence</Company><Product>Presence</Product>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Presence.Core/Presence.Core.csproj" />
     <PackageReference Include="CommunityToolkit.WinUI.Notifications" Version="7.1.2" />
   </ItemGroup>
   <ItemGroup><Content Include="oui.csv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="assets/presence-alert.wav" LogicalName="Presence.AlertSound" />
+    <EmbeddedResource Include="assets/presence-alert.png" LogicalName="Presence.AlertIcon" />
+  </ItemGroup>
 </Project>
