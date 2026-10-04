@@ -68,3 +68,16 @@
 
 ## RESUME HERE
 1.0.1 is built, privately published, installed locally and launched --tray. The native floating popup preview was exported with fictional content; audible sound/click/live network acceptance is unverified. Stop without tests/review/cleanup under build-once steering. The owner can use Settings > Test alert, with Windows notification banners still disabled. Devices auto-track with no approval; optional person association remains in Details. On a future request, read actual source/git state; preserve local database/settings and prefer local-disk build artifacts to avoid Google Drive apphost locking.
+
+
+## Post-1.0.1 presence reliability pass (2026-10-04)
+- Root cause of the reported "join/leave does nothing" behavior was timing and sweep architecture: the shipped defaults scanned every 120 seconds, covered only 128 fresh addresses per cycle, kept the entire initial subnet sweep silent, and required five minutes of healthy absence before a departure.
+- Monitoring now defaults to a 10-second interval and 45-second departure grace. Settings exposes 5–600 second scan intervals and 15–600 second departure grace.
+- Legacy persisted timing is migrated on load. The old 120-second / 5-minute defaults become 10 seconds / 45 seconds; intentional non-default legacy values are preserved and converted to the new units.
+- Discovery re-probes known devices first every cycle, then cached neighbor candidates, then a rotating active sweep. The old final Take(512) cap that could starve the sweep behind a large neighbor set is removed.
+- /24 and /23 networks are fully swept each cycle (up to 512 host addresses). Larger networks rotate through 512-address chunks while known devices remain priority.
+- Initial silence is one successful scan rather than one complete multi-cycle subnet sweep.
+- Fresh ResolveIpNetEntry2 ARP remains the evidence gate. Cached neighbor-table rows remain candidates only. Gateway/local MAC replies for another target are discarded to reduce proxy-ARP false positives.
+- Added tests/Presence.Tests/Program.cs as a deterministic executable check for baseline silence, grace-period departure, reconnect arrival, and first-seen unknown-device behavior.
+- Added .github/workflows/build.yml to run the core behavior checks and publish the Windows app on Windows CI.
+- Source commit: 4ad08347a13f07c6a86c00037a9b4e4712913c05. This is an unreleased source reliability update until a Windows build/live LAN acceptance is completed.

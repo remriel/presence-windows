@@ -1,8 +1,8 @@
 # Presence progress
 
-Current objective: replace disabled Windows toast delivery with a custom floating icon notification/chime, automatically track every non-ignored LAN device without confirmation, retain optional associations with people, and publish/install 1.0.1.
+Current objective: make LAN join/leave detection responsive and reliable after the owner reported that reconnect/disconnect tests appeared to do nothing.
 
-Verified progress: **100%** `[████████████████████]` for this update's requested build-and-publish handoff. Functional acceptance is deferred under the user's build-once instruction; this percentage does not claim tested notification/audio/network behavior.
+Implementation progress: **90%** `[██████████████████░░]` for the detection reliability pass. Source changes and deterministic checks are committed; a Windows CI/live-LAN acceptance result is still needed before calling runtime behavior verified.
 
 - [x] Read current AGENTS, state/progress, git state and affected source.
 - [x] Inspect the live Codex Usage Counter reference popup/sound implementation.
@@ -34,3 +34,18 @@ Repository: https://github.com/remriel/presence-windows (private).
 Latest published release: https://github.com/remriel/presence-windows/releases/tag/v1.0.1.
 
 Manual acceptance for owner: Settings > Test alert should display the custom icon popup/chime with Windows notification banners off. Check a real device arrival, click-to-open, quiet hours, optional association, and a tolerated departure when desired.
+
+
+## Detection reliability pass
+- [x] Identified the shipped latency stack: 120-second polling + 128-address sweep chunks + multi-cycle silent baseline + five-minute departure grace.
+- [x] Changed defaults to 10-second scans and 45-second departure grace, with legacy state migration.
+- [x] Full-sweep /24 and /23 networks each cycle; bounded 512-address rotation on larger networks.
+- [x] Always prioritize known devices and neighbor candidates; remove target truncation that could starve discovery.
+- [x] Keep cached neighbor entries candidate-only and require fresh ARP resolution.
+- [x] Ignore gateway/local MAC returned for other target addresses to reduce proxy-ARP false positives.
+- [x] Add deterministic core checks for baseline, departure, reconnect, and unknown-device event semantics.
+- [x] Add Windows GitHub Actions build/publish workflow.
+- [ ] Windows CI result observed.
+- [ ] Live physical device Wi-Fi off/on test observed.
+
+Current source head for this pass: 4ad08347a13f07c6a86c00037a9b4e4712913c05.
