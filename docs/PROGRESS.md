@@ -2,7 +2,7 @@
 
 Current objective: replace disabled Windows toast delivery with a custom floating icon notification/chime, automatically track every non-ignored LAN device without confirmation, retain optional associations with people, and publish/install 1.0.1.
 
-Verified progress: **85%** `[█████████████████░░░]` toward this update's build-and-publish handoff. Functional acceptance is deferred under the user's build-once instruction.
+Verified progress: **100%** `[████████████████████]` for this update's requested build-and-publish handoff. Functional acceptance is deferred under the user's build-once instruction; this percentage does not claim tested notification/audio/network behavior.
 
 - [x] Read current AGENTS, state/progress, git state and affected source.
 - [x] Inspect the live Codex Usage Counter reference popup/sound implementation.
@@ -12,23 +12,25 @@ Verified progress: **85%** `[█████████████████
 - [x] Keep people association optional and make it directly available in device details.
 - [x] Publish Windows x64 production build once; no blocking compiler errors.
 - [x] Export requested native popup progress image with fictional content.
-- [ ] Replace stable local install, preserve mappings/settings and restart background/tray process.
-- [ ] Publish portable/source packages and private GitHub release; provide state/progress docs.
+- [x] Replace stable local install, preserve the existing database/settings and restart background/tray process.
+- [x] Publish portable package and private GitHub release v1.0.1; commit/push completed source and documentation.
+- [x] Provide source snapshot and state/progress files with the release handoff.
 
 Completed previous release: 1.0.0 source and portable published; installed locally and started --tray. This update is prompted by user-reported Test alert failure with Windows notifications disabled.
 
-Current implementation: self-contained x64 production publish succeeded. Native popup image exported with fictional text. Packaging, local replacement and GitHub 1.0.1 publication are next. Automatic interval stays two minutes with manual Refresh; five-minute absence tolerance and silent first baseline remain. No OS notification settings changed.
+Current implementation: self-contained x64 production publish succeeded; native popup image exported with fictional text; portable release v1.0.1 published. Local installed copy at %LOCALAPPDATA%/Programs/Presence was replaced and launched --tray. Automatic interval stays two minutes with manual Refresh; five-minute absence tolerance and silent first baseline remain. All non-ignored devices auto-track on first fresh response; person association is optional. No OS notification settings changed.
 
 Blockers: none currently. No tests, linting, code review, cleanup, repeated successful builds or live-network verification authorized under build-once steering.
 
 Checks performed: source/reference inspection and asset fetch needed for implementation; production publish succeeded. Requested native popup bitmap export completed. No automated or functional tests, audio listening tests or live network verification performed for 1.0.1.
 
 Exact ordered next steps:
-1. Publish the changed Windows x64 code once using local-disk artifacts.
-2. Export native popup preview, package portable files and preserve source.
-3. Replace local installed executable and launch --tray.
-4. Commit/push source, publish v1.0.1, deliver docs and stop.
+1. Owner opens Presence from the tray and uses Settings > Test alert for manual popup/chime acceptance.
+2. Optionally associate devices with people from Details; no device approval is needed for tracking or alerts.
+3. Further tests/review/changes await the owner's next request. No additional validation scheduled.
 
 Repository: https://github.com/remriel/presence-windows (private).
+
+Latest published release: https://github.com/remriel/presence-windows/releases/tag/v1.0.1.
 
 Manual acceptance for owner: Settings > Test alert should display the custom icon popup/chime with Windows notification banners off. Check a real device arrival, click-to-open, quiet hours, optional association, and a tolerated departure when desired.

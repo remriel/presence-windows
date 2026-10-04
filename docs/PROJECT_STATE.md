@@ -61,10 +61,10 @@
 
 ## Publication and local installation
 - Private GitHub repository: https://github.com/remriel/presence-windows.
-- Release v1.0.0: https://github.com/remriel/presence-windows/releases/tag/v1.0.0.
-- Local stable install: %LOCALAPPDATA%/Programs/Presence. Started --tray; startup defaults to enabled via HKCU Run. Data: %LOCALAPPDATA%/Presence/presence.db; preview is a separate Presence-Demo profile.
+- Latest release v1.0.1: https://github.com/remriel/presence-windows/releases/tag/v1.0.1. Previous v1.0.0 remains available historically.
+- Local stable install: %LOCALAPPDATA%/Programs/Presence. Updated to 1.0.1 and started --tray; startup defaults to enabled via HKCU Run. Data: %LOCALAPPDATA%/Presence/presence.db; existing database/settings were left intact. Preview is a separate Presence-Demo profile.
 - Production build: dotnet publish with win-x64, self-contained, single-file, IncludeNativeLibrariesForSelfExtract, DebugType=None and local --artifacts-path. No trimming. OUI CSV accompanies the executable.
 - GitHub initially rejected a shortened release target SHA with Release.target_commitish is invalid. Using full git rev-parse HEAD resolved the publication blocker.
 
 ## RESUME HERE
-Publish 1.0.1 once, export requested popup progress image, update the stable local install and restart --tray, package and publish private GitHub release. Preserve local database/settings. Then stop without tests/review/cleanup; hand custom popup/sound and network acceptance to owner. Prefer local-disk build artifacts to avoid Google Drive apphost locking.
+1.0.1 is built, privately published, installed locally and launched --tray. The native floating popup preview was exported with fictional content; audible sound/click/live network acceptance is unverified. Stop without tests/review/cleanup under build-once steering. The owner can use Settings > Test alert, with Windows notification banners still disabled. Devices auto-track with no approval; optional person association remains in Details. On a future request, read actual source/git state; preserve local database/settings and prefer local-disk build artifacts to avoid Google Drive apphost locking.
