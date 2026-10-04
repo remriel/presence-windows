@@ -43,7 +43,17 @@
 
 ## Unresolved / proof boundary
 - A physical phone disconnect/reconnect/sleep test requires user participation; deterministic tests cannot establish radio behavior.
-- Native screenshots and live LAN discovery will be checked on this Windows 10 host.
+- Native preview export completed; Windows Computer Use screenshots timed out twice. Live LAN discovery and phone/restart/toast acceptance were explicitly skipped under the build-once instruction.
+- Release is unsigned. Source and a self-contained portable ZIP were published privately; startup/persistence across a real Windows logon and long-running CPU/RAM behavior are not verified.
+- This release is IPv4-only. Sleeping clients/AP isolation/proxy ARP can make inferred joins/leaves differ from router association state. A /22 full baseline takes multiple two-minute cycles; recognized-device addresses are probed each cycle.
+- No runtime errors were established by functional testing because none was requested after the build-once steering. Known uncertainty must not be presented as passed acceptance.
+
+## Publication and local installation
+- Private GitHub repository: https://github.com/remriel/presence-windows.
+- Release v1.0.0: https://github.com/remriel/presence-windows/releases/tag/v1.0.0.
+- Local stable install: %LOCALAPPDATA%/Programs/Presence. Started --tray; startup defaults to enabled via HKCU Run. Data: %LOCALAPPDATA%/Presence/presence.db; preview is a separate Presence-Demo profile.
+- Production build: dotnet publish with win-x64, self-contained, single-file, IncludeNativeLibrariesForSelfExtract, DebugType=None and local --artifacts-path. No trimming. OUI CSV accompanies the executable.
+- GitHub initially rejected a shortened release target SHA with Release.target_commitish is invalid. Using full git rev-parse HEAD resolved the publication blocker.
 
 ## RESUME HERE
-Publish self-contained Windows x64, capture requested progress screenshot, package and synchronize private GitHub repository/release. Hand live network/phone/native interaction acceptance to user under build-once instruction.
+The requested build-and-publish workflow is complete. Stop without further tests/review/cleanup. Owner identifies phones/devices and performs optional manual acceptance. On a future explicit fix request, read these docs and inspect actual source/git state, then make only the requested change; prefer local-disk build artifacts to avoid Google Drive apphost locking.
