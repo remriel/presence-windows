@@ -5,6 +5,9 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: write
+
 jobs:
   windows:
     runs-on: windows-latest
@@ -17,3 +20,44 @@ jobs:
         run: dotnet run --project tests/Presence.Tests/Presence.Tests.csproj -c Release
       - name: Publish Windows app
         run: dotnet publish src/Presence.App/Presence.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/portable
+      - name: Package portable build
+        id: package
+        shell: pwsh
+        run: |
+          [xml]$project = Get-Content "src/Presence.App/Presence.App.csproj"
+          $version = [string]($project.Project.PropertyGroup.Version | Select-Object -First 1)
+          if ([string]::IsNullOrWhiteSpace($version)) { throw "Project version is missing." }
+          $zip = "artifacts/Presence-$version-win-x64.zip"
+          if (Test-Path $zip) { Remove-Item $zip -Force }
+          Compress-Archive -Path "artifacts/portable/*" -DestinationPath $zip -CompressionLevel Optimal
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash.ToLowerInvariant()
+          "$hash  $(Split-Path $zip -Leaf)" | Set-Content "$zip.sha256" -NoNewline
+          "version=$version" >> $env:GITHUB_OUTPUT
+          "zip=$zip" >> $env:GITHUB_OUTPUT
+      - name: Upload portable artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Presence-win-x64
+          path: |
+            ${{ steps.package.outputs.zip }}
+            ${{ steps.package.outputs.zip }}.sha256
+      - name: Publish GitHub release
+        if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release Presence ')
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = "v${{ steps.package.outputs.version }}"
+          gh release view $tag --repo "${{ github.repository }}" *> $null
+          if ($LASTEXITCODE -eq 0) {
+            Write-Host "$tag already exists; leaving the existing release untouched."
+            exit 0
+          }
+          gh release create $tag `
+            "${{ steps.package.outputs.zip }}" `
+            "${{ steps.package.outputs.zip }}.sha256" `
+            --repo "${{ github.repository }}" `
+            --target "${{ github.sha }}" `
+            --title "Presence ${{ steps.package.outputs.version }}" `
+            --notes-file "docs/RELEASE_NOTES.md"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
