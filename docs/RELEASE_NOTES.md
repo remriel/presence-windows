@@ -1,14 +1,7 @@
-# Presence 1.0.4
+# Presence 1.0.5
 
-Windows 10 x64 portable, self-contained C# tray utility.
+The internet speed test now measures download for at least 2.5 seconds and upload for at least 2.5 seconds. Successful tests therefore run for at least five seconds, plus latency measurement and request overhead. The old 8 MiB cutoff no longer ends fast-connection measurements early. Throughput uses total transferred bytes divided by actual elapsed time.
 
-- Fast local device presence with a 3-second scan default, streamed observations, first-response tracking and 30-second departure grace.
-- Fresh ARP/ICMP/mDNS, prioritized known devices, full /24 and /23 scans, bounded larger subnet rotation, proxy-ARP filtering, silent startup baseline, no ports or router credentials.
-- Local SQLite events, mappings and settings. Person associations remain optional.
-- Floating icon alerts and the bundled chime work when Windows banners are off.
-- The new bottom-bar **Speed test** opens on demand for download/upload, median HTTP latency and jitter using Cloudflare's nearest edge; the popup auto-starts and can be closed to cancel.
-- Speed test has a 35-second cap and does not save results. Cloudflare receives the public IP and test traffic; its documented service collects test measurements for aggregated internet-quality insights. Presence never sends discovered-device identifiers, mappings or history.
-- Settings and device dialog labels now receive the selected theme throughout nested controls, fixing black text on the dark background while preserving muted label contrast.
-- The main window stays compact and readable, with responsive device rows, persistent tray and Windows startup.
+Closing the dialog cancels the test. The existing 35-second timeout remains. Tests run only when requested and do not save results or send Presence device data.
 
-The Windows x64 self-contained production publish completed and this build is published as GitHub release [v1.0.4](https://github.com/remriel/presence-windows/releases/tag/v1.0.4). No automated tests or live Wi-Fi/speed-test acceptance are part of this release. Manual instructions are in MANUAL_ACCEPTANCE.md.
+One production build; no automated or live network tests requested.

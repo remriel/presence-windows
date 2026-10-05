@@ -50,16 +50,18 @@ internal sealed class InternetSpeedTest : IDisposable
 
     private async Task<double> MeasureBandwidthAsync(bool upload, CancellationToken ct)
     {
-        const long byteLimit = 8 * 1024 * 1024;
-        long transferred = 0; var elapsed = 0d; var blockSize = 128 * 1024;
-        while (transferred < byteLimit && elapsed < 0.6)
+        var minimumDuration = TimeSpan.FromSeconds(2.5);
+        long transferred = 0; var blockSize = 128 * 1024;
+        var watch = Stopwatch.StartNew();
+        while (watch.Elapsed < minimumDuration)
         {
-            var size = (int)Math.Min(blockSize, (byteLimit - transferred) / 2);
-            var pair = await Task.WhenAll(TransferAsync(size, upload, ct), TransferAsync(size, upload, ct));
+            ct.ThrowIfCancellationRequested();
+            var pair = await Task.WhenAll(TransferAsync(blockSize, upload, ct), TransferAsync(blockSize, upload, ct));
             transferred += pair.Sum(x => x.Bytes);
-            elapsed += pair.Max(x => x.Elapsed.TotalSeconds);
             blockSize = Math.Min(blockSize * 2, 2 * 1024 * 1024);
         }
+        watch.Stop();
+        var elapsed = watch.Elapsed.TotalSeconds;
         if (elapsed <= 0) throw new IOException("The speed-test server returned no measurements.");
         return transferred * 8d / elapsed / 1_000_000d;
     }

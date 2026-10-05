@@ -9,7 +9,7 @@ A quiet Windows 10 tray utility that alerts when any device joins or disappears 
 3. Allow the first silent network scan to complete. All discovered devices are tracked automatically; nothing needs approval. Optionally open a device, enter a name or associate a person, and choose their primary phone.
 4. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.0.4**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.0.5**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ## How it works
 
@@ -21,7 +21,7 @@ An arrival is inferred from the first fresh response. A departure requires **30 
 
 Private MAC changes cannot safely be matched automatically. Open the new device, select the existing person, and mark it as their primary phone. This replaces the old primary while retaining its history. Manufacturer lookup uses a bundled offline IEEE OUI table; private MACs do not reveal a reliable manufacturer.
 
-The main window has a compact **Speed test** control in its bottom bar. It measures internet download/upload speed, median HTTPS latency and jitter to Cloudflare; runs usually take a few seconds and stop after 35 seconds. Cloudflare receives your public IP and test traffic and reports collecting measurement results for aggregate internet quality insights. Presence never sends device names, MAC addresses, person mappings or history, and does not save speed results.
+The main window has a compact **Speed test** control in its bottom bar. It measures internet download/upload speed, median HTTPS latency and jitter to Cloudflare; download and upload each measure for at least 2.5 seconds (at least five seconds total), with a 35-second timeout. Cloudflare receives your public IP and test traffic and reports collecting measurement results for aggregate internet quality insights. Presence never sends device names, MAC addresses, person mappings or history, and does not save speed results.
 
 ## Privacy and limitations
 
@@ -79,4 +79,5 @@ Manual acceptance after launch:
 - [IEEE OUI database](https://standards-oui.ieee.org/oui/oui.csv), bundled as a local vendor lookup snapshot downloaded October 4, 2026. The CSV remains unmodified; no runtime download occurs.
 - Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite and Windows Community Toolkit retain their upstream licenses. NuGet package metadata supplies license details; see THIRD_PARTY_NOTICES.md.
 - Floating alert icon/chime reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter), at `assets/usage-orbit-64.png` and `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
+
 

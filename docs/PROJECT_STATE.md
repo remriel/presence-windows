@@ -12,7 +12,7 @@
 
 ## Speed test
 - `InternetSpeedTest.cs` and `SpeedTestWindow` are a separate internet performance tool started only by the bottom-bar **Speed test** button. The dialog auto-starts after the click and can be closed to cancel.
-- The test uses HTTPS `speed.cloudflare.com/__down` and `/__up` for download/upload, four zero-byte timing requests for median HTTPS latency, and mean consecutive latency jitter. Samples ramp in parallel 128 KiB blocks until ~0.6 seconds per direction or 8 MiB; the complete test is capped at 35 seconds.
+- The test uses HTTPS `speed.cloudflare.com/__down` and `/__up` for download/upload, four zero-byte timing requests for median HTTPS latency, and mean consecutive latency jitter. In v1.0.5, samples ramp from parallel 128 KiB blocks to 2 MiB blocks for at least 2.5 wall-clock seconds per direction (at least five seconds total); there is no total byte cutoff; the complete test is capped at 35 seconds.
 - No `__meta`, TURN or `__results` request is made by this implementation; results display only and are not saved. Cloudflare sees the public IP and test traffic. Cloudflare documents that its speed-test measurements are collected for aggregate connection-quality insights. Presence device IDs, MACs, hostnames, person mappings and history are never sent.
 - The Cloudflare speed-test endpoint, measurement types and aggregation note were verified against [cloudflare/speedtest](https://github.com/cloudflare/speedtest). Run the test only when the owner wants a result.
 
@@ -36,3 +36,8 @@ The v1.0.4 release is running in the tray and the existing database is preserved
 
 Private repository: https://github.com/remriel/presence-windows
 Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.4
+
+
+## v1.0.5 update
+Speed measurement now runs at least 2.5 seconds per direction using a Stopwatch, with no 8 MiB early cutoff. Successful tests take at least five seconds plus latency/overhead. One production build passed; no tests or live speed transfer were run. The local v1.0.5 app is running from Downloads and Windows startup points to that version. Existing presence data remains in its original profile. Older extracted folders remain as previously documented.
+
