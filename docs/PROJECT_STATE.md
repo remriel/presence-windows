@@ -29,5 +29,10 @@
 - Cloudflare speed measurement is edge-based internet throughput/HTTP latency. It is not the Wi-Fi PHY link rate, router throughput or saved ISP diagnostic history.
 
 ## RESUME HERE
-- Release v1.0.3 needs source/docs merge synced to GitHub, portable/source packages, fictional UI preview upload and final progress/state publication.
-- The current feature code has already passed one local Windows publish. Do not rerun it unless a blocking source change is made. Publish the GitHub release and stop without tests/review. Current screenshot uses demo data; no live LAN data is packaged.
+
+Presence v1.0.3 has been built, packaged, pushed, and published on GitHub. The update combines three-second local scans, streaming discovery, responsive low-churn UI and an on-demand Cloudflare internet speed test in the bottom bar. The test measures download/upload, median HTTPS latency and jitter; it sends test requests/public IP to Cloudflare only when clicked, and saves no results or Presence device data.
+
+Do not run another build or tests without a new request. The local v1.0.1 install and existing database were not replaced. Runtime internet speed, Wi-Fi connect/disconnect, sleep, popup click/audio and long-duration behavior remain manual owner acceptance. Preserve the current source/ref and use `docs/MANUAL_ACCEPTANCE.md` for those steps.
+
+Private repository: https://github.com/remriel/presence-windows
+Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.3
