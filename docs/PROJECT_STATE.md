@@ -20,7 +20,7 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `%LOCALAPPDATA%\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the public `remriel/presence-windows`. Latest published GitHub release before this update is v1.0.5. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
+- Repository is the public `remriel/presence-windows`. The current published release is v1.1.0. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
@@ -59,9 +59,9 @@ Presence v1.0.5 was published at https://github.com/remriel/presence-windows/rel
 Presence v1.1.0 now runs from C:\Presence, replacing the active 1.0.5 executable. The shared local database remains at %LOCALAPPDATA%\Presence\presence.db. The Windows Run entry points to the installed executable with --tray. Source and the built package are ready for the 1.1.0 GitHub release.
 
 ## v1.1.0 publication state
-The icon update's single Windows x64 publish succeeded. The running app at `C:\Presence` reports file version 1.1.0.0; the Run key points to it with `--tray`. The existing presence database is preserved. The updated portable archive SHA-256 is `6069ee29aa682aea7eac0bb19c833a7af9c1498d3eb8a12b3d69e022fe5f716b`. The prior v1.1.0 draft asset still has the earlier icon and must be replaced before publication.
+The icon update's single Windows x64 publish succeeded. The running app at `C:\Presence` reports file version 1.1.0.0; the Run key points to it with `--tray`. The existing presence database is preserved. The updated portable archive SHA-256 is `6069ee29aa682aea7eac0bb19c833a7af9c1498d3eb8a12b3d69e022fe5f716b`. GitHub reports that digest for the published ZIP at https://github.com/remriel/presence-windows/releases/tag/v1.1.0.
 
 ## RESUME HERE
-Commit and push the icon integration and README changes, tag that commit `v1.1.0`, replace the old ZIP/checksum on the draft GitHub release and publish it. Source of truth is the repository and GitHub release state; the earlier handoff sections document history. Do not rerun builds or tests unless a release-blocking error requires it.
+v1.1.0 is published, the matching build runs locally, and the repository is public. No release work remains. The earlier handoff sections document history. If the owner later requests runtime acceptance, use `docs/MANUAL_ACCEPTANCE.md`; the build-once release did not run live Wi-Fi, sound or speed-transfer checks.
 
 
