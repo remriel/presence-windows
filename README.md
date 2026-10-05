@@ -1,6 +1,28 @@
 # Presence
 
-A quiet Windows 10 tray utility that alerts when any device joins or disappears from your own local network. Optionally assign phones to people to infer who is home. All device mappings, observations and event history stay on this computer.
+**An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
+
+[Download Presence 1.1.0](https://github.com/remriel/presence-windows/releases/tag/v1.1.0) · Windows 10 x64 and later
+
+<img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
+
+
+
+## Screenshots
+
+These screens use fictional preview devices.
+
+<img src="docs/images/presence-settings.png" width="620" alt="Grouped Presence settings with aligned fields, notification toggles and a fixed action bar">
+
+<img src="docs/images/presence-devices.png" width="620" alt="Device inventory with aligned device, presence, type and IP columns">
+
+<img src="docs/images/presence-device-details.png" width="620" alt="Device details with identity, person association and readable network information">
+
+<img src="docs/images/presence-activity.png" width="620" alt="Activity history with aligned timestamps, device names and event types">
+
+<img src="docs/images/presence-speed-test.png" width="620" alt="On-demand internet speed test showing download, upload, latency and jitter">
+
+<img src="docs/images/presence-alert.png" width="420" alt="Floating Presence arrival alert with a long device name wrapping cleanly">
 
 ## Start
 
@@ -79,6 +101,9 @@ Manual acceptance after launch:
 - [IEEE OUI database](https://standards-oui.ieee.org/oui/oui.csv), bundled as a local vendor lookup snapshot downloaded October 4, 2026. The CSV remains unmodified; no runtime download occurs.
 - Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite and Windows Community Toolkit retain their upstream licenses. NuGet package metadata supplies license details; see THIRD_PARTY_NOTICES.md.
 - Floating alert icon/chime reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter), at `assets/usage-orbit-64.png` and `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
+
+
+
 
 
 

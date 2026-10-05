@@ -19,7 +19,7 @@
 ## Persistence, build and release
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
-- Build intermediates and publish output use `C:\Users\Gev\AppData\Local\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
+- Build intermediates and publish output use `%LOCALAPPDATA%\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
 - Repository is the private `remriel/presence-windows`. Latest GitHub release before this update is v1.0.5. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
@@ -60,4 +60,5 @@ Presence v1.1.0 now runs from C:\Presence, replacing the active 1.0.5 executable
 
 ## v1.1.0 publication state
 The single Windows x64 publish succeeded. The running app at C:\\Presence reports file version 1.1.0.0; the Run key points to it with --tray. The existing presence database is preserved. GitHub release publication is completing now.
+
 
