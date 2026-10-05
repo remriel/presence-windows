@@ -11,4 +11,4 @@ Windows 10 x64 portable, self-contained C# tray utility.
 - Settings and device dialog labels now receive the selected theme throughout nested controls, fixing black text on the dark background while preserving muted label contrast.
 - The main window stays compact and readable, with responsive device rows, persistent tray and Windows startup.
 
-The Windows x64 self-contained production publish completed. No automated tests or live Wi-Fi/speed-test acceptance are part of this release. Manual instructions are in MANUAL_ACCEPTANCE.md.
+The Windows x64 self-contained production publish completed and this build is published as GitHub release [v1.0.4](https://github.com/remriel/presence-windows/releases/tag/v1.0.4). No automated tests or live Wi-Fi/speed-test acceptance are part of this release. Manual instructions are in MANUAL_ACCEPTANCE.md.
