@@ -55,7 +55,7 @@ internal static class Program
                         var message = await reader.ReadLineAsync(timeout.Token);
                         if (message is not null && message.Length < 100) context.Activate(message);
                     }
-                    catch (OperationCanceledException) { break; }
+                    catch (OperationCanceledException) { if (context.Stopping) break; }
                     catch (IOException) { }
                 }
             });

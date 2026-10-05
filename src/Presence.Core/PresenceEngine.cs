@@ -8,43 +8,47 @@ public sealed class PresenceEngine(Snapshot snapshot)
     private string network = "";
     private int baselineScans;
     private readonly HashSet<string> baselineDevices = [];
+    private readonly Dictionary<string, DateTimeOffset> evaluatedAt = [];
     public string Network => network;
     public bool Baselining => baselineScans < 1;
 
     public void Pause()
     {
-        previous = null;
-        foreach (var d in Data.Devices) d.Consecutive = 0;
+        previous = null; evaluatedAt.Clear();
+        foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
     }
-    public List<PresenceEvent> Apply(IEnumerable<Observation> observations, string scope, DateTimeOffset now, bool initialSweep = false)
+    public List<PresenceEvent> Apply(IEnumerable<Observation> observations, string scope, DateTimeOffset now, bool initialSweep = false, IReadOnlyCollection<string>? evaluatedMacs = null, bool partial = false)
     {
         if (network != scope)
         {
-            network = scope; baselineScans = 0; baselineDevices.Clear(); previous = null;
-            foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
+            network = scope; baselineScans = 0; baselineDevices.Clear(); evaluatedAt.Clear(); previous = null;
+            foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; if (d.State is PresenceState.Home or PresenceState.ProbablyHome) d.State = PresenceState.Unknown; }
         }
         var delta = previous.HasValue ? (now - previous.Value).TotalSeconds : 0;
         // A suspend, long scan failure or clock jump forces a silent re-baseline.
-        if (delta < 0 || delta > Math.Max(90, Data.Settings.ScanSeconds * 3))
+        if (delta < 0 || delta > Math.Max(90, Data.Settings.ScanIntervalSeconds * 3))
         {
-            delta = 0; baselineScans = 0; baselineDevices.Clear();
+            delta = 0; baselineScans = 0; baselineDevices.Clear(); evaluatedAt.Clear();
             foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
         }
         previous = now;
         var silent = Baselining || initialSweep;
         var events = new List<PresenceEvent>();
         var seen = new HashSet<string>();
+        var byMac = Data.Devices.ToDictionary(d => d.Mac, StringComparer.OrdinalIgnoreCase);
         foreach (var o in observations)
         {
             var mac = Identity.NormalizeMac(o.Mac);
             if (mac == "" || !seen.Add(mac)) continue;
-            var d = Data.Devices.FirstOrDefault(d => d.Mac == mac);
-            if (d is null) { d = new Device { Mac = mac, FirstSeen = now }; Data.Devices.Add(d); }
+            var observedAt = o.At is { } timestamp && timestamp <= now ? timestamp : now;
+            var d = byMac.GetValueOrDefault(mac);
+            if (d is null) { d = new Device { Mac = mac, FirstSeen = observedAt }; Data.Devices.Add(d); byMac[mac] = d; }
+            if (d.LastSeen > observedAt) continue;
             if (silent) baselineDevices.Add(mac);
-            d.Ip = o.Ip; d.Network = scope; d.LastSeen = now;
+            d.Ip = o.Ip; d.Network = scope; d.LastSeen = observedAt; evaluatedAt[mac] = now;
             if (o.Hostname != "") d.Hostname = o.Hostname;
             if (o.Vendor != "") d.Vendor = o.Vendor;
-            d.MissingSeconds = 0; d.Consecutive++;
+            d.MissingSeconds = 0; d.Consecutive = Math.Min(2, d.Consecutive + 1);
             // A fresh ARP/mDNS response is sufficient. No user approval or second scan is required.
             if (d.Consecutive >= 1)
             {
@@ -62,12 +66,15 @@ public sealed class PresenceEngine(Snapshot snapshot)
                     events.Add(PresenceEvent.Create(now, "arrived", EventName(d), mac, d.PersonId));
             }
         }
-        foreach (var d in Data.Devices.Where(d => d.Network == scope && !seen.Contains(d.Mac)))
+        var evaluated = evaluatedMacs is null ? null : evaluatedMacs.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var d in Data.Devices.Where(d => !partial && d.Network == scope && !seen.Contains(d.Mac) && (evaluated is null || evaluated.Contains(d.Mac))))
         {
-            d.Consecutive = 0; d.MissingSeconds += Math.Max(0, delta);
+            var missingDelta = evaluatedAt.TryGetValue(d.Mac, out var lastEvaluation) ? Math.Max(0, (now - lastEvaluation).TotalSeconds) : evaluated is null ? Math.Max(0, delta) : 0;
+            evaluatedAt[d.Mac] = now;
+            d.Consecutive = 0; d.MissingSeconds += Math.Min(missingDelta, Math.Max(90, Data.Settings.ScanIntervalSeconds * 3));
             if (d.State is PresenceState.Home or PresenceState.ProbablyHome)
             {
-                if (d.MissingSeconds >= Data.Settings.DepartureMinutes * 60)
+                if (d.MissingSeconds >= Data.Settings.DepartureGraceSeconds)
                 {
                     d.State = PresenceState.Away; d.ChangedAt = now;
                     if (!silent && d.Kind != DeviceKind.Ignore) events.Add(PresenceEvent.Create(now, "left", EventName(d), d.Mac, d.PersonId));
@@ -77,7 +84,7 @@ public sealed class PresenceEngine(Snapshot snapshot)
         }
         // Every device transition is recorded once. Person aggregation drives the list, not duplicate alerts.
         ReconcilePeople(now);
-        baselineScans++;
+        if (!partial) baselineScans++;
         return events;
     }
     private string EventName(Device device) => !string.IsNullOrWhiteSpace(device.Name) ? device.Name : device.IsPrimary && device.PersonId is not null ? (Data.People.FirstOrDefault(p => p.Id == device.PersonId)?.Name ?? device.DisplayName) + "’s device" : device.DisplayName;

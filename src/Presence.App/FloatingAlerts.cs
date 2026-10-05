@@ -12,14 +12,15 @@ internal sealed class FloatingAlerts : IDisposable
     private readonly Func<Settings> settings;
     private readonly Func<Rectangle> workArea;
     private readonly Action<string> activate;
+    private readonly Action<Action> dispatch;
     private readonly Bitmap icon;
     private readonly GCHandle sound;
     private FloatingAlertWindow? current;
     private int overflow;
     private bool disposed;
-    public FloatingAlerts(Func<Settings> getSettings, Func<Rectangle> getWorkArea, Action<string> onActivate)
+    public FloatingAlerts(Func<Settings> getSettings, Func<Rectangle> getWorkArea, Action<string> onActivate, Action<Action> post)
     {
-        settings = getSettings; workArea = getWorkArea; activate = onActivate;
+        settings = getSettings; workArea = getWorkArea; activate = onActivate; dispatch = post;
         using var imageStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Presence.AlertIcon") ?? throw new InvalidDataException("Missing alert icon.");
         using var source = Image.FromStream(imageStream); icon = new Bitmap(source);
         using var audio = Assembly.GetExecutingAssembly().GetManifestResourceStream("Presence.AlertSound") ?? throw new InvalidDataException("Missing alert sound.");
@@ -51,7 +52,7 @@ internal sealed class FloatingAlerts : IDisposable
             if (current != popup) return;
             current = null;
             // Let the dismiss/click finish before advancing the bounded queue.
-            if (!disposed) { var dispatcher = Application.OpenForms.Cast<Form>().FirstOrDefault(f => !f.IsDisposed && f.IsHandleCreated); dispatcher?.BeginInvoke(Pump); }
+            if (!disposed) dispatch(Pump);
         };
         var area = workArea(); popup.Location = new Point(Math.Max(area.Left + 12, area.Right - popup.Width - 20), Math.Max(area.Top + 12, area.Bottom - popup.Height - 20));
         popup.Show();
@@ -90,7 +91,7 @@ internal sealed class FloatingAlertWindow : Form
         Text = "Presence notification"; FormBorderStyle = FormBorderStyle.None; ShowInTaskbar = false; TopMost = true; StartPosition = FormStartPosition.Manual; AutoScaleMode = AutoScaleMode.Dpi;
         ClientSize = new Size(360, 104); BackColor = Ui.Background(settings); ForeColor = Ui.Text(settings); Font = new Font("Segoe UI", 10); Cursor = Cursors.Hand;
         var picture = new PictureBox { Image = icon, SizeMode = PictureBoxSizeMode.Zoom, Bounds = new Rectangle(17, 30, 42, 42), BackColor = BackColor };
-        var header = new Label { Text = "PRESENCE", Bounds = new Rectangle(73, 14, 245, 21), Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Ui.Dark(settings) ? Color.FromArgb(135, 209, 172) : Color.FromArgb(30, 100, 70), BackColor = BackColor };
+        var header = new Label { Text = "PRESENCE", Bounds = new Rectangle(73, 14, 245, 21), Font = new Font("Segoe UI", 9, FontStyle.Bold), ForeColor = Ui.Positive(settings), BackColor = BackColor };
         var title = new Label { Text = message, Bounds = new Rectangle(73, 37, 259, 31), Font = new Font("Segoe UI", 11), AutoEllipsis = true, ForeColor = ForeColor, BackColor = BackColor, TextAlign = ContentAlignment.MiddleLeft };
         var subtitle = new Label { Text = detail, Bounds = new Rectangle(73, 71, 259, 20), Font = new Font("Segoe UI", 8.5f), AutoEllipsis = true, ForeColor = Ui.Muted(settings), BackColor = BackColor };
         var close = new Label { Text = "×", Bounds = new Rectangle(326, 5, 28, 28), TextAlign = ContentAlignment.MiddleCenter, Font = new Font("Segoe UI", 15), ForeColor = Ui.Muted(settings), BackColor = BackColor, AccessibleName = "Dismiss notification" };
@@ -102,7 +103,7 @@ internal sealed class FloatingAlertWindow : Form
         Shown += (_, _) => dismiss.Start();
     }
     private void OpenDevice() { Close(); activate(mac); }
-    protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); using var pen = new Pen(Color.FromArgb(110, 117, 124)); e.Graphics.DrawRectangle(pen, 0, 0, ClientSize.Width - 1, ClientSize.Height - 1); }
+    protected override void OnPaint(PaintEventArgs e) { base.OnPaint(e); using var pen = new Pen(Ui.Text(new Settings { Theme = Ui.Dark(new Settings()) ? "Dark" : "Light" }), 3); e.Graphics.DrawRectangle(pen, 1, 1, ClientSize.Width - 3, ClientSize.Height - 3); }
     protected override void WndProc(ref Message m) { if (m.Msg == 0x21) { m.Result = (IntPtr)3; return; } base.WndProc(ref m); } // MA_NOACTIVATE
     protected override void Dispose(bool disposing) { if (disposing) dismiss.Dispose(); base.Dispose(disposing); }
 }

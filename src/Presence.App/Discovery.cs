@@ -11,115 +11,232 @@ namespace Presence.App;
 public sealed record Lan(string Id, string Name, int Index, IPAddress Address, int Prefix, IPAddress Gateway, string Mac)
 {
     public uint AddressNumber => Number(Address);
-    public uint Mask => Prefix == 0 ? 0 : uint.MaxValue << (32 - Prefix);
+    public uint Mask => uint.MaxValue << (32 - Prefix);
     public uint First => AddressNumber & Mask;
     public uint Last => First | ~Mask;
-    public bool Contains(IPAddress ip) => ip.AddressFamily == AddressFamily.InterNetwork && (Number(ip) & Mask) == First;
+    public bool Contains(IPAddress ip) => ip.AddressFamily == AddressFamily.InterNetwork && Number(ip) > First && Number(ip) < Last;
     public static uint Number(IPAddress ip) { var b = ip.GetAddressBytes(); return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3]; }
     public static IPAddress Ip(uint value) => new(new byte[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
 }
-public sealed record ScanResult(string Scope, string Description, IReadOnlyList<Observation> Observations, bool InitialSweep, int Coverage, int Total);
+public sealed record ScanResult(string Scope, string Description, IReadOnlyList<Observation> Observations, bool InitialSweep, int Coverage, int Total, IReadOnlyCollection<string>? EvaluatedMacs = null, bool IsPartial = false);
 
-public sealed class Discovery
+public sealed class Discovery : IDisposable
 {
-    private string scope = "";
-    private uint cursor;
-    private int sweeps;
-    private readonly Dictionary<string, string> names = [];
+    private readonly ArpWorkers priority = new(12);
+    private readonly ArpWorkers sweep = new(32);
+    private readonly ConcurrentDictionary<string, Observation> recent = new(StringComparer.OrdinalIgnoreCase);
     private readonly VendorLookup vendors = new();
+    private CancellationTokenSource? laneCancellation;
+    private Task? background;
+    private string scope = "";
+    private long gatewaySeen;
+    private bool baselinePending = true;
+    private Lan? cachedLan;
+    private DateTimeOffset interfacesRead;
+    public string CurrentScope => scope;
+    public void Reset()
+    {
+        laneCancellation?.Cancel(); cachedLan = null; scope = ""; baselinePending = true; recent.Clear();
+    }
     public static List<Lan> Interfaces()
     {
-        var result = new List<Lan>();
+        var found = new List<(Lan Lan, bool Wifi)>();
         foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
         {
             if (nic.OperationalStatus != OperationalStatus.Up || nic.NetworkInterfaceType is not NetworkInterfaceType.Wireless80211 and not NetworkInterfaceType.Ethernet) continue;
             var description = nic.Description.ToLowerInvariant();
             if (new[] { "virtual", "vpn", "vmware", "hyper-v", "wireguard", "tailscale", "tap-", "tunnel" }.Any(description.Contains)) continue;
-            var props = nic.GetIPProperties();
-            var gateway = props.GatewayAddresses.FirstOrDefault(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any))?.Address;
-            if (gateway is null) continue;
-            foreach (var addr in props.UnicastAddresses.Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork && a.PrefixLength is >= 16 and <= 30))
-                result.Add(new(nic.Id, nic.Name, props.GetIPv4Properties().Index, addr.Address, addr.PrefixLength, gateway, Identity.NormalizeMac(nic.GetPhysicalAddress().ToString())));
+            try
+            {
+                var props = nic.GetIPProperties(); var index = props.GetIPv4Properties()?.Index;
+                if (index is null) continue;
+                var gateways = props.GatewayAddresses.Where(g => g.Address.AddressFamily == AddressFamily.InterNetwork && !g.Address.Equals(IPAddress.Any)).Select(g => g.Address).ToList();
+                foreach (var address in props.UnicastAddresses.Where(a => a.Address.AddressFamily == AddressFamily.InterNetwork && a.PrefixLength is >= 16 and <= 30))
+                {
+                    var mask = uint.MaxValue << (32 - address.PrefixLength);
+                    var gateway = gateways.FirstOrDefault(g => (Lan.Number(g) & mask) == (Lan.Number(address.Address) & mask));
+                    if (gateway is null) continue;
+                    found.Add((new(nic.Id, nic.Name, index.Value, address.Address, address.PrefixLength, gateway, Identity.NormalizeMac(nic.GetPhysicalAddress().ToString())), nic.NetworkInterfaceType == NetworkInterfaceType.Wireless80211));
+                }
+            }
+            catch (NetworkInformationException) { }
         }
-        return result.OrderByDescending(n => NetworkInterface.GetAllNetworkInterfaces().Any(i => i.Id == n.Id && i.NetworkInterfaceType == NetworkInterfaceType.Wireless80211)).ToList();
+        return found.OrderByDescending(x => x.Wifi).Select(x => x.Lan).ToList();
     }
-    public async Task<ScanResult> ScanAsync(Settings settings, IReadOnlyList<Device> devices, CancellationToken ct)
+    public async Task<ScanResult> ScanAsync(Settings settings, IReadOnlyList<Device> devices, CancellationToken ct, IProgress<ScanResult>? progress = null)
     {
-        var interfaces = Interfaces();
-        var lan = settings.InterfaceId == "" ? interfaces.FirstOrDefault() : interfaces.FirstOrDefault(n => n.Id == settings.InterfaceId);
-        if (lan is null) throw new IOException("No connected home LAN. Monitoring is paused.");
-        var gatewayMac = await Task.Run(() => NativeNeighbors.Resolve(lan, lan.Gateway), ct);
-        if (gatewayMac == "") throw new IOException("The gateway did not respond. Monitoring is paused.");
+        if (cachedLan is null || DateTimeOffset.UtcNow - interfacesRead > TimeSpan.FromSeconds(10) || (settings.InterfaceId != "" && settings.InterfaceId != cachedLan.Id))
+        {
+            var interfaces = Interfaces();
+            cachedLan = settings.InterfaceId == "" ? interfaces.FirstOrDefault() : interfaces.FirstOrDefault(n => n.Id == settings.InterfaceId);
+            interfacesRead = DateTimeOffset.UtcNow;
+        }
+        var lan = cachedLan ?? throw new IOException("No connected local network. Monitoring is paused.");
+        var gatewayMac = await priority.ResolveAsync(lan, lan.Gateway, ct);
+        if (gatewayMac == "") { Reset(); throw new IOException("The gateway is unavailable. Monitoring is paused."); }
+        Interlocked.Exchange(ref gatewaySeen, DateTimeOffset.UtcNow.UtcTicks);
         var key = lan.Id + "|" + Lan.Ip(lan.First) + "/" + lan.Prefix + "|" + gatewayMac;
-        if (scope != key) { scope = key; cursor = lan.First + 1; sweeps = 0; names.Clear(); }
-        var targets = new HashSet<string> { lan.Gateway.ToString() };
-        foreach (var d in devices.Where(d => d.Network == key && d.Kind != DeviceKind.Ignore))
-            if (IPAddress.TryParse(d.Ip, out var ip) && lan.Contains(ip) && !ip.Equals(lan.Address)) targets.Add(ip.ToString());
-        // Cached neighbor entries are candidates, never evidence. Resolve flushes and sends a new ARP request.
-        foreach (var row in NativeNeighbors.Read(lan.Index)) if (lan.Contains(row.Ip) && !row.Ip.Equals(lan.Address)) targets.Add(row.Ip.ToString());
-        bool initial = sweeps < 1;
+        if (scope != key || laneCancellation?.IsCancellationRequested == true)
+        {
+            laneCancellation?.Cancel(); laneCancellation?.Dispose(); laneCancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
+            scope = key; baselinePending = true; recent.Clear(); background = null;
+        }
+        var token = laneCancellation!.Token;
+        var started = DateTimeOffset.UtcNow;
+        var initial = baselinePending;
         var count = (int)(lan.Last - lan.First - 1);
-        var batch = Math.Min(count, 128);
-        for (var i = 0; i < batch; i++)
+        var description = lan.Name + " · " + Lan.Ip(lan.First) + "/" + lan.Prefix;
+        void Observe(string mac, IPAddress ip, string hostname, string signal, bool quiet)
         {
-            if (cursor >= lan.Last) { cursor = lan.First + 1; sweeps++; }
-            var ip = Lan.Ip(cursor++); if (!ip.Equals(lan.Address)) targets.Add(ip.ToString());
+            if (token.IsCancellationRequested || key != scope || mac == "") return;
+            if (!ip.Equals(lan.Gateway) && mac == gatewayMac || !ip.Equals(lan.Address) && mac == lan.Mac) return;
+            var at = DateTimeOffset.UtcNow;
+            var previous = recent.GetValueOrDefault(mac);
+            if (hostname == "" && previous?.Ip == ip.ToString()) hostname = previous.Hostname;
+            var observation = new Observation(mac, ip.ToString(), hostname, vendors.Find(mac), signal, at);
+            recent[mac] = observation;
+            if (previous is null || at - previous.At.GetValueOrDefault() >= TimeSpan.FromMilliseconds(500))
+                progress?.Report(new(key, description, [observation], quiet, 0, count, [], true));
         }
-        if (cursor >= lan.Last) { cursor = lan.First + 1; sweeps++; }
-        var mdns = MdnsAsync(lan, ct);
-        var found = new ConcurrentDictionary<string, Observation>();
-        found[lan.Mac] = new(lan.Mac, lan.Address.ToString(), Environment.MachineName, vendors.Find(lan.Mac), "local-interface");
-        found[gatewayMac] = new(gatewayMac, lan.Gateway.ToString(), "", vendors.Find(gatewayMac), "fresh-arp");
-        await Parallel.ForEachAsync(targets.Take(512), new ParallelOptions { MaxDegreeOfParallelism = 48, CancellationToken = ct }, async (target, token) =>
+        Observe(gatewayMac, lan.Gateway, "", "fresh-arp", initial);
+        if (lan.Mac != "") Observe(lan.Mac, lan.Address, Environment.MachineName, "local-interface", initial);
+        if (background is null || background.IsCompleted)
+            background = BackgroundDiscovery(lan, key, gatewayMac, Observe, token);
+        var targets = new HashSet<string>();
+        foreach (var d in devices.Where(d => d.Network == key && d.Kind != DeviceKind.Ignore))
+            if (IPAddress.TryParse(d.Ip, out var ip) && lan.Contains(ip) && !ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip.ToString());
+        foreach (var neighbor in NativeNeighbors.Read(lan.Index).Where(n => n.State == 5).Take(128))
+            if (lan.Contains(neighbor.Ip) && !neighbor.Ip.Equals(lan.Address) && !neighbor.Ip.Equals(lan.Gateway)) targets.Add(neighbor.Ip.ToString());
+        await Parallel.ForEachAsync(targets, new ParallelOptions { MaxDegreeOfParallelism = 24, CancellationToken = token }, async (target, cancellation) =>
         {
-            var ip = IPAddress.Parse(target);
-            var mac = await Task.Run(() => NativeNeighbors.Resolve(lan, ip), token);
-            if (mac == "") return;
-            string signal = "fresh-arp";
-            using var ping = new Ping();
-            try { if ((await ping.SendPingAsync(ip, 250)).Status == IPStatus.Success) signal += "+icmp"; } catch (PingException) { }
-            found[mac] = new(mac, target, "", vendors.Find(mac), signal);
+            var ip = IPAddress.Parse(target); var mac = await priority.ResolveAsync(lan, ip, cancellation);
+            Observe(mac, ip, "", "fresh-arp", initial);
         });
-        var multicast = await mdns;
-        foreach (var pair in multicast)
+        token.ThrowIfCancellationRequested();
+        baselinePending = false;
+        var evaluated = devices.Where(d => d.Network == key && (targets.Contains(d.Ip) || d.Mac == lan.Mac || d.Mac == gatewayMac)).Select(d => d.Mac).ToArray();
+        return new(key, description, recent.Values.Where(o => o.At >= started).ToList(), initial, count, count, evaluated);
+    }
+    private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, Action<string, IPAddress, string, string, bool> observe, CancellationToken ct)
+    {
+        var count = (int)(lan.Last - lan.First - 1);
+        var quietUntil = DateTimeOffset.UtcNow.AddSeconds(3);
+        async Task ArpSweep()
         {
-            names[pair.Key] = pair.Value;
-            // Only a new multicast response received in this scan supplies evidence.
-            var ip = IPAddress.Parse(pair.Key);
-            var mac = await Task.Run(() => NativeNeighbors.Resolve(lan, ip), ct);
-            if (mac == "") mac = NativeNeighbors.Read(lan.Index).FirstOrDefault(r => r.Ip.Equals(ip))?.Mac ?? "";
-            if (mac != "") found[mac] = new(mac, pair.Key, pair.Value, vendors.Find(mac), "mdns-response");
+            var firstPass = true;
+            while (!ct.IsCancellationRequested)
+            {
+                await Parallel.ForEachAsync(Enumerable.Range(1, count), new ParallelOptions { MaxDegreeOfParallelism = 32, CancellationToken = ct }, async (offset, token) =>
+                {
+                    if ((DateTimeOffset.UtcNow.UtcTicks - Interlocked.Read(ref gatewaySeen)) > TimeSpan.FromSeconds(30).Ticks) return;
+                    var ip = Lan.Ip(lan.First + (uint)offset);
+                    if (ip.Equals(lan.Address) || ip.Equals(lan.Gateway)) return;
+                    var mac = await sweep.ResolveAsync(lan, ip, token);
+                    observe(mac, ip, "", "fresh-arp", firstPass && DateTimeOffset.UtcNow < quietUntil);
+                });
+                firstPass = false;
+                await Task.Delay(1000, ct);
+            }
         }
-        foreach (var pair in found.ToArray())
+        async Task LocalResponses()
         {
-            if (names.TryGetValue(pair.Value.Ip, out var hostname)) found[pair.Key] = pair.Value with { Hostname = hostname };
+            var firstPass = true; uint cursor = lan.First + 1;
+            while (!ct.IsCancellationRequested)
+            {
+                var multicast = MdnsAsync(lan, ct);
+                // Async ICMP finds responsive new hosts without blocking the known-device path.
+                var targets = new List<IPAddress>();
+                for (var i = 0; i < Math.Min(count, 4096); i++)
+                {
+                    if (cursor >= lan.Last) cursor = lan.First + 1;
+                    var ip = Lan.Ip(cursor++); if (!ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip);
+                }
+                await Parallel.ForEachAsync(targets, new ParallelOptions { MaxDegreeOfParallelism = 128, CancellationToken = ct }, async (ip, token) =>
+                {
+                    using var ping = new Ping();
+                    try
+                    {
+                        if ((await ping.SendPingAsync(ip, 350).WaitAsync(token)).Status != IPStatus.Success) return;
+                        var mac = await sweep.ResolveAsync(lan, ip, token);
+                        observe(mac, ip, "", "icmp+fresh-arp", firstPass && DateTimeOffset.UtcNow < quietUntil);
+                    }
+                    catch (PingException) { }
+                });
+                foreach (var pair in await multicast)
+                {
+                    var ip = IPAddress.Parse(pair.Key); var mac = await sweep.ResolveAsync(lan, ip, ct);
+                    // The response's sender is fresh; cache supplies identity only if resolution is unavailable.
+                    if (mac == "") mac = NativeNeighbors.Read(lan.Index).FirstOrDefault(n => n.Ip.Equals(ip))?.Mac ?? "";
+                    observe(mac, ip, pair.Value, "mdns-response", firstPass && DateTimeOffset.UtcNow < quietUntil);
+                }
+                firstPass = false;
+                await Task.Delay(3000, ct);
+            }
         }
-        return new(key, lan.Name + " · " + Lan.Ip(lan.First) + "/" + lan.Prefix, found.Values.ToList(), initial, initial ? Math.Min(count, (int)(cursor - lan.First - 1)) : count, count);
+        try
+        {
+            var arp = ArpSweep(); var responses = LocalResponses();
+            var completed = await Task.WhenAny(arp, responses);
+            if (completed.IsFaulted && key == scope) laneCancellation?.Cancel();
+            await Task.WhenAll(arp, responses);
+        }
+        catch (OperationCanceledException) when (ct.IsCancellationRequested) { }
+        catch (Exception ex) when (ex is SocketException or NetworkInformationException or InvalidOperationException or IOException) { }
     }
     private static async Task<Dictionary<string, string>> MdnsAsync(Lan lan, CancellationToken ct)
     {
-        var names = new Dictionary<string, string>();
-        using var udp = new UdpClient(new IPEndPoint(lan.Address, 0));
-        udp.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, lan.Address.GetAddressBytes());
-        // QU bit requests unicast replies; no multicast listener/firewall exception is needed.
-        byte[] query = [0,0,0,0,0,1,0,0,0,0,0,0,9,(byte)'_', (byte)'s',(byte)'e',(byte)'r',(byte)'v',(byte)'i',(byte)'c',(byte)'e',(byte)'s',7,(byte)'_', (byte)'d',(byte)'n',(byte)'s',(byte)'-',(byte)'s',(byte)'d',4,(byte)'_', (byte)'u',(byte)'d',(byte)'p',5,(byte)'l',(byte)'o',(byte)'c',(byte)'a',(byte)'l',0,0,12,128,1];
+        var found = new Dictionary<string, string>();
         using var timeout = CancellationTokenSource.CreateLinkedTokenSource(ct); timeout.CancelAfter(1200);
         try
         {
+            using var udp = new UdpClient(new IPEndPoint(lan.Address, 0));
+            udp.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastInterface, lan.Address.GetAddressBytes());
+            byte[] query = [0,0,0,0,0,1,0,0,0,0,0,0,9,95,115,101,114,118,105,99,101,115,7,95,100,110,115,45,115,100,4,95,117,100,112,5,108,111,99,97,108,0,0,12,128,1];
             await udp.SendAsync(query, new IPEndPoint(IPAddress.Parse("224.0.0.251"), 5353), ct);
             while (!timeout.IsCancellationRequested)
             {
-                var r = await udp.ReceiveAsync(timeout.Token);
-                if (!lan.Contains(r.RemoteEndPoint.Address) || r.Buffer.Length > 9000) continue;
-                foreach (var record in DnsPacket.ReadNames(r.Buffer)) if (IPAddress.TryParse(record.Key, out var ip) && lan.Contains(ip)) names[record.Key] = record.Value;
+                var reply = await udp.ReceiveAsync(timeout.Token);
+                if (!lan.Contains(reply.RemoteEndPoint.Address) || reply.Buffer.Length > 9000) continue;
+                foreach (var record in DnsPacket.ReadNames(reply.Buffer))
+                    if (record.Key == reply.RemoteEndPoint.Address.ToString()) found[record.Key] = record.Value;
             }
         }
         catch (OperationCanceledException) when (!ct.IsCancellationRequested) { }
         catch (SocketException) { }
-        return names;
+        return found;
     }
+    public void Dispose() { Reset(); priority.Dispose(); sweep.Dispose(); laneCancellation?.Dispose(); }
 }
 
+// Fixed background workers isolate blocking Windows ARP from the CLR/UI thread pool.
+internal sealed class ArpWorkers : IDisposable
+{
+    private sealed record Work(Lan Lan, IPAddress Ip, CancellationToken Token, TaskCompletionSource<string> Completion);
+    private readonly BlockingCollection<Work> queue = new(1024);
+    private bool disposed;
+    public ArpWorkers(int count)
+    {
+        for (var i = 0; i < count; i++) new Thread(Run, 256 * 1024) { IsBackground = true, Name = "Presence ARP" }.Start();
+    }
+    public Task<string> ResolveAsync(Lan lan, IPAddress ip, CancellationToken token)
+    {
+        if (disposed || token.IsCancellationRequested) return Task.FromCanceled<string>(new CancellationToken(true));
+        var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
+        try { if (!queue.TryAdd(new(lan, ip, token, completion))) completion.TrySetException(new IOException("Discovery queue is busy.")); }
+        catch (InvalidOperationException) { completion.TrySetCanceled(); }
+        return completion.Task.WaitAsync(token);
+    }
+    private void Run()
+    {
+        foreach (var work in queue.GetConsumingEnumerable())
+        {
+            if (work.Token.IsCancellationRequested) { work.Completion.TrySetCanceled(work.Token); continue; }
+            try { work.Completion.TrySetResult(NativeNeighbors.Resolve(work.Lan, work.Ip)); }
+            catch (Exception ex) { work.Completion.TrySetException(ex); }
+        }
+    }
+    public void Dispose() { if (disposed) return; disposed = true; queue.CompleteAdding(); }
+}
 internal static class DnsPacket
 {
     public static Dictionary<string, string> ReadNames(byte[] packet)
@@ -158,7 +275,7 @@ internal static class DnsPacket
     }
 }
 
-internal sealed record Neighbor(IPAddress Ip, string Mac);
+internal sealed record Neighbor(IPAddress Ip, string Mac, uint State = 0);
 internal static class NativeNeighbors
 {
     [StructLayout(LayoutKind.Explicit, Size = 28)] private struct Sockaddr { [FieldOffset(0)] public ushort Family; [FieldOffset(4)] public uint Address; }
@@ -179,12 +296,14 @@ internal static class NativeNeighbors
     [DllImport("iphlpapi.dll")] private static extern uint ResolveIpNetEntry2(ref Row row, ref Sockaddr source);
     [DllImport("iphlpapi.dll")] private static extern uint GetIpNetTable2(ushort family, out IntPtr table);
     [DllImport("iphlpapi.dll")] private static extern void FreeMibTable(IntPtr table);
+
     public static string Resolve(Lan lan, IPAddress ip)
     {
         var row = new Row { InterfaceIndex = (uint)lan.Index, Address = new Sockaddr { Family = 2, Address = BitConverter.ToUInt32(ip.GetAddressBytes()) } };
         var source = new Sockaddr { Family = 2, Address = BitConverter.ToUInt32(lan.Address.GetAddressBytes()) };
         return ResolveIpNetEntry2(ref row, ref source) == 0 && row.Length == 6 ? Identity.NormalizeMac(Convert.ToHexString(BitConverter.GetBytes(row.Mac0)[..6])) : "";
     }
+
     public static List<Neighbor> Read(int index)
     {
         var rows = new List<Neighbor>();
@@ -197,7 +316,7 @@ internal static class NativeNeighbors
                 var row = Marshal.PtrToStructure<Row>(table + 8 + i * 88);
                 if (row.InterfaceIndex != index || row.Length != 6 || row.Address.Family != 2) continue;
                 var mac = Identity.NormalizeMac(Convert.ToHexString(BitConverter.GetBytes(row.Mac0)[..6]));
-                if (mac != "") rows.Add(new(new IPAddress(BitConverter.GetBytes(row.Address.Address)), mac));
+                if (mac != "") rows.Add(new(new IPAddress(BitConverter.GetBytes(row.Address.Address)), mac, row.State));
             }
         }
         finally { FreeMibTable(table); }
@@ -226,3 +345,4 @@ internal sealed class VendorLookup
         return entries.GetValueOrDefault(mac.Replace(":", "")[..6], "");
     }
 }
+

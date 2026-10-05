@@ -5,24 +5,41 @@ namespace Presence.App;
 
 internal static class Ui
 {
+    public static readonly Color LightCanvas = ColorTranslator.FromHtml("#F7F6EF");
+    public static readonly Color LightSurface = Color.White;
+    public static readonly Color DarkCanvas = ColorTranslator.FromHtml("#151821");
+    public static readonly Color DarkSurface = ColorTranslator.FromHtml("#242832");
+    public static readonly Color Ink = ColorTranslator.FromHtml("#151821");
+    public static readonly Color Paper = ColorTranslator.FromHtml("#F7F6EF");
+    public static readonly Color Lemon = ColorTranslator.FromHtml("#F4E54D");
+    public static readonly Color Coral = ColorTranslator.FromHtml("#F25B3D");
+    public static readonly Color Teal = ColorTranslator.FromHtml("#0E7C66");
+    public static readonly Color DarkTeal = ColorTranslator.FromHtml("#7AE5C5");
+    public static readonly Color ErrorRed = ColorTranslator.FromHtml("#A72A24");
+    public static readonly Color DarkError = ColorTranslator.FromHtml("#FF8A76");
     public static bool Dark(Settings settings)
     {
         if (settings.Theme != "System") return settings.Theme == "Dark";
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
         return key?.GetValue("AppsUseLightTheme") is int v && v == 0;
     }
-    public static Color Background(Settings s) => Dark(s) ? Color.FromArgb(30, 32, 35) : Color.FromArgb(250, 250, 249);
-    public static Color Text(Settings s) => Dark(s) ? Color.FromArgb(237, 238, 240) : Color.FromArgb(30, 32, 35);
-    public static Color Muted(Settings s) => Dark(s) ? Color.FromArgb(168, 174, 180) : Color.FromArgb(104, 109, 114);
+    public static Color Background(Settings s) => Dark(s) ? DarkCanvas : LightCanvas;
+    public static Color Surface(Settings s) => Dark(s) ? DarkSurface : LightSurface;
+    public static Color Text(Settings s) => Dark(s) ? Paper : Ink;
+    public static Color Muted(Settings s) => Dark(s) ? Color.FromArgb(194, 196, 202) : Color.FromArgb(80, 83, 92);
+    public static Color Positive(Settings s) => Dark(s) ? DarkTeal : Teal;
+    public static Color Negative(Settings s) => Dark(s) ? DarkError : ErrorRed;
     public static void Theme(Control control, Settings s)
     {
         control.BackColor = Background(s); control.ForeColor = Text(s); control.Font = new Font("Segoe UI", 10);
+        if (control is Button button) { button.BackColor = Lemon; button.ForeColor = Ink; button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = 3; button.FlatAppearance.BorderColor = Ink; button.Font = new Font("Segoe UI", 10, FontStyle.Bold); }
+        else if (control is TextBox or ComboBox or NumericUpDown) control.BackColor = Surface(s);
         foreach (Control child in control.Controls) Theme(child, s);
     }
     public static Label Label(string text, int width, int height = 30, bool muted = false, Settings? settings = null) => new() { Text = text, Width = width, Height = height, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleLeft, ForeColor = settings is null ? SystemColors.ControlText : muted ? Muted(settings) : Text(settings) };
     public static Button Button(string text, Action action, int width = 100)
     {
-        var b = new Button { Text = text, Width = width, Height = 32, FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(0, 5, 8, 5) }; b.FlatAppearance.BorderColor = Color.Gray; b.Click += (_, _) => action(); return b;
+        var b = new Button { Text = text, Width = width, Height = 32, FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(0, 5, 8, 5), BackColor = Lemon, ForeColor = Ink, Font = new Font("Segoe UI", 9, FontStyle.Bold) }; b.FlatAppearance.BorderSize = 3; b.FlatAppearance.BorderColor = Ink; b.Click += (_, _) => action(); return b;
     }
     public static Form Dialog(string title, Size size, Settings s)
     {
@@ -39,19 +56,35 @@ internal sealed class MainWindow : Form
     private readonly FlowLayoutPanel content;
     private readonly Label status;
     private readonly ToolTip hints = new();
+    private SpeedTestWindow? speedTest;
+    private readonly Panel header;
+    private readonly Panel speedPanel;
+    private readonly Button speedButton;
+    private readonly Label speedHint;
+    private readonly Font headingFont = new("Segoe UI", 9, FontStyle.Bold);
+    private readonly Font rowFont = new("Segoe UI", 12);
+    private string renderSignature = "";
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool AllowClose { get; set; }
     public MainWindow(PresenceContext context)
     {
         app = context; Text = "Presence"; ClientSize = new Size(430, 580); MinimumSize = new Size(400, 490); StartPosition = FormStartPosition.CenterScreen;
         Font = new Font("Segoe UI", 10); AutoScaleMode = AutoScaleMode.Dpi;
-        var header = new Panel { Dock = DockStyle.Top, Height = 88, Padding = new Padding(24, 16, 24, 4) };
-        var title = new Label { Text = "PRESENCE", Location = new Point(24, 20), AutoSize = true, Font = new Font("Segoe UI", 20, FontStyle.Regular) }; header.Controls.Add(title);
-        var activity = Ui.Button("Activity", ShowActivity, 76); activity.Location = new Point(240, 27); activity.FlatAppearance.BorderSize = 0; header.Controls.Add(activity);
-        var settings = Ui.Button("Settings", ShowSettings, 78); settings.Location = new Point(322, 27); settings.FlatAppearance.BorderSize = 0; header.Controls.Add(settings);
+        header = new Panel { Dock = DockStyle.Top, Height = 88, Padding = new Padding(24, 16, 24, 4), BackColor = Ui.Lemon };
+        var title = new Label { Text = "PRESENCE", Location = new Point(24, 20), AutoSize = true, Font = new Font("Segoe UI", 20, FontStyle.Bold), ForeColor = Ui.Ink }; header.Controls.Add(title);
+        var activity = Ui.Button("Activity", ShowActivity, 76); activity.FlatAppearance.BorderSize = 0; activity.Anchor = AnchorStyles.Top | AnchorStyles.Right; header.Controls.Add(activity);
+        var settings = Ui.Button("Settings", ShowSettings, 78); settings.FlatAppearance.BorderSize = 0; settings.Anchor = AnchorStyles.Top | AnchorStyles.Right; header.Controls.Add(settings);
+        void PlaceHeaderButtons() { settings.Location = new Point(Math.Max(250, header.ClientSize.Width - 108), 27); activity.Location = new Point(settings.Left - 82, 27); }
+        header.Resize += (_, _) => PlaceHeaderButtons(); PlaceHeaderButtons();
         var refresh = Ui.Button("Refresh", async () => await app.Scan(), 85); refresh.Location = new Point(21, 56); refresh.Height = 27; refresh.FlatAppearance.BorderSize = 0; header.Controls.Add(refresh);
         status = new Label { Dock = DockStyle.Bottom, Height = 68, Padding = new Padding(24, 9, 20, 10), AutoEllipsis = true };
+        speedPanel = new Panel { Dock = DockStyle.Bottom, Height = 48, Padding = new Padding(18, 5, 16, 4), BackColor = Ui.Coral };
+        speedButton = Ui.Button("Speed test", OpenSpeedTest, 105); speedButton.Location = new Point(18, 5); speedButton.Height = 34; speedPanel.Controls.Add(speedButton);
+        speedHint = Ui.Label("Download · upload · latency · jitter", 260, 34); speedHint.ForeColor = Color.White; speedPanel.Controls.Add(speedHint);
+        void PlaceSpeedHint() { speedHint.Location = new Point(132, 5); speedHint.Width = Math.Max(100, speedPanel.ClientSize.Width - speedHint.Left - 10); }
+        speedPanel.Resize += (_, _) => PlaceSpeedHint(); PlaceSpeedHint();
         content = Ui.Flow(380); Controls.Add(content); Controls.Add(header); Controls.Add(status);
+        Controls.Add(speedPanel);
         FormClosing += (_, e) => { if (!AllowClose) { e.Cancel = true; Hide(); } };
         app.Changed += Render; VisibleChanged += (_, _) => { if (Visible) Render(); }; Render();
     }
@@ -59,7 +92,16 @@ internal sealed class MainWindow : Form
     {
         if (IsDisposed) return;
         var s = app.Engine.Data.Settings; BackColor = Ui.Background(s); ForeColor = Ui.Text(s);
+        var peopleSignature = string.Join(";", app.Engine.Data.People.OrderBy(p => p.Id).Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}"));
+        var deviceSignature = string.Join(";", app.Engine.Data.Devices.OrderBy(d => d.Mac).Select(d => $"{d.Mac}:{d.Ip}:{d.Name}:{d.Hostname}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
+        var signature = $"{s.Theme}:{content.ClientSize.Width}:{peopleSignature}:{deviceSignature}";
+        if (signature == renderSignature) { UpdateStatus(s); return; }
+        renderSignature = signature;
         foreach (Control c in Controls) { c.BackColor = BackColor; c.ForeColor = ForeColor; foreach (Control child in c.Controls) { child.BackColor = BackColor; child.ForeColor = ForeColor; } }
+        header.BackColor = Ui.Lemon; speedPanel.BackColor = Ui.Coral; speedHint.ForeColor = Color.White;
+        foreach (var label in header.Controls.OfType<Label>()) label.ForeColor = Ui.Ink;
+        foreach (var button in header.Controls.OfType<Button>()) { button.BackColor = Ui.Surface(s); button.ForeColor = Ui.Text(s); button.FlatAppearance.BorderSize = 2; button.FlatAppearance.BorderColor = Ui.Text(s); button.Font = new Font("Segoe UI", 9, FontStyle.Bold); }
+        speedButton.BackColor = Ui.Lemon; speedButton.ForeColor = Ui.Ink; speedButton.FlatAppearance.BorderSize = 3; speedButton.FlatAppearance.BorderColor = Ui.Ink; speedButton.Font = new Font("Segoe UI", 9, FontStyle.Bold);
         content.SuspendLayout();
         foreach (var c in content.Controls.Cast<Control>().ToArray()) { content.Controls.Remove(c); c.Dispose(); }
         var people = app.Engine.Data.People.Where(p => app.Engine.Data.Devices.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
@@ -81,15 +123,20 @@ internal sealed class MainWindow : Form
         foreach (var device in unknown) Row("+  " + device.DisplayName, "Details", () => ShowDevice(device), false);
         if (unknown.Count == 0) Empty("No unidentified devices right now.");
         if (people.Count == 0 && unknown.Count == 0) { var text = Ui.Label("Presence is quietly learning your network.\nOpen a device when it appears and assign its phone to a person.", 365, 75, true, s); text.AutoEllipsis = false; content.Controls.Add(text); }
-        status.ForeColor = Ui.Muted(s); status.Text = app.Status + "\n" + (app.NetworkLabel == "" ? "Close this window to keep running in the tray." : app.NetworkLabel);
-        hints.SetToolTip(status, "Device presence is a proxy for human presence. A sleeping phone or isolated Wi-Fi client may be invisible.");
+        UpdateStatus(s);
         content.ResumeLayout();
     }
+    private void UpdateStatus(Settings s)
+    {
+        status.ForeColor = Ui.Muted(s); status.Text = app.Status + "\n" + (app.NetworkLabel == "" ? "Close this window to keep running in the tray." : app.NetworkLabel);
+        hints.SetToolTip(status, "Device presence is an estimate based on local-network responses.");
+    }
+    private int RowWidth => Math.Max(260, content.ClientSize.Width - content.Padding.Horizontal);
     private void Section(string text)
     {
-        var label = Ui.Label(text, 360, 40, true, app.Engine.Data.Settings); label.Font = new Font("Segoe UI", 9, FontStyle.Bold); label.Margin = new Padding(0, text == "HOME NOW" ? 0 : 17, 0, 0); content.Controls.Add(label);
+        var label = Ui.Label(text, RowWidth, 40, false, app.Engine.Data.Settings); label.Font = headingFont; label.ForeColor = Ui.Coral; label.Margin = new Padding(0, text == "HOME NOW" ? 0 : 17, 0, 0); content.Controls.Add(label);
     }
-    private void Empty(string text) { var label = Ui.Label(text, 362, 38, true, app.Engine.Data.Settings); label.Margin = Padding.Empty; content.Controls.Add(label); }
+    private void Empty(string text) { var label = Ui.Label(text, RowWidth, 38, true, app.Engine.Data.Settings); label.Margin = Padding.Empty; content.Controls.Add(label); }
     private void PersonRow(Person person, bool home)
     {
         var device = app.Engine.Data.Devices.First(d => d.PersonId == person.Id && d.Kind == DeviceKind.Person && d.IsPrimary || d.PersonId == person.Id && d.Kind == DeviceKind.Person);
@@ -97,9 +144,10 @@ internal sealed class MainWindow : Form
     }
     private void Row(string name, string when, Action action, bool home, string? hint = null)
     {
-        var row = new Panel { Width = 360, Height = 42, Margin = Padding.Empty, BackColor = BackColor };
-        var b = Ui.Button(name, action, 236); b.FlatAppearance.BorderSize = 0; b.TextAlign = ContentAlignment.MiddleLeft; b.Font = new Font("Segoe UI", 12); b.Location = new Point(-3, 0); b.Height = 40; b.ForeColor = home ? (Ui.Dark(app.Engine.Data.Settings) ? Color.FromArgb(135, 209, 172) : Color.FromArgb(30, 100, 70)) : ForeColor;
-        var time = Ui.Label(when, 121, 40, true, app.Engine.Data.Settings); time.TextAlign = ContentAlignment.MiddleRight; time.Location = new Point(237, 0); row.Controls.Add(b); row.Controls.Add(time); if (hint is not null) hints.SetToolTip(b, hint); content.Controls.Add(row);
+        var width = RowWidth; var timeWidth = Math.Min(121, Math.Max(86, width / 3));
+        var row = new Panel { Width = width, Height = 42, Margin = Padding.Empty, BackColor = Ui.Surface(app.Engine.Data.Settings) };
+        var b = Ui.Button(name, action, width - timeWidth - 4); b.FlatAppearance.BorderSize = 0; b.TextAlign = ContentAlignment.MiddleLeft; b.Font = rowFont; b.Location = new Point(-3, 0); b.Height = 40; b.BackColor = Ui.Surface(app.Engine.Data.Settings); b.ForeColor = home ? Ui.Positive(app.Engine.Data.Settings) : ForeColor;
+        var time = Ui.Label(when, timeWidth, 40, true, app.Engine.Data.Settings); time.TextAlign = ContentAlignment.MiddleRight; time.Location = new Point(width - timeWidth, 0); row.Controls.Add(b); row.Controls.Add(time); if (hint is not null) hints.SetToolTip(b, hint); content.Controls.Add(row);
     }
     public void ShowDevice(Device device)
     {
@@ -118,7 +166,13 @@ internal sealed class MainWindow : Form
         f.ShowDialog(this);
     }
     public void ShowSettings() { Show(); using var f = new SettingsWindow(app); f.ShowDialog(this); }
-    protected override void Dispose(bool disposing) { if (disposing) { app.Changed -= Render; hints.Dispose(); } base.Dispose(disposing); }
+    private void OpenSpeedTest()
+    {
+        if (speedTest is { IsDisposed: false }) { speedTest.Activate(); return; }
+        speedTest = new SpeedTestWindow(app.Engine.Data.Settings); speedTest.FormClosed += (_, _) => speedTest = null;
+        speedTest.Show();
+    }
+    protected override void Dispose(bool disposing) { if (disposing) { app.Changed -= Render; hints.Dispose(); headingFont.Dispose(); rowFont.Dispose(); speedTest?.Close(); } base.Dispose(disposing); }
 }
 
 internal sealed class DeviceWindow : Form
@@ -162,9 +216,9 @@ internal sealed class SettingsWindow : Form
     {
         var s = app.Engine.Data.Settings; Text = "Presence · Settings"; ClientSize = new Size(490, 700); StartPosition = FormStartPosition.CenterParent; MinimizeBox = false; MaximizeBox = false; FormBorderStyle = FormBorderStyle.FixedDialog; AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 10); BackColor = Ui.Background(s); ForeColor = Ui.Text(s);
         var flow = Ui.Flow(440); Controls.Add(flow);
-        var intervals = new FlowLayoutPanel { Width = 430, Height = 66, Margin = Padding.Empty }; var scan = Number(s.ScanSeconds, 30, 600); var left = Number(s.DepartureMinutes, 2, 60);
+        var intervals = new FlowLayoutPanel { Width = 430, Height = 66, Margin = Padding.Empty }; var scan = Number(s.ScanIntervalSeconds, 2, 600); var left = Number(s.DepartureGraceSeconds, 10, 3600);
         var a = new FlowLayoutPanel { Width = 206, Height = 65, Margin = Padding.Empty }; a.Controls.Add(Ui.Label("Scan every (seconds)", 200)); a.Controls.Add(scan); intervals.Controls.Add(a);
-        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (minutes)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
+        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (seconds)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
         flow.Controls.Add(Ui.Label("NOTIFICATIONS", 430, 35, true, s));
         var arrive = Check("Arrivals", s.Arrivals); var depart = Check("Departures", s.Departures); var unknown = Check("Unknown devices", s.UnknownDevices); flow.Controls.Add(arrive); flow.Controls.Add(depart); flow.Controls.Add(unknown);
         var sound = Check("Play alert sound", s.AlertSound); flow.Controls.Add(sound);
@@ -179,7 +233,7 @@ internal sealed class SettingsWindow : Form
         {
             try
             {
-                app.ApplyStartup(startup.Checked); s.ScanSeconds = (int)scan.Value; s.DepartureMinutes = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
+                app.ApplyStartup(startup.Checked); s.ScanIntervalSeconds = (int)scan.Value; s.DepartureGraceSeconds = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = theme.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex == 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
             }
             catch (Exception ex) { MessageBox.Show(this, "Could not save settings: " + ex.Message, "Presence"); }
         }); buttons.Controls.Add(save); buttons.Controls.Add(Ui.Button("Test alert", app.TestNotification)); buttons.Controls.Add(Ui.Button("Devices", () => ShowDevices(app))); flow.Controls.Add(buttons); AcceptButton = save;

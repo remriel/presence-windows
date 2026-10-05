@@ -6,6 +6,9 @@ namespace Presence.Core;
 public sealed class Repository : IDisposable
 {
     private readonly SqliteConnection db;
+    private DateTimeOffset lastPruned;
+    private int lastRetention;
+    private readonly Dictionary<string, (DateTimeOffset At, string Ip)> observationWrites = [];
     public string Path { get; }
     public Repository(string path)
     {
@@ -17,10 +20,42 @@ public sealed class Repository : IDisposable
     public Snapshot Load()
     {
         using var c = db.CreateCommand(); c.CommandText = "SELECT Json FROM State WHERE Id=1";
-        return c.ExecuteScalar() is string json ? JsonSerializer.Deserialize<Snapshot>(json) ?? throw new InvalidDataException("Presence state is empty.") : new();
+        if (c.ExecuteScalar() is not string json) return new();
+
+        var data = JsonSerializer.Deserialize<Snapshot>(json) ?? throw new InvalidDataException("Presence state is empty.");
+
+        using var document = JsonDocument.Parse(json);
+        if (document.RootElement.TryGetProperty(nameof(Snapshot.Settings), out var settings))
+        {
+            if (!settings.TryGetProperty(nameof(Settings.ScanIntervalSeconds), out _) &&
+                settings.TryGetProperty("ScanSeconds", out var oldScan) &&
+                oldScan.TryGetInt32(out var scanSeconds))
+                data.Settings.ScanIntervalSeconds = scanSeconds == 120 ? 3 : Math.Clamp(scanSeconds, 2, 600);
+
+            if (!settings.TryGetProperty(nameof(Settings.DepartureGraceSeconds), out _) &&
+                settings.TryGetProperty("DepartureMinutes", out var oldDeparture) &&
+                oldDeparture.TryGetInt32(out var departureMinutes))
+                data.Settings.DepartureGraceSeconds = departureMinutes == 5 ? 30 : (int)Math.Clamp((long)departureMinutes * 60, 10, 3600);
+            if (!settings.TryGetProperty(nameof(Settings.ResponsivenessVersion), out _))
+            {
+                if (data.Settings.ScanIntervalSeconds == 10) data.Settings.ScanIntervalSeconds = 3;
+                if (data.Settings.DepartureGraceSeconds == 45) data.Settings.DepartureGraceSeconds = 30;
+            }
+        }
+
+        data.Settings.ScanIntervalSeconds = Math.Clamp(data.Settings.ScanIntervalSeconds, 2, 600);
+        data.Settings.DepartureGraceSeconds = Math.Clamp(data.Settings.DepartureGraceSeconds, 10, 3600);
+        data.Settings.PopupSeconds = Math.Clamp(data.Settings.PopupSeconds, 3, 60);
+        data.Settings.RetentionDays = Math.Clamp(data.Settings.RetentionDays, 7, 365);
+        data.Settings.QuietStart = Math.Clamp(data.Settings.QuietStart, 0, 23);
+        data.Settings.QuietEnd = Math.Clamp(data.Settings.QuietEnd, 0, 23);
+        data.Settings.ResponsivenessVersion = 1;
+        return data;
     }
     public void Save(Snapshot data, IEnumerable<PresenceEvent>? events = null, IEnumerable<Observation>? observations = null, DateTimeOffset? at = null)
     {
+        var now = at ?? DateTimeOffset.UtcNow;
+        var recorded = new List<Observation>();
         using var tx = db.BeginTransaction();
         using (var c = db.CreateCommand()) { c.Transaction = tx; c.CommandText = "INSERT INTO State VALUES(1,$json) ON CONFLICT(Id) DO UPDATE SET Json=$json"; c.Parameters.AddWithValue("$json", JsonSerializer.Serialize(data)); c.ExecuteNonQuery(); }
         foreach (var e in events ?? [])
@@ -30,11 +65,15 @@ public sealed class Repository : IDisposable
         }
         foreach (var o in observations ?? [])
         {
+            if (observationWrites.TryGetValue(o.Mac, out var last) && last.Ip == o.Ip && now - last.At < TimeSpan.FromSeconds(30)) continue;
             using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "INSERT INTO Observation(At,Mac,Ip,Signal) VALUES($at,$mac,$ip,$signal)";
-            c.Parameters.AddWithValue("$at", Stamp(at ?? DateTimeOffset.UtcNow)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery();
+            c.Parameters.AddWithValue("$at", Stamp(o.At ?? now)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery(); recorded.Add(o);
         }
-        using (var c = db.CreateCommand()) { c.Transaction = tx; c.CommandText = "DELETE FROM PresenceEvent WHERE At < $cut; DELETE FROM Observation WHERE At < $obsCut"; c.Parameters.AddWithValue("$cut", Stamp((at ?? DateTimeOffset.UtcNow).AddDays(-data.Settings.RetentionDays))); c.Parameters.AddWithValue("$obsCut", Stamp((at ?? DateTimeOffset.UtcNow).AddDays(-Math.Min(7, data.Settings.RetentionDays)))); c.ExecuteNonQuery(); }
+        var prune = now - lastPruned >= TimeSpan.FromHours(1) || lastRetention != data.Settings.RetentionDays;
+        if (prune) { using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "DELETE FROM PresenceEvent WHERE At < $cut; DELETE FROM Observation WHERE At < $obsCut"; c.Parameters.AddWithValue("$cut", Stamp(now.AddDays(-data.Settings.RetentionDays))); c.Parameters.AddWithValue("$obsCut", Stamp(now.AddDays(-Math.Min(7, data.Settings.RetentionDays)))); c.ExecuteNonQuery(); }
         tx.Commit();
+        foreach (var o in recorded) observationWrites[o.Mac] = (now, o.Ip);
+        if (prune) { lastPruned = now; lastRetention = data.Settings.RetentionDays; }
     }
     public List<PresenceEvent> History(string? mac = null, string? personId = null, int limit = 300)
     {

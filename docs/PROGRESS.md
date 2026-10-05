@@ -1,37 +1,22 @@
 # Presence progress
 
-Current objective: package the current Presence feature set as v1.0.2 and publish the portable app, source, docs and popup preview on the private GitHub release.
+Current objective: publish Presence 1.0.3 with responsive local device tracking, the bottom-bar internet speed test, and the bold high-contrast UI.
 
-Verified progress: **75%** `[███████████████░░░░░]` toward v1.0.2 GitHub publication. Functional acceptance remains deferred under the user's build-once instruction.
+Verified progress: **88%** `[██████████████████░░]` toward GitHub publication.
 
-- [x] Read current AGENTS, state/progress, git state and affected source.
-- [x] Inspect the live Codex Usage Counter reference popup/sound implementation.
-- [x] Implement app-owned popup, embedded reference icon/chime, queue, click/dismiss, hover pause, sound/duration settings.
-- [x] Route real events and Test alert through custom notification delivery.
-- [x] Remove two-detection/approval requirement; first fresh discovery automatically tracks arrival.
-- [x] Keep people association optional and make it directly available in device details.
-- [x] Update assembly/package and release notes to v1.0.2.
-- [x] Publish one Windows x64 production build to local-disk artifacts.
-- [x] Package portable app ZIP.
-- [ ] Package current source with final progress/state docs.
-- [ ] Publish v1.0.2 portable/source packages and fictional popup preview on GitHub.
+- [x] Merge the latest scanner updates from origin/main and reconcile source/docs.
+- [x] Add a 3-second scan loop with streamed local observations, faster first results and responsive main-list rendering.
+- [x] Add bottom-bar Speed test for Cloudflare download/upload/latency/jitter; on click only, cancellable, limited to 35 seconds.
+- [x] Document Cloudflare public-IP/test-traffic disclosure and that Presence device/history data is never sent or speed results saved.
+- [x] Restyle main view and speed test with bold neo-brutalist light/dark colors and responsive rows.
+- [x] Run the single Windows x64 self-contained production publish; fixed its one blocking missing-namespace compile error and the corrected build succeeded.
+- [x] Export the native main-window preview with fictional devices.
+- [x] Package the portable v1.0.3 ZIP with app files and docs.
+- [ ] Commit/push merged source and final docs to the private GitHub repository.
+- [ ] Create GitHub release v1.0.3 and upload portable/source/docs/screenshot.
 
-Completed previous release: 1.0.0 source and portable published; installed locally and started --tray. This update is prompted by user-reported Test alert failure with Windows notifications disabled.
+Build completed once for this final code state. No local tests, review, cleanup, or live speed/network acceptance were run. Upstream scanner CI had already passed for the earlier scanner-only code.
 
-Current implementation: v1.0.2 self-contained x64 production publish succeeded. Portable ZIP is packaged. Source/docs and GitHub release publication remain.
+No app data was used in the speed test and no test request was made during publishing. The current local installation/database remains unchanged.
 
-Blockers: none currently. No tests, linting, code review, cleanup, repeated successful builds or live-network verification authorized under build-once steering.
-
-Checks performed: project/documentation and GitHub history read; v1.0.2 production publish succeeded. No automated or functional tests requested.
-
-Exact ordered next steps:
-1. Copy portable ZIP/preview and state/progress docs into task outputs.
-2. Commit/push package version and docs, create GitHub release v1.0.2 and upload portable/preview assets.
-3. Update progress/state to published, create the source snapshot and upload source/docs assets.
-4. Report the release URL and hand off without tests or review.
-
-Repository: https://github.com/remriel/presence-windows (private).
-
-Previous published release: https://github.com/remriel/presence-windows/releases/tag/v1.0.1.
-
-Manual acceptance for owner: Settings > Test alert should display the custom icon popup/chime with Windows notification banners off. Check a real device arrival, click-to-open, quiet hours, optional association, and a tolerated departure when desired.
+Next: commit/push, create release v1.0.3, attach source archive and progress/state docs, then hand off. Do not rerun the production build or test suite.

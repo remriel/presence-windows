@@ -10,6 +10,7 @@ internal sealed class PresenceContext : ApplicationContext
     public string Status { get; private set; } = "Finding your local network…";
     public string NetworkLabel { get; private set; } = "";
     public bool Monitoring { get; private set; }
+    public bool IsScanning => scanning;
     public bool Stopping { get; private set; }
     public CancellationToken Token => cancel.Token;
     public event Action? Changed;
@@ -18,12 +19,20 @@ internal sealed class PresenceContext : ApplicationContext
     private readonly NotifyIcon tray;
     private readonly MainWindow window;
     private readonly System.Windows.Forms.Timer timer;
+    private readonly System.Windows.Forms.Timer repaint;
     private readonly FloatingAlerts alerts;
     private bool scanning;
     private bool suspended;
     private int epoch;
     private readonly bool demo;
     private Icon? activeIcon;
+    private Color iconColor;
+    private bool refreshQueued;
+    private bool dirty;
+    private string adapterId = "";
+    private DateTimeOffset lastSaved;
+    private readonly List<PresenceEvent> pendingEvents = [];
+    private readonly Dictionary<string, Observation> pendingObservations = [];
     public PresenceContext(string dataDir, bool demoMode, bool hidden)
     {
         demo = demoMode;
@@ -35,14 +44,17 @@ internal sealed class PresenceContext : ApplicationContext
         ApplyStartup(data.Settings.StartWithWindows);
         if (!demo) Store.Save(data);
         window = new MainWindow(this); _ = window.Handle;
-        alerts = new FloatingAlerts(() => Engine.Data.Settings, () => Screen.FromControl(window).WorkingArea, Activate);
+        alerts = new FloatingAlerts(() => Engine.Data.Settings, () => Screen.FromControl(window).WorkingArea, Activate, action => { if (!Stopping && !window.IsDisposed) window.BeginInvoke(action); });
         StartupTrace.Mark("window-created");
         tray = new NotifyIcon { Text = "Presence · starting", Visible = true, Icon = SystemIcons.Application };
         var menu = new ContextMenuStrip(); menu.Items.Add("Open Presence", null, (_, _) => Activate("")); menu.Items.Add("Activity", null, (_, _) => window.ShowActivity());
-        menu.Items.Add("Scan now", null, async (_, _) => await Scan()); menu.Items.Add("Settings", null, (_, _) => window.ShowSettings()); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Quit Presence", null, (_, _) => Exit()); tray.ContextMenuStrip = menu;
+        menu.Items.Add("Refresh now", null, async (_, _) => await Scan(true)); menu.Items.Add("Settings", null, (_, _) => window.ShowSettings()); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Quit Presence", null, (_, _) => Exit()); tray.ContextMenuStrip = menu;
         tray.DoubleClick += (_, _) => Activate("");
-        timer = new System.Windows.Forms.Timer { Interval = 250 }; timer.Tick += async (_, _) => { timer.Interval = Engine.Data.Settings.ScanSeconds * 1000; await Scan(); }; timer.Start();
+        timer = new System.Windows.Forms.Timer { Interval = 250 }; timer.Tick += async (_, _) => { timer.Interval = Engine.Data.Settings.ScanIntervalSeconds * 1000; await Scan(); }; timer.Start();
+        repaint = new System.Windows.Forms.Timer { Interval = 250 }; repaint.Tick += (_, _) => { if (dirty && !Stopping) { dirty = false; Refresh(); } }; repaint.Start();
+        adapterId = data.Settings.InterfaceId;
         SystemEvents.PowerModeChanged += PowerChanged;
+        System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged += NetworkChanged;
         StartupTrace.Mark("tray-created; hidden=" + hidden);
         if (!hidden) window.Show();
         StartupTrace.Mark("window-visible=" + window.Visible);
@@ -63,32 +75,55 @@ internal sealed class PresenceContext : ApplicationContext
         bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
     public void ExportAlertPreview(string path) => alerts.ExportPreview(path);
-    public async Task Scan()
+    public async Task Scan(bool requested = false)
     {
-        if (scanning || suspended || demo || Stopping) return;
-        scanning = true; var generation = epoch;
+        if (suspended || demo || Stopping) return;
+        if (scanning) { if (requested) refreshQueued = true; return; }
+        scanning = true; dirty = true; var generation = epoch;
         try
         {
             var devices = Engine.Data.Devices.Select(d => new Device { Mac = d.Mac, Ip = d.Ip, Network = d.Network, Kind = d.Kind }).ToList();
-            var result = await discovery.ScanAsync(Engine.Data.Settings, devices, Token);
+            var progress = new Progress<ScanResult>(result =>
+            {
+                if (Stopping || suspended || generation != epoch || result.Scope != discovery.CurrentScope) return;
+                ApplyResult(result);
+            });
+            var result = await discovery.ScanAsync(Engine.Data.Settings, devices, Token, progress);
             if (Stopping || suspended || generation != epoch) return;
-            var now = DateTimeOffset.UtcNow;
-            var events = Engine.Apply(result.Observations, result.Scope, now, result.InitialSweep);
-            Store.Save(Engine.Data, events, result.Observations, now);
-            Monitoring = true; NetworkLabel = result.Description;
-            Status = result.InitialSweep || Engine.Baselining ? "Quietly learning your network · " + result.Coverage + "/" + result.Total + " addresses" : "Monitoring · last scan " + now.ToLocalTime().ToString("t");
-            foreach (var e in events) Notify(e);
-            Refresh();
+            ApplyResult(result);
         }
-        catch (OperationCanceledException) when (Token.IsCancellationRequested) { }
+        catch (OperationCanceledException) { if (!Stopping) { Engine.Pause(); Monitoring = false; Status = "Reconnecting to your network…"; dirty = true; } }
         catch (Exception ex)
         {
             if (Stopping) return;
-            Monitoring = false; Engine.Pause();
+            Monitoring = false; Engine.Pause(); discovery.Reset();
             Status = ex is IOException ? ex.Message : "Monitoring paused · " + ex.Message;
             Refresh();
         }
-        finally { scanning = false; }
+        finally
+        {
+            scanning = false; dirty = true;
+            if (refreshQueued && !Stopping) { refreshQueued = false; window.BeginInvoke(async () => await Scan()); }
+        }
+    }
+    private void ApplyResult(ScanResult result)
+    {
+        var now = DateTimeOffset.UtcNow;
+        var events = Engine.Apply(result.Observations, result.Scope, now, result.InitialSweep, result.EvaluatedMacs, result.IsPartial);
+        pendingEvents.AddRange(events);
+        foreach (var observation in result.Observations) pendingObservations[observation.Mac] = observation;
+        Monitoring = true; NetworkLabel = result.Description;
+        Status = result.InitialSweep ? "Learning the network…" : "Monitoring · updated " + now.ToLocalTime().ToString("T");
+        foreach (var e in events) Notify(e);
+        try { Flush(events.Count > 0); }
+        catch (Exception ex) when (ex is IOException or Microsoft.Data.Sqlite.SqliteException) { Status = "History save pending · " + ex.Message; }
+        dirty = true;
+    }
+    private void Flush(bool force)
+    {
+        if (demo || (!force && DateTimeOffset.UtcNow - lastSaved < TimeSpan.FromSeconds(10))) return;
+        Store.Save(Engine.Data, pendingEvents, pendingObservations.Values);
+        pendingEvents.Clear(); pendingObservations.Clear(); lastSaved = DateTimeOffset.UtcNow;
     }
     private void Notify(PresenceEvent e)
     {
@@ -107,7 +142,9 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public void Save()
     {
-        Engine.ReconcilePeople(DateTimeOffset.UtcNow); Store.Save(Engine.Data); timer.Interval = Engine.Data.Settings.ScanSeconds * 1000; Refresh();
+        Engine.ReconcilePeople(DateTimeOffset.UtcNow); Flush(true); timer.Interval = Engine.Data.Settings.ScanIntervalSeconds * 1000;
+        if (adapterId != Engine.Data.Settings.InterfaceId) { adapterId = Engine.Data.Settings.InterfaceId; RestartDiscovery(); }
+        Refresh();
     }
     public void ApplyStartup(bool enabled)
     {
@@ -117,24 +154,43 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public void Refresh()
     {
-        var home = Engine.Data.People.Count(p => p.State is PresenceState.Home or PresenceState.ProbablyHome);
-        tray.Text = Monitoring ? "Presence · " + home + " home" : "Presence · monitoring paused";
+        var home = Engine.Data.Devices.Count(d => d.Kind != DeviceKind.Ignore && d.Network == Engine.Network && d.State is PresenceState.Home or PresenceState.ProbablyHome);
+        tray.Text = Monitoring ? "Presence · " + home + " devices present" : "Presence · monitoring paused";
         var color = !Monitoring ? Color.Gray : home > 0 ? Color.FromArgb(40, 150, 100) : Color.FromArgb(100, 110, 125);
+        if (color != iconColor || activeIcon is null)
+        {
+        iconColor = color;
         // A small lettermark is a utility status icon, not an illustration or production art asset.
         using var bmp = new Bitmap(32, 32); using (var g = Graphics.FromImage(bmp)) { g.Clear(Color.Transparent); using var b = new SolidBrush(color); using var f = new Font("Segoe UI", 21, FontStyle.Bold, GraphicsUnit.Pixel); g.DrawString("P", f, b, 5, 2); }
         var hIcon = bmp.GetHicon(); var icon = (Icon)Icon.FromHandle(hIcon).Clone(); DestroyIcon(hIcon); tray.Icon = icon; activeIcon?.Dispose(); activeIcon = icon;
+        }
         Changed?.Invoke();
     }
     [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
     private void PowerChanged(object sender, PowerModeChangedEventArgs e)
     {
-        if (window.IsDisposed) return;
-        window.BeginInvoke(() => { epoch++; suspended = e.Mode == PowerModes.Suspend; if (e.Mode is PowerModes.Suspend or PowerModes.Resume) { Engine.Pause(); Monitoring = false; Status = suspended ? "Monitoring paused · computer is sleeping" : "Resuming monitoring…"; Refresh(); } });
+        if (window.IsDisposed || Stopping || e.Mode == PowerModes.StatusChange) return;
+        window.BeginInvoke(() => { suspended = e.Mode == PowerModes.Suspend; RestartDiscovery(); });
     }
-    public void Exit() { Stopping = true; cancel.Cancel(); timer.Stop(); tray.Visible = false; window.AllowClose = true; window.Close(); ExitThread(); }
+    private void NetworkChanged(object? sender, EventArgs e)
+    {
+        if (!Stopping && !window.IsDisposed) window.BeginInvoke(RestartDiscovery);
+    }
+    private void RestartDiscovery()
+    {
+        if (Stopping) return;
+        epoch++; discovery.Reset(); Engine.Pause(); Monitoring = false;
+        Status = suspended ? "Paused while the computer sleeps" : "Connecting to your network…"; Refresh();
+        if (!suspended) { refreshQueued = scanning; if (!scanning) _ = Scan(); }
+    }
+    public void Exit()
+    {
+        try { Flush(true); } catch (Exception ex) { MessageBox.Show("Recent history could not be saved. Presence is still running.\n" + ex.Message, "Presence"); return; }
+        Stopping = true; cancel.Cancel(); discovery.Reset(); timer.Stop(); repaint.Stop(); tray.Visible = false; window.AllowClose = true; window.Close(); ExitThread();
+    }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; alerts.Dispose(); timer.Dispose(); tray.Dispose(); activeIcon?.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
+        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); tray.Dispose(); activeIcon?.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
         base.Dispose(disposing);
     }
     private static void SeedDemo(Snapshot data)

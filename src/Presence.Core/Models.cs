@@ -27,9 +27,9 @@ public sealed class Device
     public int Consecutive { get; set; }
     public double MissingSeconds { get; set; }
     public bool Announced { get; set; }
-    public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : !string.IsNullOrWhiteSpace(Hostname) ? Hostname : !string.IsNullOrWhiteSpace(Vendor) ? Vendor + " device" : "Device " + Mac[^5..];
+    public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : !string.IsNullOrWhiteSpace(Hostname) ? Hostname : !string.IsNullOrWhiteSpace(Vendor) && Vendor != "Private MAC" ? Vendor + " device" : "Device " + (Mac.Length >= 5 ? Mac[^5..] : Mac);
 }
-public sealed record Observation(string Mac, string Ip, string Hostname, string Vendor, string Signal);
+public sealed record Observation(string Mac, string Ip, string Hostname, string Vendor, string Signal, DateTimeOffset? At = null);
 public sealed record PresenceEvent(string Id, DateTimeOffset At, string Type, string Name, string? Mac, string? PersonId)
 {
     public static PresenceEvent Create(DateTimeOffset at, string type, string name, string? mac, string? person = null) => new(Guid.NewGuid().ToString("N"), at, type, name, mac, person);
@@ -37,8 +37,9 @@ public sealed record PresenceEvent(string Id, DateTimeOffset At, string Type, st
 }
 public sealed class Settings
 {
-    public int ScanSeconds { get; set; } = 120;
-    public int DepartureMinutes { get; set; } = 5;
+    public int ScanIntervalSeconds { get; set; } = 3;
+    public int DepartureGraceSeconds { get; set; } = 30;
+    public int ResponsivenessVersion { get; set; } = 1;
     public bool Arrivals { get; set; } = true;
     public bool Departures { get; set; } = true;
     public bool UnknownDevices { get; set; } = true;
