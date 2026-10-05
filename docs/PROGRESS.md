@@ -1,16 +1,18 @@
 # Presence progress
 
-Current objective: make successful internet speed tests measure for at least five seconds, publish and update the local app.
-Progress: **100%** [████████████████████]
+Current objective: finish and publish the comprehensive Windows UI cleanup, then update the running PC installation.
+Progress: **90%** [██████████████████░░]
 
-- [x] Replace short byte-limited samples with at least 2.5 seconds of timed measurement per direction.
-- [x] Preserve cancellation and the 35-second deadline; use actual wall-clock duration for throughput.
-- [x] Build once, package and publish v1.0.5.
-- [x] Update the running local app and startup path to Downloads\Presence-1.0.5-win-x64.
+- [x] Reconcile the repository, release state and full UI brief.
+- [x] Render every existing app screen and state with fictional data before changing layout.
+- [x] Rebuild main, Settings, device, activity, device-list, speed-test and floating-alert layouts.
+- [x] Replace fixed-position clipping with shared spacing, wrapping, data grids, responsive footers and scrollable forms.
+- [x] Add consistent 96-DPI scaling baselines and PerMonitorV2 manifest support.
+- [x] Build and package the single Windows x64 app; publish is next.
+- [x] Replace the active app in C:\\Presence and start v1.1.0 in the tray.
 
-No tests or live speed transfers run. Older installed-folder deletion remains blocked by the previously reported filesystem policy; do not retry through alternative mechanisms.
+Representative app-owned captures cover the PC's native 150% display and layout simulations for 100%, 125% and 200%. Earlier full-page renders exposed and helped repair timestamp, footer spacing, column fitting and popup sizing defects. The native computer-use capture timed out twice, so app-owned renders provide the screenshots. Tests, lint and source review are skipped per the latest user instruction.
 
 ## RESUME HERE
-Completed: v1.0.5 is published and running in the tray. Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.5. No further build or testing is required for this change.
-
+The one v1.1.0 production publish passed and is running from C:\\Presence. Only GitHub release publication and final docs remain.
 

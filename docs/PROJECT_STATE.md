@@ -20,7 +20,7 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `C:\Users\Gev\AppData\Local\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the private `remriel/presence-windows`. Latest release is v1.0.5. The v1.0.5 portable app is installed under the user's Downloads folder and runs in the tray. Existing data stays in `%LOCALAPPDATA%\Presence\presence.db`.
+- Repository is the private `remriel/presence-windows`. Latest GitHub release before this update is v1.0.5. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
@@ -44,4 +44,20 @@ Speed measurement now runs at least 2.5 seconds per direction using a Stopwatch,
 
 ## RESUME HERE
 Presence v1.0.5 is published at https://github.com/remriel/presence-windows/releases/tag/v1.0.5 and running locally in the tray from Downloads\Presence-1.0.5-win-x64. Windows startup points to this executable. Speed tests measure at least 2.5 seconds per direction, five seconds total, before completing. The single publish passed; no automated or live network tests were run. Older folder deletion remains previously blocked; no deletion retries were made in this update.
+
+
+## UI architecture in v1.1.0
+- `Ui.cs` centralizes spacing, typography, semantic light/dark colors, wrap-aware text, two-column settings fields, action bars, tables and the auto-height content layout.
+- `ScrollBody` contains one width-constrained vertical scroller; headers and actions remain visible. `ContentTable` measures auto rows at their allocated columns to avoid phantom whitespace and wrapped-label clipping.
+- Main home/away/new-device rows and activity use selectable DataGridViews with state words, aligned timestamps and keyboard opening. `PresenceGrid` reapplies column widths and padding when DPI changes.
+- Settings and device forms use grouped sections, shared fields and pinned Save/Cancel actions. Technical values wrap and provide a Copy value context action.
+- Floating alerts wrap message text and adjust their height before positioning. Speed results, loading and errors use one measured layout.
+- Forms have a 96-DPI `AutoScaleDimensions` baseline. The app manifest declares PerMonitorV2 awareness.
+- `tools/Presence.UiPreview` renders fictional screen states; `tools/ui_contact_sheet.py` composes screenshot sheets. Capture artifacts stay under task `outputs`, outside the source tree.
+
+## v1.1.0 handoff
+Presence v1.1.0 now runs from C:\Presence, replacing the active 1.0.5 executable. The shared local database remains at %LOCALAPPDATA%\Presence\presence.db. The Windows Run entry points to the installed executable with --tray. Source and the built package are ready for the 1.1.0 GitHub release.
+
+## v1.1.0 publication state
+The single Windows x64 publish succeeded. The running app at C:\\Presence reports file version 1.1.0.0; the Run key points to it with --tray. The existing presence database is preserved. GitHub release publication is completing now.
 

@@ -1,7 +1,14 @@
-# Presence 1.0.5
+# Presence 1.1.0
 
-The internet speed test now measures download for at least 2.5 seconds and upload for at least 2.5 seconds. Successful tests therefore run for at least five seconds, plus latency measurement and request overhead. The old 8 MiB cutoff no longer ends fast-connection measurements early. Throughput uses total transferred bytes divided by actual elapsed time.
+Presence 1.1.0 finishes the native Windows UI across the main window, Settings, device details, activity history, all devices, speed test and floating alerts.
 
-Closing the dialog cancels the test. The existing 35-second timeout remains. Tests run only when requested and do not save results or send Presence device data.
+- Shared spacing, type hierarchy, contrast colors and accessible native action styles.
+- Resizing layouts with auto-wrapped text, predictable columns, pinned actions and scrolling content.
+- Home/away/unknown state text, aligned change times, recent activity and readable empty/loading/error states.
+- Device identity and person-association sections with wrapping technical values that can be copied.
+- Owner-drawn adapter/theme lists, scalable history tables, and responsive speed-test and alert windows.
+- Per-monitor V2 DPI awareness with 96-DPI autoscale baselines.
 
-One production build; no automated or live network tests requested.
+The existing network discovery, five-second minimum speed measurement, database, tray, alerts and startup behavior remain in place.
+
+Published as a self-contained Windows x64 release. UI captures use fictional data. No automated network or speed-transfer tests were run.

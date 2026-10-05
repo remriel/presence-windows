@@ -110,37 +110,60 @@ internal sealed class InternetSpeedTest : IDisposable
 internal sealed class SpeedTestWindow : Form
 {
     private readonly CancellationTokenSource cancel = new();
-    private readonly Label status;
+    private readonly WrapLabel status;
     private readonly Button start;
     private readonly InternetSpeedTest speedTest = new();
-
-    public SpeedTestWindow(Settings settings)
+    private readonly Dictionary<string, WrapLabel> values = [];
+    private readonly ProgressBar progressBar;
+    private readonly Settings settings;
+    private bool resourcesDisposed;
+    public SpeedTestWindow(Settings settings, bool autoStart = true)
     {
-        Text = "Presence · Internet speed"; ClientSize = new Size(400, 300); MinimumSize = new Size(400, 300);
-        MaximumSize = new Size(400, 300); StartPosition = FormStartPosition.CenterParent; FormBorderStyle = FormBorderStyle.FixedDialog;
-        AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 10); BackColor = Ui.Background(settings); ForeColor = Ui.Text(settings);
-        var title = new Label { Text = "INTERNET SPEED", Location = new Point(18, 16), Width = 325, Height = 40, Font = new Font("Segoe UI", 16, FontStyle.Bold), BackColor = Ui.Lemon, ForeColor = Ui.Ink, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(8, 0, 0, 0) };
-        status = new Label { Text = "Measures download, upload, latency and jitter.", Location = new Point(23, 66), Width = 315, Height = 92, AutoEllipsis = true, TextAlign = ContentAlignment.TopLeft, BackColor = Ui.Surface(settings), ForeColor = Ui.Text(settings), Font = new Font("Segoe UI", 11, FontStyle.Bold) };
-        var disclosure = new Label { Text = "ON DEMAND · Cloudflare receives your public IP and test traffic. Presence never sends device data or saves results.", Location = new Point(23, 171), Width = 350, Height = 52, Font = new Font("Segoe UI", 9), ForeColor = Ui.Muted(settings) };
-        start = new Button { Text = "Run speed test", Location = new Point(234, 238), Size = new Size(134, 38), FlatStyle = FlatStyle.Flat, BackColor = Ui.Lemon, ForeColor = Ui.Ink, Font = Ui.ButtonFont }; start.FlatAppearance.BorderSize = 3; start.FlatAppearance.BorderColor = Ui.Ink;
-        start.Click += async (_, _) => await RunTest();
-        Controls.AddRange([title, status, disclosure, start]); AcceptButton = start;
-        FormClosed += (_, _) => { cancel.Cancel(); speedTest.Dispose(); cancel.Dispose(); };
-        Shown += async (_, _) => await RunTest();
+        this.settings = settings;
+        Ui.Configure(this, "Internet speed", new Size(500, 510), new Size(420, 400), settings);
+        var body = new ScrollBody();
+        status = Ui.Label("Ready to measure your internet connection.", settings); status.Margin = new Padding(0, 0, 0, Ui.Space); Ui.Add(body.Content, status);
+        progressBar = new ProgressBar { Dock = DockStyle.Top, Height = 12, Style = ProgressBarStyle.Marquee, MarqueeAnimationSpeed = 30, Visible = false, Margin = new Padding(0, 0, 0, Ui.Section) }; Ui.Add(body.Content, progressBar);
+        var metrics = Ui.Fields();
+        foreach (var name in new[] { "Download", "Upload", "Latency", "Jitter" })
+        {
+            var value = Ui.Label("—", settings); value.Font = Ui.HeadingFont; values[name] = value; Ui.Field(metrics, name, value, settings);
+        }
+        Ui.Add(body.Content, metrics);
+        var note = Ui.Label("Download and upload each measure for at least 2.5 seconds. Latency and jitter describe the responsiveness of this connection.", settings, true); note.Margin = new Padding(0, Ui.Space, 0, Ui.Section); Ui.Add(body.Content, note);
+        Ui.Add(body.Content, Ui.Label("Cloudflare receives your public IP and test traffic. Presence sends no device data and does not save these results.", settings, true));
+        start = Ui.Button("&Run speed test", async () => await RunTest(), settings, true);
+        var close = Ui.Button("&Close", Close, settings); close.DialogResult = DialogResult.Cancel; AcceptButton = start; CancelButton = close;
+        Ui.Shell(this, Ui.Header("Internet speed", "Measure download, upload, latency and jitter on demand.", settings), body, Ui.Actions(start, close));
+        FormClosed += (_, _) => { cancel.Cancel(); speedTest.Dispose(); };
+        if (autoStart) Shown += async (_, _) => await RunTest();
     }
-
+    internal void ShowProgress(string message)
+    {
+        status.Text = message; status.ForeColor = Ui.Text(settings); progressBar.Visible = true;
+        start.Enabled = false; start.Text = "Testing…";
+    }
+    internal void ShowResult(InternetSpeedResult result)
+    {
+        values["Download"].Text = $"{result.DownloadMbps:0.0} Mbps"; values["Upload"].Text = $"{result.UploadMbps:0.0} Mbps";
+        values["Latency"].Text = $"{result.LatencyMs:0} ms"; values["Jitter"].Text = $"{result.JitterMs:0.0} ms";
+        status.Text = "Test complete"; status.ForeColor = Ui.Positive(settings); Finish();
+    }
+    internal void ShowError(string message)
+    {
+        status.Text = "Speed test could not finish.\n" + message; status.ForeColor = Ui.Negative(settings); Finish();
+    }
+    private void Finish() { progressBar.Visible = false; start.Enabled = true; start.Text = "&Run again"; }
     private async Task RunTest()
     {
         if (cancel.IsCancellationRequested || !start.Enabled) return;
-        start.Enabled = false; start.Text = "Testing…";
-        var progress = new Progress<string>(message => { if (!IsDisposed) status.Text = message; });
-        try
-        {
-            var result = await speedTest.RunAsync(progress, cancel.Token);
-            if (!IsDisposed) status.Text = $"Download     {result.DownloadMbps:0.0} Mbps\nUpload          {result.UploadMbps:0.0} Mbps\nLatency          {result.LatencyMs:0} ms\nJitter               {result.JitterMs:0.0} ms";
-        }
+        foreach (var value in values.Values) value.Text = "—";
+        ShowProgress("Starting speed test…");
+        var progress = new Progress<string>(message => { if (!IsDisposed && !cancel.IsCancellationRequested) ShowProgress(message); });
+        try { var result = await speedTest.RunAsync(progress, cancel.Token); if (!IsDisposed) ShowResult(result); }
         catch (OperationCanceledException) when (cancel.IsCancellationRequested) { }
-        catch (Exception ex) { if (!IsDisposed) status.Text = "Speed test failed.\n" + ex.Message; }
-        finally { if (!IsDisposed && !cancel.IsCancellationRequested) { start.Enabled = true; start.Text = "Run again"; } }
+        catch (Exception ex) { if (!IsDisposed) ShowError(ex.Message); }
+        finally { if (!IsDisposed && !cancel.IsCancellationRequested) Finish(); }
     }
+    protected override void Dispose(bool disposing) { if (disposing && !resourcesDisposed) { resourcesDisposed = true; cancel.Cancel(); speedTest.Dispose(); cancel.Dispose(); } base.Dispose(disposing); }
 }
