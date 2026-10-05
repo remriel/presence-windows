@@ -1,18 +1,17 @@
 # Presence progress
 
-Current objective: publish the polished Windows UI, add the Fing-style README/screenshots, make the GitHub repository public and keep the local tray app current.
-Progress: **90%** [██████████████████░░]
+Current objective: publish v1.1.0 with one Presence icon across the executable, title bars, tray and floating alerts, while keeping the installed PC copy current.
+Progress: **95%** [███████████████████░]
 
-- [x] Reconcile the repository, full UI brief and prior release state.
-- [x] Render the original app screens before changing layout; identify clipping and sizing issues.
-- [x] Rebuild main, Settings, device, activity, device-list, speed-test and floating-alert layouts.
-- [x] Add shared spacing, wrapping, aligned tables, fixed action bars and PerMonitorV2 scaling support.
-- [x] Build and package the self-contained Windows x64 v1.1.0 app once.
-- [x] Replace the active app at C:\Presence and start v1.1.0 in the tray with the existing database and startup path.
-- [x] Add seven fictional native screenshots to README and position Presence as an independent open-source Fing-style alternative.
-- [ ] Complete the GitHub release upload and make the repository public.
+- [x] Finish the v1.1 native UI, on-demand speed test and Fing-style README with fictional screenshots.
+- [x] Make `remriel/presence-windows` public.
+- [x] Create a production Presence icon and replace the unrelated alert image and drawn tray lettermark.
+- [x] Publish one self-contained Windows x64 build and package the updated archive.
+- [x] Replace `C:\Presence\Presence.exe` and confirm it runs from the startup location with the existing data file intact.
+- [ ] Push the icon/source/docs commit and tag `v1.1.0` at that commit.
+- [ ] Replace the old draft ZIP and checksum with the new package; publish and verify the public GitHub release.
 
-GitHub release v1.1.0 is a draft while its Windows ZIP transfers. The current README and images are ready to push. No tests, lint or code-review checks are run per the latest request. Public-history screening found no credential patterns, database blobs, real-device screenshots or diagnostics; old commits contain a build-path reference to the local Windows account.
+The production publish succeeded. The new archive SHA-256 is `6069ee29aa682aea7eac0bb19c833a7af9c1498d3eb8a12b3d69e022fe5f716b`. The app runs from `C:\Presence`; the user database remains in `%LOCALAPPDATA%\Presence\presence.db` and the Run key points to `C:\Presence\Presence.exe --tray`. No lint, automated tests, code review or repeated validation were run, as requested. The floating alert screenshot from the earlier icon was removed from README so it does not misrepresent this build.
 
 ## RESUME HERE
-Finish publishing v1.1.0, push the README/screenshots and final progress/state docs, set remriel/presence-windows public, then confirm C:\Presence is running and startup points to that executable.
+Commit and push the current icon/UI documentation changes, tag the resulting commit `v1.1.0`, replace the existing draft release's old Windows ZIP and checksum, then publish the draft. After publication, record the release URL and final status in this file and `PROJECT_STATE.md`, and push that documentation update.

@@ -25,8 +25,6 @@ internal sealed class PresenceContext : ApplicationContext
     private bool suspended;
     private int epoch;
     private readonly bool demo;
-    private Icon? activeIcon;
-    private Color iconColor;
     private bool refreshQueued;
     private bool dirty;
     private string adapterId = "";
@@ -46,7 +44,7 @@ internal sealed class PresenceContext : ApplicationContext
         window = new MainWindow(this); _ = window.Handle;
         alerts = new FloatingAlerts(() => Engine.Data.Settings, () => Screen.FromControl(window).WorkingArea, Activate, action => { if (!Stopping && !window.IsDisposed) window.BeginInvoke(action); });
         StartupTrace.Mark("window-created");
-        tray = new NotifyIcon { Text = "Presence · starting", Visible = true, Icon = SystemIcons.Application };
+        tray = new NotifyIcon { Text = "Presence · starting", Icon = PresenceIcons.Tray, Visible = true };
         var menu = new ContextMenuStrip(); menu.Items.Add("Open Presence", null, (_, _) => Activate("")); menu.Items.Add("Activity", null, (_, _) => window.ShowActivity());
         menu.Items.Add("Refresh now", null, async (_, _) => await Scan(true)); menu.Items.Add("Settings", null, (_, _) => window.ShowSettings()); menu.Items.Add(new ToolStripSeparator()); menu.Items.Add("Quit Presence", null, (_, _) => Exit()); tray.ContextMenuStrip = menu;
         tray.DoubleClick += (_, _) => Activate("");
@@ -167,17 +165,8 @@ internal sealed class PresenceContext : ApplicationContext
     {
         var home = Engine.Data.Devices.Count(d => d.Kind != DeviceKind.Ignore && d.Network == Engine.Network && d.State is PresenceState.Home or PresenceState.ProbablyHome);
         tray.Text = Monitoring ? "Presence · " + home + " devices present" : "Presence · monitoring paused";
-        var color = !Monitoring ? Color.Gray : home > 0 ? Color.FromArgb(40, 150, 100) : Color.FromArgb(100, 110, 125);
-        if (color != iconColor || activeIcon is null)
-        {
-        iconColor = color;
-        // A small lettermark is a utility status icon, not an illustration or production art asset.
-        using var bmp = new Bitmap(32, 32); using (var g = Graphics.FromImage(bmp)) { g.Clear(Color.Transparent); using var b = new SolidBrush(color); using var f = new Font("Segoe UI", 21, FontStyle.Bold, GraphicsUnit.Pixel); g.DrawString("P", f, b, 5, 2); }
-        var hIcon = bmp.GetHicon(); var icon = (Icon)Icon.FromHandle(hIcon).Clone(); DestroyIcon(hIcon); tray.Icon = icon; activeIcon?.Dispose(); activeIcon = icon;
-        }
         Changed?.Invoke();
     }
-    [System.Runtime.InteropServices.DllImport("user32.dll")] private static extern bool DestroyIcon(IntPtr handle);
     private void PowerChanged(object sender, PowerModeChangedEventArgs e)
     {
         if (window.IsDisposed || Stopping || e.Mode == PowerModes.StatusChange) return;
@@ -201,7 +190,7 @@ internal sealed class PresenceContext : ApplicationContext
     }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); tray.Dispose(); activeIcon?.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
+        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); tray.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
         base.Dispose(disposing);
     }
     private static void SeedDemo(Snapshot data)

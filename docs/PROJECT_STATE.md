@@ -7,7 +7,7 @@
 - Presence discovery is IPv4-only, with fresh ARP, ICMP and multicast DNS. Known devices are prioritized and results stream to the UI as they arrive. A dedicated bounded worker pool keeps blocking ARP calls off the UI/CLR thread pool. A silent first scan forms the baseline; default scan is 3 sec and departure grace 30 sec. /24 and /23 networks are covered each pass; larger ranges rotate in bounded chunks.
 - Sleep, adapter changes or a missing gateway reset monitoring without accruing absence. Gateway/proxy-ARP answers for unrelated IPs are excluded.
 - User-requested devices are automatically tracked at first fresh response. Person assignment is optional and a primary phone controls optional person aggregation. Ignored devices never send events.
-- Floating icon notices use a custom non-activating window and the owner's bundled Codex Usage Counter audio/icon assets. They operate independently of Windows toast settings and are kept local.
+- Floating icon notices use a custom non-activating window and the owner's bundled Codex Usage Counter chime. They operate independently of Windows toast settings and are kept local. The v1.1.0 Presence icon is shared by the executable, title bars, tray and floating notices.
 - User-facing theme follows current AGENTS: warm paper `#F7F6EF`, charcoal ink `#151821`, lemon action `#F4E54D`, coral `#F25B3D`, teal positive `#0E7C66`; dark canvas/surface `#151821` / `#242832` with `#F7F6EF` text, mint positive `#7AE5C5`, coral error `#FF8A76`. Thick outlined controls, compact responsive rows.
 
 ## Speed test
@@ -20,7 +20,7 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `%LOCALAPPDATA%\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the private `remriel/presence-windows`. Latest GitHub release before this update is v1.0.5. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
+- Repository is the public `remriel/presence-windows`. Latest published GitHub release before this update is v1.0.5. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
@@ -34,7 +34,7 @@ Presence v1.0.4 has been built, packaged, pushed, published and installed to cor
 
 The v1.0.4 release is running in the tray and the existing database is preserved. The old v1.0.3 process is stopped, but its downloaded folder remains because automatic deletion was blocked. Do not rebuild or run tests without a new request. Runtime internet speed, Wi-Fi connect/disconnect, sleep, popup click/audio and long-duration behavior remain manual owner acceptance. Use `docs/MANUAL_ACCEPTANCE.md` for those steps.
 
-Private repository: https://github.com/remriel/presence-windows
+Repository: https://github.com/remriel/presence-windows
 Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.4
 
 
@@ -42,8 +42,8 @@ Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.4
 Speed measurement now runs at least 2.5 seconds per direction using a Stopwatch, with no 8 MiB early cutoff. Successful tests take at least five seconds plus latency/overhead. One production build passed; no tests or live speed transfer were run. The local v1.0.5 app is running from Downloads and Windows startup points to that version. Existing presence data remains in its original profile. Older extracted folders remain as previously documented.
 
 
-## RESUME HERE
-Presence v1.0.5 is published at https://github.com/remriel/presence-windows/releases/tag/v1.0.5 and running locally in the tray from Downloads\Presence-1.0.5-win-x64. Windows startup points to this executable. Speed tests measure at least 2.5 seconds per direction, five seconds total, before completing. The single publish passed; no automated or live network tests were run. Older folder deletion remains previously blocked; no deletion retries were made in this update.
+## v1.0.5 handoff
+Presence v1.0.5 was published at https://github.com/remriel/presence-windows/releases/tag/v1.0.5 and previously ran locally from Downloads\Presence-1.0.5-win-x64. Speed tests measure at least 2.5 seconds per direction, five seconds total, before completing. No automated or live network tests were run. Older folder deletion remains previously blocked; no deletion retries were made in this update.
 
 
 ## UI architecture in v1.1.0
@@ -59,6 +59,9 @@ Presence v1.0.5 is published at https://github.com/remriel/presence-windows/rele
 Presence v1.1.0 now runs from C:\Presence, replacing the active 1.0.5 executable. The shared local database remains at %LOCALAPPDATA%\Presence\presence.db. The Windows Run entry points to the installed executable with --tray. Source and the built package are ready for the 1.1.0 GitHub release.
 
 ## v1.1.0 publication state
-The single Windows x64 publish succeeded. The running app at C:\\Presence reports file version 1.1.0.0; the Run key points to it with --tray. The existing presence database is preserved. GitHub release publication is completing now.
+The icon update's single Windows x64 publish succeeded. The running app at `C:\Presence` reports file version 1.1.0.0; the Run key points to it with `--tray`. The existing presence database is preserved. The updated portable archive SHA-256 is `6069ee29aa682aea7eac0bb19c833a7af9c1498d3eb8a12b3d69e022fe5f716b`. The prior v1.1.0 draft asset still has the earlier icon and must be replaced before publication.
+
+## RESUME HERE
+Commit and push the icon integration and README changes, tag that commit `v1.1.0`, replace the old ZIP/checksum on the draft GitHub release and publish it. Source of truth is the repository and GitHub release state; the earlier handoff sections document history. Do not rerun builds or tests unless a release-blocking error requires it.
 
 

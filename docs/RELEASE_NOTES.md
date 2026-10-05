@@ -8,6 +8,7 @@ Presence 1.1.0 finishes the native Windows UI across the main window, Settings, 
 - Device identity and person-association sections with wrapping technical values that can be copied.
 - Owner-drawn adapter/theme lists, scalable history tables, and responsive speed-test and alert windows.
 - Per-monitor V2 DPI awareness with 96-DPI autoscale baselines.
+- One Presence icon shared by the executable, Windows title bars, tray and custom floating alerts.
 
 The existing network discovery, five-second minimum speed measurement, database, tray, alerts and startup behavior remain in place.
 

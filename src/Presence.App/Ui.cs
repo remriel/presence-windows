@@ -31,6 +31,7 @@ internal static class Ui
     {
         form.SuspendLayout();
         form.Text = "Presence · " + title;
+        form.Icon = PresenceIcons.Window;
         form.Font = StandardFont;
         form.AutoScaleDimensions = new SizeF(96, 96);
         form.AutoScaleMode = AutoScaleMode.Dpi;

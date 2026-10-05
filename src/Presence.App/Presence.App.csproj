@@ -4,6 +4,7 @@
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <AssemblyName>Presence</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>assets/presence.ico</ApplicationIcon>
     <Version>1.1.0</Version><Company>Presence</Company><Product>Presence</Product>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Presence.Core/Presence.Core.csproj" />
@@ -12,7 +13,8 @@
   <ItemGroup><Content Include="oui.csv" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" /></ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="assets/presence-alert.wav" LogicalName="Presence.AlertSound" />
-    <EmbeddedResource Include="assets/presence-alert.png" LogicalName="Presence.AlertIcon" />
+    <EmbeddedResource Include="assets/presence-icon.png" LogicalName="Presence.ProductIcon" />
+    <EmbeddedResource Include="assets/presence.ico" LogicalName="Presence.AppIcon" />
   </ItemGroup>
 </Project>
 

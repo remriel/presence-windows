@@ -1,5 +1,7 @@
 # Presence
 
+<img src="src/Presence.App/assets/presence-icon.png" width="80" alt="Presence application icon">
+
 **An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
 [Download Presence 1.1.0](https://github.com/remriel/presence-windows/releases/tag/v1.1.0) · Windows 10 x64 and later
@@ -21,8 +23,6 @@ These screens use fictional preview devices.
 <img src="docs/images/presence-activity.png" width="620" alt="Activity history with aligned timestamps, device names and event types">
 
 <img src="docs/images/presence-speed-test.png" width="620" alt="On-demand internet speed test showing download, upload, latency and jitter">
-
-<img src="docs/images/presence-alert.png" width="420" alt="Floating Presence arrival alert with a long device name wrapping cleanly">
 
 ## Start
 
@@ -100,7 +100,7 @@ Manual acceptance after launch:
 - [Microsoft notification compatibility API](https://learn.microsoft.com/en-us/dotnet/api/communitytoolkit.winui.notifications.toastnotificationmanagercompat) describes native desktop toast activation.
 - [IEEE OUI database](https://standards-oui.ieee.org/oui/oui.csv), bundled as a local vendor lookup snapshot downloaded October 4, 2026. The CSV remains unmodified; no runtime download occurs.
 - Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite and Windows Community Toolkit retain their upstream licenses. NuGet package metadata supplies license details; see THIRD_PARTY_NOTICES.md.
-- Floating alert icon/chime reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter), at `assets/usage-orbit-64.png` and `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
+- The Presence application, tray and floating alert share one icon created for this release. The floating-alert chime is reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter) `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
 
 
 

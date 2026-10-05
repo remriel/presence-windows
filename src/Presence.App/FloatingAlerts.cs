@@ -21,7 +21,7 @@ internal sealed class FloatingAlerts : IDisposable
     public FloatingAlerts(Func<Settings> getSettings, Func<Rectangle> getWorkArea, Action<string> onActivate, Action<Action> post)
     {
         settings = getSettings; workArea = getWorkArea; activate = onActivate; dispatch = post;
-        using var imageStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Presence.AlertIcon") ?? throw new InvalidDataException("Missing alert icon.");
+        using var imageStream = Assembly.GetExecutingAssembly().GetManifestResourceStream("Presence.ProductIcon") ?? throw new InvalidDataException("Missing Presence icon.");
         using var source = Image.FromStream(imageStream); icon = new Bitmap(source);
         using var audio = Assembly.GetExecutingAssembly().GetManifestResourceStream("Presence.AlertSound") ?? throw new InvalidDataException("Missing alert sound.");
         using var bytes = new MemoryStream(); audio.CopyTo(bytes); sound = GCHandle.Alloc(bytes.ToArray(), GCHandleType.Pinned);
