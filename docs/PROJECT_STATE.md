@@ -20,19 +20,19 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `C:\Users\Gev\AppData\Local\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the private `remriel/presence-windows`. Latest prior release v1.0.2; current package is v1.0.3. The current local Presence installation/database are not modified by this GitHub release request.
-- `--preview-image` creates a native screenshot of fictional demo data without scanning. Native Windows screenshot capture previously timed out, so use this app export for the requested screenshot.
+- Repository is the private `remriel/presence-windows`. Latest prior release is v1.0.3; the pending package is v1.0.4. The current local Presence installation/database are not modified by this GitHub release request.
+- `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
-- Current v1.0.3 Windows x64 production publish succeeded after fixing the missing `Presence.Core` namespace import in the speed-test dialog.
+- v1.0.3 Windows x64 production publish succeeded after fixing the missing `Presence.Core` namespace import in the speed-test dialog. The v1.0.4 Windows x64 self-contained production publish has now completed. It adds recursive dialog theme application so default black label text uses the chosen readable theme; muted labels keep their muted color. The project version conflict markers were removed before publishing.
 - No new automated tests or real Wi-Fi, Cloudflare speed-transfer, sound-listening or popup-click tests were performed. Upstream CI applies to older scanner code only. Physical Wi-Fi transitions and live internet speed remain manual owner acceptance.
 - Cloudflare speed measurement is edge-based internet throughput/HTTP latency. It is not the Wi-Fi PHY link rate, router throughput or saved ISP diagnostic history.
 
 ## RESUME HERE
 
-Presence v1.0.3 has been built, packaged, pushed, and published on GitHub. The update combines three-second local scans, streaming discovery, responsive low-churn UI and an on-demand Cloudflare internet speed test in the bottom bar. The test measures download/upload, median HTTPS latency and jitter; it sends test requests/public IP to Cloudflare only when clicked, and saves no results or Presence device data.
+Presence v1.0.4 has been built to correct unreadable default-colored labels in the dark Settings and device dialogs. It carries forward three-second local scans, streaming discovery, responsive UI and the on-demand Cloudflare internet speed test in the bottom bar. The test measures download/upload, median HTTPS latency and jitter; it sends test requests/public IP to Cloudflare only when clicked, and saves no results or Presence device data.
 
-Do not run another build or tests without a new request. The local v1.0.1 install and existing database were not replaced. Runtime internet speed, Wi-Fi connect/disconnect, sleep, popup click/audio and long-duration behavior remain manual owner acceptance. Preserve the current source/ref and use `docs/MANUAL_ACCEPTANCE.md` for those steps.
+The v1.0.4 build and portable package are ready; next synchronize the source/docs to GitHub and publish the release. The current user authorized no tests, lint, review, cleanup or repeated validation. The local v1.0.1 install and existing database are not being replaced. Runtime internet speed, Wi-Fi connect/disconnect, sleep, popup click/audio and long-duration behavior remain manual owner acceptance. Preserve the release artifact and use `docs/MANUAL_ACCEPTANCE.md` for those steps.
 
 Private repository: https://github.com/remriel/presence-windows
 Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.3

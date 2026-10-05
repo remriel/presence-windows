@@ -114,13 +114,13 @@ internal sealed class SpeedTestWindow : Form
 
     public SpeedTestWindow(Settings settings)
     {
-        Text = "Presence · Internet speed"; ClientSize = new Size(365, 270); MinimumSize = new Size(365, 270);
-        MaximumSize = new Size(365, 270); StartPosition = FormStartPosition.CenterParent; FormBorderStyle = FormBorderStyle.FixedDialog;
+        Text = "Presence · Internet speed"; ClientSize = new Size(400, 300); MinimumSize = new Size(400, 300);
+        MaximumSize = new Size(400, 300); StartPosition = FormStartPosition.CenterParent; FormBorderStyle = FormBorderStyle.FixedDialog;
         AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 10); BackColor = Ui.Background(settings); ForeColor = Ui.Text(settings);
         var title = new Label { Text = "INTERNET SPEED", Location = new Point(18, 16), Width = 325, Height = 40, Font = new Font("Segoe UI", 16, FontStyle.Bold), BackColor = Ui.Lemon, ForeColor = Ui.Ink, TextAlign = ContentAlignment.MiddleLeft, Padding = new Padding(8, 0, 0, 0) };
         status = new Label { Text = "Measures download, upload, latency and jitter.", Location = new Point(23, 66), Width = 315, Height = 92, AutoEllipsis = true, TextAlign = ContentAlignment.TopLeft, BackColor = Ui.Surface(settings), ForeColor = Ui.Text(settings), Font = new Font("Segoe UI", 11, FontStyle.Bold) };
-        var disclosure = new Label { Text = "ON DEMAND · Cloudflare receives your public IP, test traffic and speed results for aggregate insights.", Location = new Point(23, 171), Width = 315, Height = 45, Font = new Font("Segoe UI", 8), ForeColor = Ui.Muted(settings) };
-        start = new Button { Text = "Run speed test", Location = new Point(204, 220), Size = new Size(134, 34), FlatStyle = FlatStyle.Flat, BackColor = Ui.Lemon, ForeColor = Ui.Ink, Font = new Font("Segoe UI", 9, FontStyle.Bold) }; start.FlatAppearance.BorderSize = 3; start.FlatAppearance.BorderColor = Ui.Ink;
+        var disclosure = new Label { Text = "ON DEMAND · Cloudflare receives your public IP and test traffic. Presence never sends device data or saves results.", Location = new Point(23, 171), Width = 350, Height = 52, Font = new Font("Segoe UI", 9), ForeColor = Ui.Muted(settings) };
+        start = new Button { Text = "Run speed test", Location = new Point(234, 238), Size = new Size(134, 38), FlatStyle = FlatStyle.Flat, BackColor = Ui.Lemon, ForeColor = Ui.Ink, Font = Ui.ButtonFont }; start.FlatAppearance.BorderSize = 3; start.FlatAppearance.BorderColor = Ui.Ink;
         start.Click += async (_, _) => await RunTest();
         Controls.AddRange([title, status, disclosure, start]); AcceptButton = start;
         FormClosed += (_, _) => { cancel.Cancel(); speedTest.Dispose(); cancel.Dispose(); };

@@ -5,6 +5,8 @@ namespace Presence.App;
 
 internal static class Ui
 {
+    public static readonly Font StandardFont = new("Segoe UI", 10);
+    public static readonly Font ButtonFont = new("Segoe UI", 10, FontStyle.Bold);
     public static readonly Color LightCanvas = ColorTranslator.FromHtml("#F7F6EF");
     public static readonly Color LightSurface = Color.White;
     public static readonly Color DarkCanvas = ColorTranslator.FromHtml("#151821");
@@ -31,15 +33,17 @@ internal static class Ui
     public static Color Negative(Settings s) => Dark(s) ? DarkError : ErrorRed;
     public static void Theme(Control control, Settings s)
     {
-        control.BackColor = Background(s); control.ForeColor = Text(s); control.Font = new Font("Segoe UI", 10);
-        if (control is Button button) { button.BackColor = Lemon; button.ForeColor = Ink; button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = 3; button.FlatAppearance.BorderColor = Ink; button.Font = new Font("Segoe UI", 10, FontStyle.Bold); }
+        control.BackColor = control is Label ? Color.Transparent : Background(s);
+        control.ForeColor = control is Label label && label.ForeColor != SystemColors.ControlText ? label.ForeColor : Text(s);
+        control.Font = StandardFont;
+        if (control is Button button) { button.BackColor = Lemon; button.ForeColor = Ink; button.FlatStyle = FlatStyle.Flat; button.FlatAppearance.BorderSize = 3; button.FlatAppearance.BorderColor = Ink; button.Font = ButtonFont; }
         else if (control is TextBox or ComboBox or NumericUpDown) control.BackColor = Surface(s);
         foreach (Control child in control.Controls) Theme(child, s);
     }
     public static Label Label(string text, int width, int height = 30, bool muted = false, Settings? settings = null) => new() { Text = text, Width = width, Height = height, AutoEllipsis = true, TextAlign = ContentAlignment.MiddleLeft, ForeColor = settings is null ? SystemColors.ControlText : muted ? Muted(settings) : Text(settings) };
     public static Button Button(string text, Action action, int width = 100)
     {
-        var b = new Button { Text = text, Width = width, Height = 32, FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(0, 5, 8, 5), BackColor = Lemon, ForeColor = Ink, Font = new Font("Segoe UI", 9, FontStyle.Bold) }; b.FlatAppearance.BorderSize = 3; b.FlatAppearance.BorderColor = Ink; b.Click += (_, _) => action(); return b;
+        var b = new Button { Text = text, Width = width, Height = 32, FlatStyle = FlatStyle.Flat, Cursor = Cursors.Hand, Margin = new Padding(0, 5, 8, 5), BackColor = Lemon, ForeColor = Ink, Font = ButtonFont }; b.FlatAppearance.BorderSize = 3; b.FlatAppearance.BorderColor = Ink; b.Click += (_, _) => action(); return b;
     }
     public static Form Dialog(string title, Size size, Settings s)
     {
@@ -61,15 +65,15 @@ internal sealed class MainWindow : Form
     private readonly Panel speedPanel;
     private readonly Button speedButton;
     private readonly Label speedHint;
-    private readonly Font headingFont = new("Segoe UI", 9, FontStyle.Bold);
-    private readonly Font rowFont = new("Segoe UI", 12);
+    private readonly Font headingFont = new("Segoe UI", 11, FontStyle.Bold);
+    private readonly Font rowFont = new("Segoe UI", 12, FontStyle.Bold);
     private string renderSignature = "";
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool AllowClose { get; set; }
     public MainWindow(PresenceContext context)
     {
-        app = context; Text = "Presence"; ClientSize = new Size(430, 580); MinimumSize = new Size(400, 490); StartPosition = FormStartPosition.CenterScreen;
-        Font = new Font("Segoe UI", 10); AutoScaleMode = AutoScaleMode.Dpi;
+        app = context; Text = "Presence"; ClientSize = new Size(560, 720); MinimumSize = new Size(460, 540); MaximumSize = new Size(760, 900); MaximizeBox = false; StartPosition = FormStartPosition.CenterScreen;
+        Font = Ui.StandardFont; AutoScaleMode = AutoScaleMode.Dpi;
         header = new Panel { Dock = DockStyle.Top, Height = 88, Padding = new Padding(24, 16, 24, 4), BackColor = Ui.Lemon };
         var title = new Label { Text = "PRESENCE", Location = new Point(24, 20), AutoSize = true, Font = new Font("Segoe UI", 20, FontStyle.Bold), ForeColor = Ui.Ink }; header.Controls.Add(title);
         var activity = Ui.Button("Activity", ShowActivity, 76); activity.FlatAppearance.BorderSize = 0; activity.Anchor = AnchorStyles.Top | AnchorStyles.Right; header.Controls.Add(activity);
@@ -97,9 +101,9 @@ internal sealed class MainWindow : Form
         var signature = $"{s.Theme}:{content.ClientSize.Width}:{peopleSignature}:{deviceSignature}";
         if (signature == renderSignature) { UpdateStatus(s); return; }
         renderSignature = signature;
-        foreach (Control c in Controls) { c.BackColor = BackColor; c.ForeColor = ForeColor; foreach (Control child in c.Controls) { child.BackColor = BackColor; child.ForeColor = ForeColor; } }
-        header.BackColor = Ui.Lemon; speedPanel.BackColor = Ui.Coral; speedHint.ForeColor = Color.White;
-        foreach (var label in header.Controls.OfType<Label>()) label.ForeColor = Ui.Ink;
+        content.BackColor = BackColor; status.BackColor = BackColor; status.ForeColor = Ui.Muted(s);
+        header.BackColor = Ui.Lemon; speedPanel.BackColor = Ui.Coral; speedHint.ForeColor = Color.White; speedHint.BackColor = Ui.Coral;
+        foreach (var label in header.Controls.OfType<Label>()) { label.ForeColor = Ui.Ink; label.BackColor = Ui.Lemon; }
         foreach (var button in header.Controls.OfType<Button>()) { button.BackColor = Ui.Surface(s); button.ForeColor = Ui.Text(s); button.FlatAppearance.BorderSize = 2; button.FlatAppearance.BorderColor = Ui.Text(s); button.Font = new Font("Segoe UI", 9, FontStyle.Bold); }
         speedButton.BackColor = Ui.Lemon; speedButton.ForeColor = Ui.Ink; speedButton.FlatAppearance.BorderSize = 3; speedButton.FlatAppearance.BorderColor = Ui.Ink; speedButton.Font = new Font("Segoe UI", 9, FontStyle.Bold);
         content.SuspendLayout();
@@ -206,7 +210,7 @@ internal sealed class DeviceWindow : Form
         var history = app.Store.History(d.Mac, d.PersonId, 50);
         if (history.Count == 0) flow.Controls.Add(Ui.Label("No events yet. Initial detection is a silent baseline.", 404, 42, true, s));
         foreach (var e in history) flow.Controls.Add(Ui.Label(Ui.Time(e.At) + "  " + e.Message, 404, 30));
-        foreach (Control c in flow.Controls) { c.BackColor = BackColor; if (c is not Label) c.ForeColor = ForeColor; }
+        Ui.Theme(this, s);
     }
 }
 
@@ -217,12 +221,12 @@ internal sealed class SettingsWindow : Form
         var s = app.Engine.Data.Settings; Text = "Presence · Settings"; ClientSize = new Size(490, 700); StartPosition = FormStartPosition.CenterParent; MinimizeBox = false; MaximizeBox = false; FormBorderStyle = FormBorderStyle.FixedDialog; AutoScaleMode = AutoScaleMode.Dpi; Font = new Font("Segoe UI", 10); BackColor = Ui.Background(s); ForeColor = Ui.Text(s);
         var flow = Ui.Flow(440); Controls.Add(flow);
         var intervals = new FlowLayoutPanel { Width = 430, Height = 66, Margin = Padding.Empty }; var scan = Number(s.ScanIntervalSeconds, 2, 600); var left = Number(s.DepartureGraceSeconds, 10, 3600);
-        var a = new FlowLayoutPanel { Width = 206, Height = 65, Margin = Padding.Empty }; a.Controls.Add(Ui.Label("Scan every (seconds)", 200)); a.Controls.Add(scan); intervals.Controls.Add(a);
-        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Declare left after (seconds)", 210)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
+        var a = new FlowLayoutPanel { Width = 206, Height = 65, Margin = Padding.Empty }; a.Controls.Add(Ui.Label("Scan interval (seconds)", 200, settings: s)); a.Controls.Add(scan); intervals.Controls.Add(a);
+        var b = new FlowLayoutPanel { Width = 218, Height = 65, Margin = Padding.Empty }; b.Controls.Add(Ui.Label("Departure grace (sec)", 210, settings: s)); b.Controls.Add(left); intervals.Controls.Add(b); flow.Controls.Add(intervals);
         flow.Controls.Add(Ui.Label("NOTIFICATIONS", 430, 35, true, s));
         var arrive = Check("Arrivals", s.Arrivals); var depart = Check("Departures", s.Departures); var unknown = Check("Unknown devices", s.UnknownDevices); flow.Controls.Add(arrive); flow.Controls.Add(depart); flow.Controls.Add(unknown);
         var sound = Check("Play alert sound", s.AlertSound); flow.Controls.Add(sound);
-        var popupRow = new FlowLayoutPanel { Width = 430, Height = 35, Margin = Padding.Empty }; popupRow.Controls.Add(Ui.Label("Floating alert duration (seconds)", 290)); var duration = Number(s.PopupSeconds, 3, 60); duration.Width = 80; popupRow.Controls.Add(duration); flow.Controls.Add(popupRow);
+        var popupRow = new FlowLayoutPanel { Width = 430, Height = 35, Margin = Padding.Empty }; popupRow.Controls.Add(Ui.Label("Alert duration (seconds)", 290, settings: s)); var duration = Number(s.PopupSeconds, 3, 60); duration.Width = 80; popupRow.Controls.Add(duration); flow.Controls.Add(popupRow);
         var quiet = Check("Quiet hours", s.QuietHours); flow.Controls.Add(quiet);
         var hours = new FlowLayoutPanel { Width = 430, Height = 36, Margin = Padding.Empty }; hours.Controls.Add(Ui.Label("From", 45)); var start = Number(s.QuietStart, 0, 23); start.Width = 65; hours.Controls.Add(start); hours.Controls.Add(Ui.Label("until", 42)); var end = Number(s.QuietEnd, 0, 23); end.Width = 65; hours.Controls.Add(end); hours.Controls.Add(Ui.Label("(24-hour time)", 145)); flow.Controls.Add(hours);
         var startup = Check("Start quietly with Windows", s.StartWithWindows); flow.Controls.Add(startup);
@@ -238,7 +242,7 @@ internal sealed class SettingsWindow : Form
             catch (Exception ex) { MessageBox.Show(this, "Could not save settings: " + ex.Message, "Presence"); }
         }); buttons.Controls.Add(save); buttons.Controls.Add(Ui.Button("Test alert", app.TestNotification)); buttons.Controls.Add(Ui.Button("Devices", () => ShowDevices(app))); flow.Controls.Add(buttons); AcceptButton = save;
         var privacy = Ui.Label("Presence stays on this computer. It never uploads device or presence data. Device presence is only a proxy for a person being home. Sleeping phones, private MAC changes and Wi-Fi isolation can hide devices.", 426, 83, true, s); privacy.AutoEllipsis = false; flow.Controls.Add(privacy);
-        foreach (Control c in flow.Controls) { c.BackColor = BackColor; if (c is not Label) c.ForeColor = ForeColor; foreach (Control child in c.Controls) { child.BackColor = BackColor; child.ForeColor = ForeColor; } }
+        Ui.Theme(this, s);
     }
     private static NumericUpDown Number(int value, int min, int max) => new() { Minimum = min, Maximum = max, Value = Math.Clamp(value, min, max), Width = 120 };
     private static CheckBox Check(string text, bool value) => new() { Text = text, Checked = value, Width = 425, Height = 28, Margin = Padding.Empty };

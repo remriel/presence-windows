@@ -75,6 +75,17 @@ internal sealed class PresenceContext : ApplicationContext
         bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
     public void ExportAlertPreview(string path) => alerts.ExportPreview(path);
+    public void ExportSettingsPreview(string path)
+    {
+        Engine.Data.Settings.Theme = "Dark";
+        using var preview = new SettingsWindow(this);
+        _ = preview.Handle;
+        var bitmap = new Bitmap(preview.ClientSize.Width, preview.ClientSize.Height);
+        preview.DrawToBitmap(bitmap, new Rectangle(Point.Empty, preview.ClientSize));
+        Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))!);
+        bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
+        bitmap.Dispose();
+    }
     public async Task Scan(bool requested = false)
     {
         if (suspended || demo || Stopping) return;

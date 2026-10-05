@@ -1,27 +1,20 @@
 # Presence progress
 
-Current objective: publish and deliver Presence v1.0.3 with responsive local device detection, a bottom-bar internet speed test and the refreshed native UI.
+Current objective: publish Presence v1.0.4 with the black-on-black Settings labels fixed, then deliver the Windows x64 portable build and release assets on GitHub.
 
-Verified progress: **100%** `[████████████████████]` for the requested build/package/GitHub-release handoff. Runtime speed and LAN acceptance were not tested.
+Verified progress: **85%** `[█████████████████░░░]`. The one production publish and portable package succeeded; GitHub publication remains.
 
-- [x] Reconcile latest GitHub source/metadata and release branch.
-- [x] Update LAN discovery to stream fresh observations on a three-second cadence; keep known-device checks prioritized and timely.
-- [x] Add the user-triggered internet download/upload/latency/jitter speed test at the bottom of the main window.
-- [x] Add Cloudflare disclosure; no Presence device data is transmitted and no test results are saved.
-- [x] Apply the bold high-contrast palette and responsive, lower-churn main UI.
-- [x] Publish the final self-contained Windows x64 build once; fix the missing `Presence.Core` namespace identified by that build.
-- [x] Export the native main-window screenshot with fictional devices.
-- [x] Package the portable archive and SHA-256 checksum.
-- [x] Push the merged source and release docs to the private GitHub repository.
-- [x] Create/publish GitHub release v1.0.3 and upload Windows, source, documentation and screenshot assets.
-- [x] Publish final progress/state/manual-acceptance docs.
+- [x] Read the user brief and reconcile the repo state with the durable handoff docs.
+- [x] Identify that nested/default Settings labels retained Windows black text under the dark theme.
+- [x] Apply the selected theme recursively while preserving deliberately muted labels.
+- [x] Resolve stale version conflict markers to version 1.0.4.
+- [x] Update release and project documentation for the UI correction.
+- [x] Publish one self-contained Windows x64 build without running tests.
+- [x] Export the fictional main-window screenshot and package portable archive and checksum.
+- [ ] Push the source and docs to GitHub and publish v1.0.4 with the build and documentation assets.
+- [ ] Record final release links and progress state.
 
-Current release: https://github.com/remriel/presence-windows/releases/tag/v1.0.3
-Repository: https://github.com/remriel/presence-windows (private).
-
-Verification: the production publish completed. This release workflow did not run local tests or live speed-test/Wi-Fi acceptance. Cloudflare test behavior, audio playback, phone sleep and router isolation remain unverified runtime behavior; see `MANUAL_ACCEPTANCE.md` for owner steps.
-
-The speed test runs only after clicking **Speed test**. Cloudflare sees the public IP and speed-test traffic and states it collects results for aggregated connection insights. Presence sends no MAC, device name, person mapping or history and stores no test result.
+The off-screen Settings screenshot path produced a blank form, so it is not included. The actual dialog is styled recursively in source. No tests, lint, review, cleanup or repeated validation will be run. Runtime Wi-Fi and internet-speed behavior remains owner acceptance.
 
 ## RESUME HERE
-The build, portable/source packaging, GitHub synchronization and v1.0.3 release upload are complete. Do not rebuild or add validation unless requested. Owner can launch Presence and click **Speed test** in the bottom bar; the window reports download/upload, latency and jitter. Live WAN and LAN behavior requires owner acceptance.
+The unreadable labels came from nested controls retaining their default black foreground. `Ui.Theme` now applies the selected theme recursively and keeps intentionally muted label colors. The one publish and portable package are complete; the project version conflict markers are resolved to 1.0.4. Next, push source/docs to GitHub without triggering tests, publish the release assets, and record final links.
