@@ -20,7 +20,7 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `C:\Users\Gev\AppData\Local\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the private `remriel/presence-windows`. Latest release is v1.0.4. The v1.0.4 portable app is installed under the user's Downloads folder and runs in the tray. Existing data stays in `%LOCALAPPDATA%\Presence\presence.db`.
+- Repository is the private `remriel/presence-windows`. Latest release is v1.0.5. The v1.0.5 portable app is installed under the user's Downloads folder and runs in the tray. Existing data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
@@ -28,7 +28,7 @@
 - No automated tests or real Wi-Fi, Cloudflare speed-transfer, sound-listening or popup-click tests were performed. The GitHub push carried `[skip ci]` to honor the no-tests instruction. Physical Wi-Fi transitions and live internet speed remain manual owner acceptance. The v1.0.4 tray process was confirmed running from the new Downloads folder. The prior v1.0.3 executable process was stopped, but its extracted folder remains because the environment's automatic filesystem policy rejected deletion. The dark Settings dialog was not captured live; an off-screen `DrawToBitmap` attempt returned a blank image and should not be reused for dialog screenshots.
 - Cloudflare speed measurement is edge-based internet throughput/HTTP latency. It is not the Wi-Fi PHY link rate, router throughput or saved ISP diagnostic history.
 
-## RESUME HERE
+## Previous v1.0.4 handoff
 
 Presence v1.0.4 has been built, packaged, pushed, published and installed to correct unreadable default-colored labels in the dark Settings and device dialogs. It carries forward three-second local scans, streaming discovery, responsive UI and the on-demand Cloudflare internet speed test in the bottom bar. The test measures download/upload, median HTTPS latency and jitter; it sends test requests/public IP to Cloudflare only when clicked, and saves no results or Presence device data.
 
@@ -40,4 +40,8 @@ Release: https://github.com/remriel/presence-windows/releases/tag/v1.0.4
 
 ## v1.0.5 update
 Speed measurement now runs at least 2.5 seconds per direction using a Stopwatch, with no 8 MiB early cutoff. Successful tests take at least five seconds plus latency/overhead. One production build passed; no tests or live speed transfer were run. The local v1.0.5 app is running from Downloads and Windows startup points to that version. Existing presence data remains in its original profile. Older extracted folders remain as previously documented.
+
+
+## RESUME HERE
+Presence v1.0.5 is published at https://github.com/remriel/presence-windows/releases/tag/v1.0.5 and running locally in the tray from Downloads\Presence-1.0.5-win-x64. Windows startup points to this executable. Speed tests measure at least 2.5 seconds per direction, five seconds total, before completing. The single publish passed; no automated or live network tests were run. Older folder deletion remains previously blocked; no deletion retries were made in this update.
 
