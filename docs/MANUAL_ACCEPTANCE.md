@@ -1,8 +1,8 @@
 # Manual acceptance
 
-Production publication deliberately skipped testing at the user's request. These steps are for the owner, on the normal home Wi-Fi network.
+Automated core checks and the Windows publish build run in CI. These steps cover the real-LAN behavior CI cannot prove.
 
-1. Extract the whole portable ZIP to a permanent local folder and run Presence.exe. Wait for the first full silent sweep; the status line reports coverage.
+1. Extract the whole portable ZIP to a permanent local folder and run Presence.exe. Wait for the first successful silent scan; the status line reports coverage.
 2. Devices are tracked automatically with no approval. Optionally open a phone, set Name, enter/select a person and choose the primary phone checkbox. Save.
 3. A first fresh detection is enough to mark the device present. Confirm an associated person is under Home Now. A first-launch baseline should produce no burst of alerts.
 4. Disconnect that phone's Wi-Fi for longer than the configured departure threshold while this computer remains awake and connected. Confirm one left event/floating popup. Reconnect and wait for the first fresh detection; confirm one arrived event and no repeated arrival alerts during subsequent scans.

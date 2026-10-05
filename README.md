@@ -6,10 +6,10 @@ A quiet Windows 10 tray utility that alerts when any device joins or disappears 
 
 1. Extract the portable archive to a permanent folder on a local disk.
 2. Launch **Presence.exe**. No administrator account or .NET runtime installation is required.
-3. Allow the silent initial network sweep to complete. All discovered devices are tracked automatically; nothing needs approval. Optionally open a device, enter a name or associate a person, and choose their primary phone.
+3. Allow the first silent network scan to complete. All discovered devices are tracked automatically; nothing needs approval. Optionally open a device, enter a name or associate a person, and choose their primary phone.
 4. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.0.2**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ## How it works
 
@@ -33,6 +33,21 @@ Alerts are **custom floating icon popups above the taskbar**, with a bundled chi
 
 Activity shows recorded events. Settings → Devices includes known, absent and ignored devices. There is one process per user/profile; launching again opens the existing window. The tray process stays alive independently of the main window.
 
+## Path to improvements
+
+Presence should improve in this order, with reliability taking priority over extra features:
+
+1. **Prove real-world detection.** Test repeated Wi-Fi off/on cycles with phones, laptops, sleeping devices, mesh Wi-Fi, and busy home networks. Measure actual join latency, leave latency, missed detections, and false departures.
+2. **Make discovery adaptive.** Keep known-device probes fast, dynamically tune sweep size/concurrency to subnet size and scan duration, and avoid wasting work on addresses that have never responded.
+3. **Use more LAN signals.** Add passive neighbor-change signals where Windows exposes them reliably, improve mDNS/hostname discovery, and optionally use safe broadcast discovery protocols without turning Presence into a port scanner.
+4. **Improve departure confidence.** Give sleeping or intermittently reachable devices smarter grace periods based on recent behavior instead of treating every device identically.
+5. **Handle network edge cases.** Add explicit diagnostics for client isolation, proxy ARP, mesh networks, multiple physical adapters, VLANs, IPv6, and networks where host-side ARP cannot see every client.
+6. **Add router-assisted detection as optional integrations.** Where a router exposes a local association/client table, use it as a higher-confidence signal while keeping standalone LAN scanning as the default.
+7. **Make failures visible.** Show scan duration, last successful discovery, subnet coverage, current evidence source, and a clear reason when a device cannot be observed.
+8. **Harden with regression tests.** Expand automated tests around reconnect storms, scan failures, suspend/resume, interface changes, stale ARP entries, private MAC changes, and duplicate-event suppression.
+9. **Optimize resource use.** Profile CPU, memory, socket use, and ARP load during long runs, then reduce work without sacrificing detection speed.
+10. **Only then add polish.** Improve device naming, grouping, history, exports, and UI once the core promise is boringly reliable: a device joins, Presence sees it; a device leaves, Presence notices.
+
 ## Build and modes
 
 Requires .NET SDK 10 on Windows:
@@ -47,7 +62,7 @@ The source separates `Presence.Core` (identity, inference, persistence), `Discov
 
 ## Release verification boundary
 
-This release follows the requested **build once and publish** workflow. The production build is the validation gate. Automated tests, live discovery tests, phone reconnect/sleep tests, popup click/sound tests and restart persistence tests were not run. Screenshots show the built native UI with explicitly fictional preview devices.
+The current source passes deterministic core presence-state checks and the Windows publish build in GitHub Actions. Live discovery, physical phone reconnect/sleep behavior, popup click/sound behavior, and restart persistence still require manual acceptance on a real Windows LAN. Screenshots use explicitly fictional preview devices.
 
 Manual acceptance after launch:
 

@@ -1,22 +1,29 @@
 # Presence progress
 
-Current objective: publish Presence 1.0.3 with responsive local device tracking, the bottom-bar internet speed test, and the bold high-contrast UI.
+Objective: finish publishing Presence 1.0.3 with fast local-device tracking, bold responsive UI and a click-to-run internet speed test.
 
-Verified progress: **88%** `[██████████████████░░]` toward GitHub publication.
+Verified progress: **90%** `[██████████████████░░]` toward GitHub publication.
 
-- [x] Merge the latest scanner updates from origin/main and reconcile source/docs.
-- [x] Add a 3-second scan loop with streamed local observations, faster first results and responsive main-list rendering.
-- [x] Add bottom-bar Speed test for Cloudflare download/upload/latency/jitter; on click only, cancellable, limited to 35 seconds.
-- [x] Document Cloudflare public-IP/test-traffic disclosure and that Presence device/history data is never sent or speed results saved.
-- [x] Restyle main view and speed test with bold neo-brutalist light/dark colors and responsive rows.
-- [x] Run the single Windows x64 self-contained production publish; fixed its one blocking missing-namespace compile error and the corrected build succeeded.
-- [x] Export the native main-window preview with fictional devices.
-- [x] Package the portable v1.0.3 ZIP with app files and docs.
-- [ ] Commit/push merged source and final docs to the private GitHub repository.
-- [ ] Create GitHub release v1.0.3 and upload portable/source/docs/screenshot.
+- [x] Read and merge current GitHub changes into the release source; reconcile actual files and docs.
+- [x] Implement 3-second scan defaults, streamed observations, evaluation only for actually probed devices and bounded background discovery.
+- [x] Add bottom-bar internet speed test for download/upload Mbps, median HTTPS latency and jitter; starts after click and cancels if its dialog closes.
+- [x] Add Cloudflare disclosure, use no Presence device identifiers, persist no speed metrics.
+- [x] Apply the specified high-contrast neo-brutalist light/dark theme, responsive device rows and render caching.
+- [x] Fix the first blocking error by importing `Presence.Core` in `InternetSpeedTest.cs`.
+- [x] Publish one Windows x64 self-contained single-file production build. It succeeded with no diagnostics.
+- [x] Export the native main-window screenshot using the built app with fictional devices.
+- [x] Build the versioned portable app ZIP, docs and preview assets.
+- [ ] Commit and push final merged source/docs to the private GitHub repository.
+- [ ] Publish GitHub v1.0.3 and upload portable/source/docs/screenshot assets.
 
-Build completed once for this final code state. No local tests, review, cleanup, or live speed/network acceptance were run. Upstream scanner CI had already passed for the earlier scanner-only code.
+Test traffic is never started during normal monitoring or publishing. When manually run, Cloudflare sees the public IP and test traffic and may retain measurements for aggregated connection-quality insights. Presence does not upload device or person data.
 
-No app data was used in the speed test and no test request was made during publishing. The current local installation/database remains unchanged.
+Checks: successful production publish for the final source. No tests or live speed/Wi-Fi acceptance were run; they remain manual. Upstream CI evidence run 37237103022 predates this release.
 
-Next: commit/push, create release v1.0.3, attach source archive and progress/state docs, then hand off. Do not rerun the production build or test suite.
+Exact remaining steps:
+1. Resolve Git merge and push the prepared v1.0.3 source to main.
+2. Publish the private GitHub v1.0.3 release and attach Windows ZIP, source ZIP, preview and progress/state docs.
+3. Set docs/PROGRESS and docs/PROJECT_STATE to released state, upload docs/source snapshot, and hand off without more checks.
+
+Repository: https://github.com/remriel/presence-windows (private).
+Previous release: https://github.com/remriel/presence-windows/releases/tag/v1.0.2.
