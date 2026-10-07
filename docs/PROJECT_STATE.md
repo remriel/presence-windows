@@ -20,7 +20,7 @@
 - SQLite stores device/person state, presence events and throttled observations transactionally; events default to 90-day retention, observations to at most seven days.
 - The repo contains a deterministic executable core test program and a Windows GitHub Actions workflow from the 1.0.2 scanner update. Its previously recorded run 37237103022 passed for that earlier code. Current user asked build-once; no new local tests were run.
 - Build intermediates and publish output use `%LOCALAPPDATA%\PresenceBuild` because apphost generation on Google Drive hit a mapped-file lock once. Portable outputs go in task `outputs`.
-- Repository is the public `remriel/presence-windows`. The current published release is v1.1.0. Presence v1.1.0 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
+- Repository is the public `remriel/presence-windows`. The current published release is v1.1.1. Presence v1.1.1 is installed at C:\Presence and runs in the tray; data stays in `%LOCALAPPDATA%\Presence\presence.db`.
 - `--preview-image` creates the main-window screenshot using fictional demo data without scanning. An off-screen Settings `DrawToBitmap` attempt produced a blank form; capture visible dialog controls if a Settings screenshot is needed.
 
 ## Proof boundary
@@ -66,7 +66,7 @@ v1.1.0 is published, the matching build runs locally, and the repository is publ
 
 
 
-## Automatic network refresh in v1.1.1 (in progress)
+## Automatic network refresh in v1.1.1
 - `PresenceContext` now listens to both address and availability events. Reset cancels a per-scan CTS (including gateway resolution), increments the UI epoch, clears live presence/network label and restarts after a 750 ms debounce. Exception handlers also check the epoch; an obsolete scan must not reset a newer connection.
 - `PresenceEngine.ResetNetwork()` keeps identities, names, assignments, timestamps and history, but sets presence to Unknown and resets baseline/evaluation clocks. Reconnecting to the same network now establishes a silent baseline.
 - `Discovery.Reset()` invalidates gateway discovery with a generation and releases the background-task reference. A separate lane identity includes interface index/local IP/gateway IP, so DHCP rebinding restarts multicast/ARP workers without changing the persisted stable network key.
@@ -79,3 +79,14 @@ Source changes are implemented but not yet built. Follow docs/PROGRESS.md for bu
 
 ## v1.1.1 build evidence
 The single production `dotnet publish` succeeded for win-x64 with self-contained/single-file settings. Build intermediates/output are under %LOCALAPPDATA%\PresenceBuild\NetworkRefresh-1.1.1. The screenshot helper rendered three fictional network-transition states into this task's outputs/network-refresh. The reconnect screen has zero live rows and no old network label; the next-network screen has only Example phone. No automated checks or physical network transitions were run. Packaging/publication/install remain in docs/PROGRESS.md.
+
+
+## v1.1.1 publication and installation
+- Public release: https://github.com/remriel/presence-windows/releases/tag/v1.1.1, targeting source commit ec5564a2a93f27ec3a7dc79a28ff22c2b55e4b65. GitHub reports both ZIP/checksum uploaded. ZIP SHA-256 is a9e67e044e4857c0dc417f3ef7be0abd801f0fba8b018b070959f55d27fea4a5 and matches the local archive.
+- C:\Presence\Presence.exe now reports file version 1.1.1.0 and runs in the tray. The Windows Run entry still points to that executable with --tray. The existing %LOCALAPPDATA%\Presence\presence.db was not copied, moved or deleted. Previous executable/OUI files are backed up under %LOCALAPPDATA%\PresenceBuild\NetworkRefresh-1.1.1\previous-install.
+- The binary was built before committing the release; its informational version includes the prior HEAD 802a246, while file/product numeric version is 1.1.1 and the release commit contains the built source changes.
+- Failed approaches to avoid: GitHub release creation rejected the abbreviated commit SHA (target_commitish invalid); passing the full SHA worked. Immediate executable replacement briefly encountered a process file lock; explicitly waiting for exit and bounded copy retries resolved it. Do not launch after a failed copy; installation scripts must stop on errors.
+- No automated tests, physical network switching, sleep/resume, popup sound or internet speed transfer were performed. [skip ci] commits preserve the focused single-build release workflow. Fictional captures are presentation evidence only.
+
+## RESUME HERE — v1.1.1 complete
+The automatic network refresh source is synchronized to GitHub main, v1.1.1 is public, and the matching numeric-version build runs from C:\Presence with the local data path preserved. This task's working clone is C:\Drive\2026-10-07\github-plugin-github-openai-curated-remote\work\presence-windows. The original clean G:\My Drive\Codex\2026-10-04\build-a-minimalist-windows-10-desktop\work\Presence checkout is being fast-forwarded to the final documentation commit. No release work remains. If the owner requests live acceptance, follow docs/MANUAL_ACCEPTANCE.md; particularly exercise a network change during gateway resolution and a same-LAN reconnect. Never reintroduce Pause-only reconnect resets, blank-scope show-all filtering or exception handlers without epoch guards.
