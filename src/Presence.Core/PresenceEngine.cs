@@ -17,12 +17,18 @@ public sealed class PresenceEngine(Snapshot snapshot)
         previous = null; evaluatedAt.Clear();
         foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
     }
+    public void ResetNetwork()
+    {
+        network = ""; baselineScans = 0; baselineDevices.Clear(); Pause();
+        // Keep identities/history, but never carry presence across an unmonitored transition.
+        foreach (var d in Data.Devices) d.State = PresenceState.Unknown;
+        foreach (var p in Data.People) p.State = PresenceState.Unknown;
+    }
     public List<PresenceEvent> Apply(IEnumerable<Observation> observations, string scope, DateTimeOffset now, bool initialSweep = false, IReadOnlyCollection<string>? evaluatedMacs = null, bool partial = false)
     {
         if (network != scope)
         {
-            network = scope; baselineScans = 0; baselineDevices.Clear(); evaluatedAt.Clear(); previous = null;
-            foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; if (d.State is PresenceState.Home or PresenceState.ProbablyHome) d.State = PresenceState.Unknown; }
+            ResetNetwork(); network = scope;
         }
         var delta = previous.HasValue ? (now - previous.Value).TotalSeconds : 0;
         // A suspend, long scan failure or clock jump forces a silent re-baseline.

@@ -29,6 +29,8 @@ public sealed class Discovery : IDisposable
     private CancellationTokenSource? laneCancellation;
     private Task? background;
     private string scope = "";
+    private string laneId = "";
+    private int generation;
     private long gatewaySeen;
     private bool baselinePending = true;
     private Lan? cachedLan;
@@ -36,7 +38,7 @@ public sealed class Discovery : IDisposable
     public string CurrentScope => scope;
     public void Reset()
     {
-        laneCancellation?.Cancel(); cachedLan = null; scope = ""; baselinePending = true; recent.Clear();
+        generation++; laneCancellation?.Cancel(); cachedLan = null; scope = ""; laneId = ""; baselinePending = true; recent.Clear(); background = null;
     }
     public static List<Lan> Interfaces()
     {
@@ -65,6 +67,7 @@ public sealed class Discovery : IDisposable
     }
     public async Task<ScanResult> ScanAsync(Settings settings, IReadOnlyList<Device> devices, CancellationToken ct, IProgress<ScanResult>? progress = null)
     {
+        var scanGeneration = generation;
         if (cachedLan is null || DateTimeOffset.UtcNow - interfacesRead > TimeSpan.FromSeconds(10) || (settings.InterfaceId != "" && settings.InterfaceId != cachedLan.Id))
         {
             var interfaces = Interfaces();
@@ -73,13 +76,17 @@ public sealed class Discovery : IDisposable
         }
         var lan = cachedLan ?? throw new IOException("No connected local network. Monitoring is paused.");
         var gatewayMac = await priority.ResolveAsync(lan, lan.Gateway, ct);
+        ct.ThrowIfCancellationRequested();
+        if (scanGeneration != generation) throw new OperationCanceledException("Network changed during gateway discovery.");
         if (gatewayMac == "") { Reset(); throw new IOException("The gateway is unavailable. Monitoring is paused."); }
         Interlocked.Exchange(ref gatewaySeen, DateTimeOffset.UtcNow.UtcTicks);
         var key = lan.Id + "|" + Lan.Ip(lan.First) + "/" + lan.Prefix + "|" + gatewayMac;
-        if (scope != key || laneCancellation?.IsCancellationRequested == true)
+        // DHCP can change the local address without changing the stable network identity.
+        var nextLane = key + "|" + lan.Index + "|" + lan.Address + "|" + lan.Gateway;
+        if (laneId != nextLane || laneCancellation?.IsCancellationRequested == true)
         {
             laneCancellation?.Cancel(); laneCancellation?.Dispose(); laneCancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            scope = key; baselinePending = true; recent.Clear(); background = null;
+            scope = key; laneId = nextLane; baselinePending = true; recent.Clear(); background = null;
         }
         var token = laneCancellation!.Token;
         var started = DateTimeOffset.UtcNow;

@@ -65,3 +65,17 @@ The icon update's single Windows x64 publish succeeded. The running app at `C:\P
 v1.1.0 is published, the matching build runs locally, and the repository is public. No release work remains. The earlier handoff sections document history. If the owner later requests runtime acceptance, use `docs/MANUAL_ACCEPTANCE.md`; the build-once release did not run live Wi-Fi, sound or speed-transfer checks.
 
 
+
+## Automatic network refresh in v1.1.1 (in progress)
+- `PresenceContext` now listens to both address and availability events. Reset cancels a per-scan CTS (including gateway resolution), increments the UI epoch, clears live presence/network label and restarts after a 750 ms debounce. Exception handlers also check the epoch; an obsolete scan must not reset a newer connection.
+- `PresenceEngine.ResetNetwork()` keeps identities, names, assignments, timestamps and history, but sets presence to Unknown and resets baseline/evaluation clocks. Reconnecting to the same network now establishes a silent baseline.
+- `Discovery.Reset()` invalidates gateway discovery with a generation and releases the background-task reference. A separate lane identity includes interface index/local IP/gateway IP, so DHCP rebinding restarts multicast/ARP workers without changing the persisted stable network key.
+- `MainWindow.Render()` filters every live section to `PresenceContext.NetworkScope`; its signature includes network scope, monitoring state and each device network. Offline/reconnecting state never displays stored devices from the previous network. All saved inventory/history remains local.
+- `tools/Presence.UiPreview --network-change` captures three fictional transition screenshots. Do not use real device screenshots or commit local discovery data.
+- The referenced chat confirms the existing installed location C:\Presence, public GitHub repository and preference for a focused single-build release without automated/live network tests. The original checkout at G:\My Drive\Codex\2026-10-04\build-a-minimalist-windows-10-desktop\work\Presence is clean at 802a246. This task uses a fresh clone under its work directory; reconcile/sync the original checkout after publication.
+
+## RESUME HERE — v1.1.1 work
+Source changes are implemented but not yet built. Follow docs/PROGRESS.md for build/package/publication/install. The earlier v1.1.0 handoffs are historical. Do not claim physical network switching is verified by fictional screenshots or a successful compile.
+
+## v1.1.1 build evidence
+The single production `dotnet publish` succeeded for win-x64 with self-contained/single-file settings. Build intermediates/output are under %LOCALAPPDATA%\PresenceBuild\NetworkRefresh-1.1.1. The screenshot helper rendered three fictional network-transition states into this task's outputs/network-refresh. The reconnect screen has zero live rows and no old network label; the next-network screen has only Example phone. No automated checks or physical network transitions were run. Packaging/publication/install remain in docs/PROGRESS.md.

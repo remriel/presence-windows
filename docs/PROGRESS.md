@@ -1,17 +1,24 @@
 # Presence progress
 
-Current objective: publish v1.1.0 with one Presence icon across the executable, title bars, tray and floating alerts, while keeping the installed PC copy current.
-Progress: **100%** [████████████████████]
+Current objective: release v1.1.1 so network changes automatically clear and repopulate the active device list, and update the installed PC copy.
+Progress: **85%** [#################---]
 
-- [x] Finish the v1.1 native UI, on-demand speed test and Fing-style README with fictional screenshots.
-- [x] Make `remriel/presence-windows` public.
-- [x] Create a production Presence icon and replace the unrelated alert image and drawn tray lettermark.
-- [x] Publish one self-contained Windows x64 build and package the updated archive.
-- [x] Replace `C:\Presence\Presence.exe` and confirm it runs from the startup location with the existing data file intact.
-- [x] Push the icon/source/docs commit and tag `v1.1.0` at that commit.
-- [x] Replace the old draft ZIP and checksum with the new package; publish and verify the public GitHub release.
+- [x] Read repository guidance, project state, actual source and the linked original chat/brief.
+- [x] Fix reconnect lifecycle, obsolete scan cancellation and network-scoped list rendering.
+- [x] Preserve device identities/history while resetting presence and the quiet baseline.
+- [x] Complete one Windows x64 self-contained production publish.
+- [x] Capture three fictional before/reconnecting/after screens.
+- [x] Package portable ZIP/checksum in task outputs.
+- [ ] Push completed source/docs and publish v1.1.1.
+- [ ] Replace C:\Presence and restart the tray app.
+- [ ] Record final evidence and deliver continuity files.
 
-The production publish succeeded. The public release is https://github.com/remriel/presence-windows/releases/tag/v1.1.0. GitHub reports the archive SHA-256 as `6069ee29aa682aea7eac0bb19c833a7af9c1498d3eb8a12b3d69e022fe5f716b`. The app runs from `C:\Presence`; the user database remains in `%LOCALAPPDATA%\Presence\presence.db` and the Run key points to `C:\Presence\Presence.exe --tray`. No lint, automated tests, code review or repeated validation were run, as requested. The floating alert screenshot from the earlier icon was removed from README so it does not misrepresent this build.
+Implementation: address and availability events cancel the active scan, invalidate its epoch, reset discovery/presence, clear the network label and debounce reconnect for 750 ms. Obsolete results and failures cannot overwrite newer state. A changed source IP restarts background discovery even on the same stable LAN identity. Main lists use only the active network; saved inventory remains accessible from Settings.
 
-## RESUME HERE
-v1.1.0 is published, the repository is public, and the matching build is installed locally. No release step remains. Future runtime acceptance, if requested, is described in `docs/MANUAL_ACCEPTANCE.md`; live Wi-Fi transitions and speed transfers were not tested in this build-once release.
+Blockers: none.
+Verification: the production publish exited 0, and fictional screenshots were rendered. No automated tests, physical Wi-Fi switching or speed transfers were run in the carried-forward single-build release workflow. Screenshots demonstrate UI states, not live network behavior.
+
+Exact next steps:
+1. Push this release commit to GitHub main and publish ZIP/checksum as v1.1.1.
+2. Back up the installed executable, replace it, restart the tray app and record its version.
+3. Fast-forward the original clean checkout, then copy PROJECT_STATE/PROGRESS to outputs.

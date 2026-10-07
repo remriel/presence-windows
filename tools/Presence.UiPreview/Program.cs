@@ -14,6 +14,24 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--network-change"))
+        {
+            var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "NetworkPreview", Guid.NewGuid().ToString("N"));
+            using var app = new PresenceContext(folder, true, true);
+            app.Engine.Data.Settings.Theme = "Light";
+            var main = GetMain(app);
+            Capture(main, "network-before", 1.5f, "default");
+            app.Engine.ResetNetwork(); SetContext(app, "Monitoring", false); SetContext(app, "NetworkLabel", "");
+            SetContext(app, "Status", "Connecting to your network…"); app.Refresh();
+            CaptureExisting(main, "network-reconnecting", 1.5f);
+            app.Engine.Apply([new Observation("02:00:00:00:00:10", "198.51.100.10", "Example phone", "Private MAC", "preview")], "preview-network-b", DateTimeOffset.UtcNow, initialSweep: true);
+            SetContext(app, "Monitoring", true); SetContext(app, "NetworkLabel", "Preview network B · fictional devices");
+            SetContext(app, "Status", "Learning the network…"); app.Refresh();
+            CaptureExisting(main, "network-after", 1.5f);
+            main.AllowClose = true; main.Close();
+            Console.WriteLine("Captured three fictional network-transition screens.");
+            return 0;
+        }
         foreach (var theme in (args.Contains("--quick") ? new[] { "Light" } : new[] { "Light", "Dark" }))
         foreach (var scale in (args.Contains("--quick") ? new[] { 1.5f } : new[] { 1f, 1.25f, 1.5f, 2f }))
         {
@@ -70,7 +88,7 @@ internal static class Program
     {
         var d = app.Engine.Data.Devices[0]; d.Name = "Alexandra's work phone with a very long device name"; d.Hostname = "alexandra-phone-with-an-unusually-long-hostname.home.example"; d.Vendor = "Example Incorporated — Communications and Wireless Devices";
         app.Engine.Data.People[0].Name = "Alexandra with a deliberately long display name";
-        app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:05", Name = "Living-room streaming device with an unusually long descriptive name", Ip = "192.0.2.30", Kind = DeviceKind.Known, State = PresenceState.Home, ChangedAt = DateTimeOffset.Now.AddDays(-2) });
+        app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:05", Name = "Living-room streaming device with an unusually long descriptive name", Ip = "192.0.2.30", Network = "demo", Kind = DeviceKind.Known, State = PresenceState.Home, ChangedAt = DateTimeOffset.Now.AddDays(-2) });
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:06", Name = "Ignored test device", Ip = "192.0.2.40", Kind = DeviceKind.Ignore });
         var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(DateTimeOffset.Now.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
     }

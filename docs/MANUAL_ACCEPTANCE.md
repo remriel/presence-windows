@@ -16,3 +16,10 @@ Automated core checks and the Windows publish build run in CI. These steps cover
 Known boundaries: IPv4 LAN discovery only; no IPv6-only devices, no router credentials/integration, no certainty of human presence, no automatic private-MAC identity guesses. Wi-Fi isolation/proxy ARP/sleeping clients can affect visibility.
 
 Internet speed test: click **Speed test** in the main window's bottom bar. It starts automatically and displays download/upload speed, median HTTPS latency and jitter. The request is on-demand, sends test traffic and your public IP to Cloudflare, and sends no Presence device IDs or history. Cloudflare states it collects test measurements for aggregated connection insights. Results are displayed by Presence and not stored locally.
+
+Network change acceptance for v1.1.1:
+1. Switch the PC from Wi-Fi network A to B with Presence running. Confirm the old live rows and network label clear during reconnect, then B devices populate without clicking Refresh. Stored A devices remain in Settings > Devices.
+2. Disconnect and reconnect to the same network. Confirm fresh baseline population without a burst of arrival/left events, and names/person assignments stay intact.
+3. Switch while a scan is running and switch rapidly twice. Confirm no obsolete scan result or error replaces the final network list.
+4. Let DHCP change the local PC address; confirm discovery resumes with the new source address. Sleep/resume and unavailable-gateway time must not accumulate departures.
+5. If an explicit adapter is selected in Settings, Presence continues to honor that choice; choose Automatic for automatic Wi-Fi/Ethernet adapter selection. IPv4-only and physical-adapter discovery constraints remain unchanged.

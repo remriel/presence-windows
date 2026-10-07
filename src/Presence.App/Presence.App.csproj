@@ -5,7 +5,7 @@
     <UseWindowsForms>true</UseWindowsForms><ImplicitUsings>enable</ImplicitUsings><Nullable>enable</Nullable>
     <AssemblyName>Presence</AssemblyName><ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>assets/presence.ico</ApplicationIcon>
-    <Version>1.1.0</Version><Company>Presence</Company><Product>Presence</Product>
+    <Version>1.1.1</Version><Company>Presence</Company><Product>Presence</Product>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Presence.Core/Presence.Core.csproj" />
     <PackageReference Include="CommunityToolkit.WinUI.Notifications" Version="7.1.2" />

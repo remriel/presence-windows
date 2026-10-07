@@ -38,20 +38,21 @@ internal sealed class MainWindow : Form
         var s = app.Engine.Data.Settings;
         status.Text = app.Monitoring ? (app.IsScanning ? "Scanning your network…" : "Monitoring your network") : "Waiting for your network";
         network.Text = string.Join("\n", new[] { app.NetworkLabel, app.Status }.Where(x => x.Length > 0));
-        var next = s.Theme + ":" + Ui.Dark(s) + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Ip}:{d.DisplayName}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
+        var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
         if (next == signature) return;
         signature = next; BackColor = Ui.Background(s); ForeColor = Ui.Text(s); Ui.Theme(root, s);
         var scroll = -body.AutoScrollPosition.Y;
         body.Content.SuspendLayout();
         foreach (var control in body.Content.Controls.Cast<Control>().ToArray()) control.Dispose();
         body.Content.Controls.Clear(); body.Content.RowStyles.Clear(); body.Content.RowCount = 0;
-        var people = app.Engine.Data.People.Where(p => app.Engine.Data.Devices.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
-        var devices = app.Engine.Data.Devices.Where(d => d.Kind == DeviceKind.Known && (app.Engine.Network == "" || d.Network == app.Engine.Network)).ToList();
+        var local = app.Engine.Data.Devices.Where(d => app.NetworkScope != "" && d.Network == app.NetworkScope).ToList();
+        var people = app.Engine.Data.People.Where(p => p.State != PresenceState.Unknown && local.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
+        var devices = local.Where(d => d.Kind == DeviceKind.Known).ToList();
         var home = new List<(string State, string Name, string When, Action Open)>();
         var away = new List<(string State, string Name, string When, Action Open)>();
         foreach (var person in people)
         {
-            var device = app.Engine.Data.Devices.Where(d => d.PersonId == person.Id && d.Kind == DeviceKind.Person).OrderByDescending(d => d.IsPrimary).First();
+            var device = local.Where(d => d.PersonId == person.Id && d.Kind == DeviceKind.Person).OrderByDescending(d => d.IsPrimary).First();
             var list = person.State is PresenceState.Home or PresenceState.ProbablyHome ? home : away;
             list.Add((Ui.State(person.State), person.Name, Ui.Time(person.ChangedAt), () => ShowDevice(device)));
         }
@@ -62,7 +63,7 @@ internal sealed class MainWindow : Form
         }
         AddSection("Home now", home, "No recognized devices are home right now.", s);
         AddSection("Away", away, "No recognized devices are away.", s);
-        var unknown = app.Engine.Data.Devices.Where(d => d.Kind == DeviceKind.Unknown && (app.Engine.Network == "" || d.Network == app.Engine.Network) && (d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
+        var unknown = local.Where(d => d.Kind == DeviceKind.Unknown && (d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
         AddSection("Unknown devices", unknown, "No unidentified devices. Newly discovered devices will appear here.", s);
         var recent = Ui.Group("Recent activity", s); var history = app.Store.History(limit: 5);
         Ui.Add(recent, history.Count == 0 ? Ui.Label("Arrivals and departures will appear here. Your first scan establishes a quiet baseline.", s, true) : Ui.History(history, s, true)); Ui.Add(body.Content, recent);

@@ -4,7 +4,7 @@
 
 **An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.1.0](https://github.com/remriel/presence-windows/releases/tag/v1.1.0) · Windows 10 x64 and later
+[Download Presence 1.1.1](https://github.com/remriel/presence-windows/releases/tag/v1.1.1) · Windows 10 x64 and later
 
 <img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
 
@@ -101,6 +101,7 @@ Manual acceptance after launch:
 - [IEEE OUI database](https://standards-oui.ieee.org/oui/oui.csv), bundled as a local vendor lookup snapshot downloaded October 4, 2026. The CSV remains unmodified; no runtime download occurs.
 - Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite and Windows Community Toolkit retain their upstream licenses. NuGet package metadata supplies license details; see THIRD_PARTY_NOTICES.md.
 - The Presence application, tray and floating alert share one icon created for this release. The floating-alert chime is reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter) `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
+
 
 
 
