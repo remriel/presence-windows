@@ -2,7 +2,7 @@
 
 Current objective: show devices excluded from notifications in an **Ignored devices** section on the main window, using the existing Ignore option.
 
-Progress: **95%** [###################-]
+Progress: **100%** [####################]
 
 - [x] Reconcile AGENTS.md, handoffs and the actual clean v1.1.1 repository at 3daa9f5.
 - [x] Add counted, selectable ignored rows and an explanatory empty state; retain the existing current-network boundary and silent Ignore behavior.
@@ -11,8 +11,8 @@ Progress: **95%** [###################-]
 - [x] Capture and visually inspect light, dark, compact and device-details screenshots.
 - [x] Complete one Windows x64 self-contained production publish and package the portable ZIP/checksum.
 - [x] Back up the installed 1.1.1 files, replace C:\Presence, and confirm the 1.1.2 tray process, startup command, binary hash and original data path.
-- [ ] Push the completed change and create/attach its GitHub pull request.
-- [ ] Check GitHub CI and export final PROJECT_STATE.md and PROGRESS.md to task outputs.
+- [x] Push the completed change and create/attach GitHub PR #1.
+- [x] Confirm successful GitHub CI and prepare final PROJECT_STATE.md and PROGRESS.md exports.
 
 Implementation: MainWindow.Render includes every ignored device in the active network irrespective of presence state. Rows read Ignored and open device details; changing Track as restores normal tracking. Existing Ignore event suppression and serialized DeviceKind persistence are used without a new setting or schema change. During reconnect and network changes the section clears with the other live lists; the full saved inventory remains in Settings > Devices.
 
@@ -20,6 +20,9 @@ Verification: Windows x64 publish exited 0 with no warnings/errors. The existing
 
 Source checkout: C:\Drive\2026-10-09\gi\work\presence-windows
 Git branch: codex/show-ignored-devices
+Pull request: https://github.com/remriel/presence-windows/pull/1 (open, not merged)
+Verified feature commit: 3e53b471eb31ef7d492133b4692fedd66ade4d38
+Successful feature CI: https://github.com/remriel/presence-windows/actions/runs/37976713773
 Target app version: 1.1.2
 Current published release remains v1.1.1; this change has a verified local portable package and installation.
 
@@ -34,7 +37,7 @@ Fictional screenshots, verification.json and installation.json: task outputs/ign
 Blockers: none.
 
 RESUME HERE / exact ordered next steps:
-1. Review the final diff; commit/push codex/show-ignored-devices and create/attach a pull request against main.
-2. Update these handoff files with the confirmed PR URL and final synchronization state; push the documentation.
-3. Confirm the final PR CI result and copy both handoff files to task outputs.
-4. Physical LAN transitions remain optional owner acceptance in docs/MANUAL_ACCEPTANCE.md. Do not claim those were proven by fictional screenshots.
+1. No feature, build, package or install work remains. The completed source and handoff documentation are synchronized in PR #1 and the local tray app is 1.1.2.
+2. PR review/merge and publication of a v1.1.2 GitHub release are separate owner follow-ups; do not imply the PR was merged or a release published.
+3. If physical LAN acceptance is requested, use the ignored-devices steps in docs/MANUAL_ACCEPTANCE.md. Fictional checks do not prove physical Wi-Fi behavior.
+4. Before future work, read AGENTS.md and both handoffs, inspect git status/diff, and reconcile source/tests with actual state.
