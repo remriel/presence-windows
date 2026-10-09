@@ -1,8 +1,8 @@
 # Presence project state
 
 ## Current result and repository
-- Public repository: https://github.com/remriel/presence-windows. Work branch: codex/show-ignored-devices. Reviewable PR: https://github.com/remriel/presence-windows/pull/1 (open, not merged).
-- Presence 1.1.2 is built, packaged and running from C:\Presence\Presence.exe with --tray. Windows startup points to the same path. The published GitHub release remains v1.1.1; no v1.1.2 release was published by this task.
+- Public repository: https://github.com/remriel/presence-windows. Current branch: main. PR https://github.com/remriel/presence-windows/pull/1 is merged as e7a550ac43262f24ee2e21a533efc121ae3731ae.
+- Presence 1.1.2 is built, packaged and running from C:\Presence\Presence.exe with --tray. Windows startup points to the same path. Published release: https://github.com/remriel/presence-windows/releases/tag/v1.1.2, targeting merge commit e7a550ac43262f24ee2e21a533efc121ae3731ae. ZIP and checksum are uploaded; GitHub reports the same ZIP digest as the verified local package.
 - This checkout: C:\Drive\2026-10-09\gi\work\presence-windows. Starting main was 3daa9f5644eb3adfc0d2ab527c1e02a2023c6364. Feature commit: 3e53b471eb31ef7d492133b4692fedd66ade4d38. Earlier working copies are historical; do not infer their current state from old handoffs.
 - Never use subagents unless explicitly requested. Follow AGENTS.md and current user instructions. Never commit real-device data/screenshots, credentials or local diagnostic records.
 
@@ -53,4 +53,4 @@
 - No unresolved implementation bug was found in the ignored-section change. Broader priorities remain discovery reliability, adaptive probing, sleeping-device departure confidence, IPv6/router options and observable diagnostics, as described in README.
 
 ## RESUME HERE
-The requested ignored section is complete, verified, installed and synchronized in open PR #1 on codex/show-ignored-devices. No feature/build/install step remains. Preserve the current-network filter and the distinction between ignored display status and current presence. Use docs/PROGRESS.md for completed execution evidence. Review/merge of the PR and publication of a v1.1.2 GitHub release are separate owner follow-ups; the current public release is still v1.1.1. Future real-LAN acceptance should use docs/MANUAL_ACCEPTANCE.md without claiming it already happened.
+Presence 1.1.2 is released, the feature is merged to GitHub main, and the matching local build is installed at C:\Presence. Release: https://github.com/remriel/presence-windows/releases/tag/v1.1.2. The portable ZIP/checksum upload and archive digest were confirmed. No implementation, build, installation or publication work remains. The owner explicitly requested immediate release; use the already-verified package without extra rebuilds/tests. Preserve the current-network filter and the Ignored display label. Future physical LAN acceptance remains in docs/MANUAL_ACCEPTANCE.md.
