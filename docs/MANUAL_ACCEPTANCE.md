@@ -15,6 +15,12 @@ Automated core checks and the Windows publish build run in CI. These steps cover
 
 Known boundaries: IPv4 LAN discovery only; no IPv6-only devices, no router credentials/integration, no certainty of human presence, no automatic private-MAC identity guesses. Wi-Fi isolation/proxy ARP/sleeping clients can affect visibility.
 
+Ignored devices acceptance for v1.1.2:
+1. Open a device on the current network, set **Track as** to **Ignore**, and save. Confirm it appears once in the main window's **Ignored devices** section, including when it was previously away. It should disappear from Home now, Away and Unknown devices.
+2. Click the ignored row or select it and press Enter. Confirm its details open. Choose another tracking type and cancel; it must remain ignored. Repeat and save; confirm it returns to the normal presence sections as appropriate for its state/type.
+3. While ignored, disconnect/reconnect the device. Confirm no new, arrival or departure alert is produced. Ignored devices are excluded from priority probing; the Ignored label does not claim current Home/Away status.
+4. Quit and relaunch. Confirm the ignored choice is retained. Switch networks or temporarily disconnect the PC; confirm the section does not show saved ignored devices from the old network. Settings > Devices continues to expose the complete saved inventory.
+
 Internet speed test: click **Speed test** in the main window's bottom bar. It starts automatically and displays download/upload speed, median HTTPS latency and jitter. The request is on-demand, sends test traffic and your public IP to Cloudflare, and sends no Presence device IDs or history. Cloudflare states it collects test measurements for aggregated connection insights. Results are displayed by Presence and not stored locally.
 
 Network change acceptance for v1.1.1:

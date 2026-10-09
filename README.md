@@ -29,9 +29,10 @@ These screens use fictional preview devices.
 1. Extract the portable archive to a permanent folder on a local disk.
 2. Launch **Presence.exe**. No administrator account or .NET runtime installation is required.
 3. Allow the first silent network scan to complete. All discovered devices are tracked automatically; nothing needs approval. Optionally open a device, enter a name or associate a person, and choose their primary phone.
-4. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
+4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
+5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.1.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current published release: **1.1.1**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ## How it works
 
