@@ -65,6 +65,8 @@ internal sealed class MainWindow : Form
         AddSection("Away", away, "No recognized devices are away.", s);
         var unknown = local.Where(d => d.Kind == DeviceKind.Unknown && (d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
         AddSection("Unknown devices", unknown, "No unidentified devices. Newly discovered devices will appear here.", s);
+        var ignored = local.Where(d => d.Kind == DeviceKind.Ignore).OrderBy(d => d.DisplayName).Select(d => ("Ignored", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
+        AddSection("Ignored devices", ignored, "No ignored devices. Choose Ignore in device details to stop alerts for a device.", s);
         var recent = Ui.Group("Recent activity", s); var history = app.Store.History(limit: 5);
         Ui.Add(recent, history.Count == 0 ? Ui.Label("Arrivals and departures will appear here. Your first scan establishes a quiet baseline.", s, true) : Ui.History(history, s, true)); Ui.Add(body.Content, recent);
         body.Content.ResumeLayout(true); body.AutoScrollPosition = new Point(0, scroll);
@@ -151,7 +153,7 @@ internal sealed class DeviceWindow : Form
         var name = new TextBox { Text = device.Name, PlaceholderText = device.DisplayName, MaxLength = 80 };
         var kind = new ThemeComboBox(); kind.Items.AddRange(["Unknown device", "Person / presence device", "Known device", "Ignore"]); kind.SelectedIndex = (int)device.Kind;
         Ui.Field(fields, "Device name", name, s); Ui.Field(fields, "Track as", kind, s); Ui.Add(identity, fields);
-        Ui.Add(identity, Ui.Label("Ignored devices stay in your local list but do not generate presence alerts.", s, true)); Ui.Add(body.Content, identity);
+        Ui.Add(identity, Ui.Label("Ignored devices appear under Ignored devices on this network and do not generate presence alerts. Choose another tracking type to stop ignoring a device.", s, true)); Ui.Add(body.Content, identity);
         var association = Ui.Group("Person association", s);
         Ui.Add(association, Ui.Label("Choose an existing person to link another device or a new private MAC, or enter a new person's name.", s, true));
         var person = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Dock = DockStyle.Top, MaxLength = 80, Margin = new Padding(0, Ui.Space, 0, Ui.Gap), AccessibleName = "Assigned person" };
