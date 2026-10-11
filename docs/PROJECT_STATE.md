@@ -1,9 +1,9 @@
 # Presence project state
 
 ## Current work
-- Repository: https://github.com/remriel/presence-windows. Starting main e7a550ac43262f24ee2e21a533efc121ae3731ae; current feature branch feat/reset-and-bulk-devices.
+- Repository: https://github.com/remriel/presence-windows. Starting main b646e151ac4c4b1fcc6f5035ad733b0c6c7cd6b0; current branch main. Feature commit 459899a merged through PR #2 as 02afe990131156b989422e93e87b9d88c3e03242.
 - User authorized reset to defaults, main-UI multi-device Ignore/Set known, pause/resume icon, opt-in primary-phone checkbox 20% larger with warm orange/red/yellow coloring, and a new release.
-- Version 1.2.0 source and self-contained Windows x64 publish are ready. Publication is pending final focused UI verification and GitHub synchronization.
+- Version 1.2.0 is published: https://github.com/remriel/presence-windows/releases/tag/v1.2.0. ZIP and checksum are uploaded; GitHub ZIP digest matches the local verified archive. PR https://github.com/remriel/presence-windows/pull/2 is merged; Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38179914500.
 - This checkout is C:\Drive\2026-10-11\ao\work\presence-windows. Earlier checkout/install/release statements in historical handoffs are not evidence of current local app state. We have not modified the installed app or the real user profile in this session.
 
 ## Architecture
@@ -36,4 +36,4 @@
 - Real Wi-Fi transitions, pause/resume during physical discovery, sleep/network switches, popup sound and long-term monitoring remain manual acceptance (docs/MANUAL_ACCEPTANCE.md). Fictional UI checks do not prove those behaviors.
 
 ## RESUME HERE
-Finish the corrected --reset-bulk UI preview and inspect captures. Then package the existing publish, push the feature branch, create/merge PR after CI, and publish v1.2.0 with ZIP/checksum. User explicitly requested release; no further permission is required. Never reset the real profile during testing. Update docs/PROGRESS.md and this file with final release/CI links and hashes; export both to outputs.
+Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed, and ZIP digest verified. Release target: 02afe990131156b989422e93e87b9d88c3e03242. Package: C:\Drive\2026-10-11\ao\outputs\Presence-1.2.0-win-x64.zip; SHA-256 01af0efb2eee95d5ad87f559ef3638d73cc5acee302128f4842692d099a84c19. Binary SHA-256 e85635decc424ccf96a7665a23b0edae1c30a4dbfd8a8bcad3ebd0d9be512fb2; file version 1.2.0.0. Informational version includes starting HEAD b646e15 because publish preceded feature commit. A packaged-app demo smoke capture is in outputs/presence-verification/packaged-app-smoke.png. No installation or real-profile reset was performed. If installation is requested, preserve the original user data and use the published ZIP. Both handoffs are exported to outputs. Future physical LAN testing follows MANUAL_ACCEPTANCE.md.
