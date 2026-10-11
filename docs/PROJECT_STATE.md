@@ -1,56 +1,39 @@
 # Presence project state
 
-## Current result and repository
-- Public repository: https://github.com/remriel/presence-windows. Current branch: main. PR https://github.com/remriel/presence-windows/pull/1 is merged as e7a550ac43262f24ee2e21a533efc121ae3731ae.
-- Presence 1.1.2 is built, packaged and running from C:\Presence\Presence.exe with --tray. Windows startup points to the same path. Published release: https://github.com/remriel/presence-windows/releases/tag/v1.1.2, targeting merge commit e7a550ac43262f24ee2e21a533efc121ae3731ae. ZIP and checksum are uploaded; GitHub reports the same ZIP digest as the verified local package.
-- This checkout: C:\Drive\2026-10-09\gi\work\presence-windows. Starting main was 3daa9f5644eb3adfc0d2ab527c1e02a2023c6364. Feature commit: 3e53b471eb31ef7d492133b4692fedd66ade4d38. Earlier working copies are historical; do not infer their current state from old handoffs.
-- Never use subagents unless explicitly requested. Follow AGENTS.md and current user instructions. Never commit real-device data/screenshots, credentials or local diagnostic records.
+## Current work
+- Repository: https://github.com/remriel/presence-windows. Starting main e7a550ac43262f24ee2e21a533efc121ae3731ae; current feature branch feat/reset-and-bulk-devices.
+- User authorized reset to defaults, main-UI multi-device Ignore/Set known, pause/resume icon, opt-in primary-phone checkbox 20% larger with warm orange/red/yellow coloring, and a new release.
+- Version 1.2.0 source and self-contained Windows x64 publish are ready. Publication is pending final focused UI verification and GitHub synchronization.
+- This checkout is C:\Drive\2026-10-11\ao\work\presence-windows. Earlier checkout/install/release statements in historical handoffs are not evidence of current local app state. We have not modified the installed app or the real user profile in this session.
 
-## Architecture and dependencies
-- .NET 10 Windows Forms tray app; target net10.0-windows10.0.19041.0, supported minimum Windows 10 x64 1809. Releases are self-contained single-file win-x64 executables; do not trim WinForms/WinRT.
-- Presence.Core/Models.cs holds identities, DeviceKind, settings and events. PresenceEngine.cs is the deterministic inference state machine. Repository.cs stores a JSON Snapshot in SQLite plus transactional event/observation tables.
-- Presence.App/Discovery.cs supplies local network observations. PresenceContext.cs owns tray/UI lifecycle, persistence, notification dispatch and reconnects. Windows.cs contains MainWindow, SettingsWindow, DeviceWindow and inventory/activity dialogs. Ui.cs centralizes measured layouts, colors, typography, scrolling and grids.
-- Dependencies: Microsoft.Data.Sqlite 10.0.12, SQLitePCLRaw.bundle_e_sqlite3 3.0.5, CommunityToolkit.WinUI.Notifications 7.1.2. Local IEEE OUI snapshot provides offline manufacturer lookup; no runtime vendor download.
-- Local user data stays at %LOCALAPPDATA%\Presence\presence.db. Transactions preserve state/events; detailed observations are throttled. Defaults: 90-day event retention, at most seven days of observations.
+## Architecture
+- .NET 10 Windows Forms tray app, net10.0-windows10.0.19041.0; Windows 10 x64 1809 minimum. Self-contained single-file releases; do not trim WinForms/WinRT.
+- Core Models.cs owns Snapshot, devices, people and Settings defaults. PresenceEngine.cs is deterministic inference/quiet-baseline state machine. Repository.cs stores snapshot JSON plus event and observation tables in SQLite.
+- App PresenceContext.cs owns discovery cancellation epochs, persistence queues, tray, notifications and UI. Windows.cs holds forms, Ui.cs measured layouts/native theming, Discovery.cs fresh ARP/ICMP/mDNS observations.
+- Dependencies: Microsoft.Data.Sqlite 10.0.12, SQLitePCLRaw.bundle_e_sqlite3 3.0.5, CommunityToolkit.WinUI.Notifications 7.1.2; bundled offline OUI table.
+- Real data: %LOCALAPPDATA%\Presence\presence.db. Defaults: scan 3 seconds, departure grace 30 seconds, retention 90 days, automatic adapter, System theme, startup enabled.
 
-## Presence and reconnect decisions
-- Only fresh ARP, ICMP and multicast DNS responses count as presence evidence. Cached ARP entries supply probe addresses, not proof of presence. Private MAC identities cannot be matched safely without user association.
-- Automatic physical-adapter selection favors Wi-Fi, or Settings can choose an explicit adapter. Physical IPv4 LANs are supported; IPv6-only devices and router-assisted client tables are not implemented.
-- Known devices receive priority probes, with background subnet/mDNS discovery. First fresh detection tracks a device automatically. One silent successful baseline prevents startup/reconnect notification bursts. Default interval is three seconds; departure grace is 30 seconds.
-- A primary phone determines an associated person's presence; without one, assigned person devices aggregate. Normal device transitions generate one event per device; person aggregation does not add duplicate notifications.
-- Missing gateways, sleep, address/availability changes or source-address changes reset monitoring without counting unmonitored time as absence. PresenceContext cancels per-scan CTS, increments an epoch and rejects obsolete results and exceptions, clears the label/list and debounces reconnect for 750 ms.
-- PresenceEngine.ResetNetwork keeps identities, names, assignments, timestamps and history while resetting live state and the quiet baseline. Discovery uses a generation for gateway work and a lane key including interface/source/gateway IP, so DHCP rebinding restarts workers even on the same stable persisted network identity.
-- MainWindow.Render scopes every live section to PresenceContext.NetworkScope. Blank scope does not mean show all. Full saved inventory/history stays accessible from Settings > Devices.
+## 1.2.0 decisions
+- Repository.Reset atomically deletes State, PresenceEvent and Observation and writes an empty Snapshot with defaults. Clear observation throttling only after commit. Tests inject a SQLite trigger failure to prove all deletions roll back.
+- PresenceContext.ResetEverything applies default startup preference with rollback on database failure, then increments epoch/cancels active scans, clears pending events/observations and alerts, clears runtime identities and resets quiet baseline. Reset resumes scanning even if manually paused. Confirmation defaults to No, describes irreversible deletion and startup default, closes Settings on success. Installing an update does not call reset.
+- MainWindow uses an explicit Select devices mode and checkbox cells. MAC selections survive renders, clear after actions and on network-scope changes, and never apply outside current network. Person groups expand to individual devices, including Not yet seen devices. Row click/Space/Enter toggles selection; ordinary mode retains opening details by click/Enter.
+- SetDeviceKinds permits Ignore/Known only. Both remove person/primary associations; explain this on-screen. Preserve names/history and reconcile people silently. Persistence failures roll back kinds, associations and person state in memory.
+- Manual ScanningPaused is runtime-only and separate from Windows sleep. Toggle cancels scan epoch and discovery, stops reconnect and alerts, freezes absence timing. Scan refuses explicit and automatic scans while paused. Resume establishes quiet baseline; network/sleep changes cannot implicitly resume manual pause. System pause/play glyphs have accessible names/tooltips.
+- Primary checkbox retains saved IsPrimary but no longer defaults true for unassigned devices. Font 12pt versus normal 10pt (20%), bold, padded, amber/orange background with dark readable text in light/dark themes. Existing labels and device editor association logic remain.
+- No new art assets are needed for standard controls/system icon glyphs. Existing current-network/ignored semantics are preserved.
 
-## Ignored devices decision in v1.1.2
-- Owner clarified that the existing Ignore option is sufficient for excluding devices from notifications, but ignored devices must remain visible on the main window. No second mute preference or persistence migration was introduced.
-- Windows.cs/MainWindow.Render adds a counted Ignored devices section after Unknown devices and before Recent activity. It includes all DeviceKind.Ignore devices in the active network, irrespective of presence state, sorted by DisplayName.
-- Ignored rows open the existing DeviceWindow by click or Enter. Save another tracking type to restore normal tracking. Cancel preserves Ignore. The empty section and device-details copy explain the behavior.
-- Discovery intentionally excludes ignored devices from priority probes. Rows therefore say Ignored rather than asserting an accurate current Home/Away signal. Existing PresenceEngine Ignore suppression prevents new/arrival/departure events and alerts; existing histories remain local.
-- Kind is already in the MainWindow render signature, so app.Save/Refresh updates placement immediately. Devices from the old network clear during reconnect and never leak into a new network's ignored section.
+## Existing constraints
+- Cached ARP is a probe candidate, never presence proof. Private MAC identity matching requires user association. Physical IPv4 networks only; IPv6/router-client integration remains future work.
+- Ignore suppresses arrival/departure/new events and priority probes. Ignored rows remain visible with an Ignored label rather than asserting live presence.
+- Network/sleep changes invalidate scan epochs, clear live scope and restart quiet baseline. Unknown is never a departure.
+- Build on local disk via --artifacts-path to avoid Google Drive apphost mapped-file locks. Current local build root: %LOCALAPPDATA%\PresenceBuild\ResetBulk.
+- Never commit real-device data, screenshots, credentials or diagnostics. No subagents. Fixture screenshots are in task outputs only.
+- Native captures need shown forms, restored WindowState, and no forced layout after scrolling (it resets the docked content scroll position). A minimized main window produced invalid tiny captures in the expanded QA rerun; corrected in preview harness.
 
-## UI, alerts and internet speed
-- Current Ui.cs uses the existing neutral light/dark native interface. This focused feature reuses its measured controls and spacing. Historical palette notes did not describe the current source colors.
-- ScrollBody provides one width-constrained vertical scroller; pinned headers/actions remain visible. ContentTable measures wrapped labels at allocated widths. PresenceGrid refreshes widths/padding on DPI changes. Forms use a 96-DPI baseline and PerMonitorV2 awareness.
-- FloatingAlerts.cs uses app-owned, non-activating icon popups and a bundled chime, independent of Windows toast/banner settings. Popups wrap text, stay above ordinary windows, pause dismissal while hovered and open the device when clicked. Quiet hours/global event switches suppress real notifications while retaining ordinary recorded events. Test alert bypasses quiet hours and follows saved sound.
-- Alert queue is bounded to 20, with overflow summarized. Existing app/tray/popup icons are embedded; no new visual assets were required.
-- InternetSpeedTest.cs runs only after the Speed test action. HTTPS Cloudflare __down/__up samples run for at least 2.5 seconds per direction, with median HTTPS latency/jitter and a 35-second deadline. No results or Presence identities/history are saved/sent. This is internet edge throughput, not Wi-Fi PHY rate or router throughput. Speed testing was not exercised for this change.
-
-## Build, verification and local package
-- One local Windows x64 self-contained/single-file production publish passed with no warnings/errors. Existing deterministic Presence.Core checks passed. Build intermediates/output: %LOCALAPPDATA%\PresenceBuild\IgnoredDevices-1.1.2.
-- A scratch preview harness at this task's work/ignored-preview referenced the already-built assemblies rather than rebuilding the production app. Fifteen checks passed with zero findings: present/away ignored rows, no duplicates, other-network exclusion, row-click editing, Save/Cancel, SQLite reload, reconnect/new-network clearing, empty text, existing new/arrival/departure suppression and restoration of normal events.
-- Light, dark, compact and ignored-device details captures were visually inspected at native Windows 150% DPI. Screenshots and verification.json are in task outputs/ignored-devices and contain only fictional devices. Layout checks found no clipped labels or horizontal form scrolling.
-- GitHub Actions run https://github.com/remriel/presence-windows/actions/runs/37976713773 passed core checks, Windows publish, packaging and artifact upload for feature commit 3e53b47. Documentation follow-ups do not change the verified app source.
-- Portable ZIP: C:\Drive\2026-10-09\gi\outputs\Presence-1.1.2-win-x64.zip; SHA-256 b2f60f709f9e90c6d99d7f2c91c3379460b286dcc9ebe873154112d2a05d789b, with a .sha256 companion.
-- Installed executable is version 1.1.2.0; SHA-256 b69fad432165b4d0a2ddf3c17ff83fbc060ee0ae6b854e567326a18c143be182. The matching process, path, startup command and original profile existence were verified. Prior binary/OUI files are backed up at %LOCALAPPDATA%\PresenceBuild\IgnoredDevices-1.1.2\previous-install. Profile data was not copied, moved or deleted.
-- Numeric binary version is 1.1.2; informational version includes the pre-commit starting HEAD 3daa9f5 because the single local publish preceded the feature commit.
-
-## Constraints, failed approaches and remaining proof
-- Build to local disk using --artifacts-path: apphost generation on the Google Drive workspace once hit a mapped-file lock. User-facing portable packages/captures go in task outputs; never commit binaries or profiles.
-- An off-screen Settings DrawToBitmap previously produced a blank capture. Show the fictional form, process its layout/messages, then capture visible native controls. Do not use real-device screenshots.
-- GitHub release creation previously rejected an abbreviated commit target; use a full commit SHA if a later release is authorized. Immediate binary replacement once hit a process lock; back up files, wait for exit and use bounded copy retries. Stop on copy errors and restore the backup before restarting.
-- Real Wi-Fi join/leave/sleep, isolation/proxy ARP, rapid physical network switching, popup sound/click and long-duration discovery reliability still require owner acceptance. Fictional UI checks and compilation do not prove physical LAN behavior. See docs/MANUAL_ACCEPTANCE.md.
-- No unresolved implementation bug was found in the ignored-section change. Broader priorities remain discovery reliability, adaptive probing, sleeping-device departure confidence, IPv6/router options and observable diagnostics, as described in README.
+## Verification and limits
+- Core inference and transactional reset/persistence tests passed. Self-contained production publish passed with no warnings/errors.
+- Focused UI harness --reset-bulk tests cross-section mouse/Space selection, network exclusion, classifications, render selection retention, canceled/confirmed reset, default checkbox/font, pause/resume and stored defaults. Final corrected rerun passed 24 behavior checks with zero layout findings and 12 screenshots. Reset, primary control, pause icon and bulk light/dark/compact captures were visually inspected.
+- Real Wi-Fi transitions, pause/resume during physical discovery, sleep/network switches, popup sound and long-term monitoring remain manual acceptance (docs/MANUAL_ACCEPTANCE.md). Fictional UI checks do not prove those behaviors.
 
 ## RESUME HERE
-Presence 1.1.2 is released, the feature is merged to GitHub main, and the matching local build is installed at C:\Presence. Release: https://github.com/remriel/presence-windows/releases/tag/v1.1.2. The portable ZIP/checksum upload and archive digest were confirmed. No implementation, build, installation or publication work remains. The owner explicitly requested immediate release; use the already-verified package without extra rebuilds/tests. Preserve the current-network filter and the Ignored display label. Future physical LAN acceptance remains in docs/MANUAL_ACCEPTANCE.md.
+Finish the corrected --reset-bulk UI preview and inspect captures. Then package the existing publish, push the feature branch, create/merge PR after CI, and publish v1.2.0 with ZIP/checksum. User explicitly requested release; no further permission is required. Never reset the real profile during testing. Update docs/PROGRESS.md and this file with final release/CI links and hashes; export both to outputs.

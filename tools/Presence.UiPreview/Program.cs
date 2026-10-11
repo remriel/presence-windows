@@ -14,6 +14,7 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--reset-bulk")) return ResetBulkChecks();
         if (args.Contains("--network-change"))
         {
             var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "NetworkPreview", Guid.NewGuid().ToString("N"));
@@ -83,6 +84,63 @@ internal static class Program
         return failures.Count == 0 ? 0 : 2;
     }
     private static MainWindow GetMain(PresenceContext app) => (MainWindow)typeof(PresenceContext).GetField("window", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(app)!;
+    private static int ResetBulkChecks()
+    {
+        void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        void Click(Form form, string name) { All(form).OfType<Button>().Single(b => b.AccessibleName == name).PerformClick(); Application.DoEvents(); }
+        void Select(MainWindow main, string mac, bool keyboard = false)
+        {
+            var grid = All(main).OfType<DataGridView>().Single(g => g.Columns.Contains("Select") && g.Rows.Cast<DataGridViewRow>().Any(r => Equals(r.Tag, mac)));
+            var row = grid.Rows.Cast<DataGridViewRow>().Single(r => Equals(r.Tag, mac));
+            if (keyboard) { grid.CurrentCell = row.Cells[0]; typeof(DataGridView).GetMethod("OnKeyDown", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(grid, [new KeyEventArgs(Keys.Space)]); }
+            else typeof(DataGridView).GetMethod("OnCellClick", BindingFlags.NonPublic | BindingFlags.Instance)!.Invoke(grid, [new DataGridViewCellEventArgs(0, row.Index)]);
+            Application.DoEvents();
+        }
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "ResetBulkPreview", Guid.NewGuid().ToString("N"));
+        using var app = new PresenceContext(folder, true, true); var main = GetMain(app); main.Show(); Application.DoEvents();
+        var first = app.Engine.Data.Devices[0]; var second = app.Engine.Data.Devices[3];
+        app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:99", Network = "other-network", Kind = DeviceKind.Unknown, State = PresenceState.Home });
+        foreach (var theme in new[] { "Light", "Dark" })
+        {
+            main.WindowState = FormWindowState.Normal; main.Show(); Application.DoEvents();
+            app.Engine.Data.Settings.Theme = theme; app.Refresh();
+            Click(main, "Select devices"); Select(main, first.Mac); Select(main, second.Mac, true);
+            Check(All(main).OfType<DataGridView>().Where(g => g.Columns.Contains("Select")).SelectMany(g => g.Rows.Cast<DataGridViewRow>()).Count(r => Equals(r.Cells[0].Value, true)) == 2, theme + " cross-section mouse and Space selection");
+            Check(!All(main).OfType<DataGridView>().SelectMany(g => g.Rows.Cast<DataGridViewRow>()).Any(r => Equals(r.Tag, "02:00:00:00:00:99")), theme + " excludes other networks");
+            CaptureExisting(main, theme + "-bulk-selected", 1.5f);
+            main.Size = main.MinimumSize; CaptureExisting(main, theme + "-bulk-minimum", 1.5f); main.ClientSize = new Size(960, 1000);
+            Click(main, "Ignore selected");
+            Check(first.Kind == DeviceKind.Ignore && second.Kind == DeviceKind.Ignore && first.PersonId is null && !first.IsPrimary, theme + " Ignore updates both and clears association");
+            Check(!All(main).OfType<Button>().Single(b => b.AccessibleName == "Ignore selected").Enabled, theme + " clears selection after action");
+            Select(main, first.Mac); Select(main, second.Mac); Click(main, "Set known");
+            Check(first.Kind == DeviceKind.Known && second.Kind == DeviceKind.Known, theme + " Set known restores both devices");
+            app.Store.Save(app.Engine.Data); var saved = app.Store.Load();
+            Check(saved.Devices.Single(d => d.Mac == first.Mac).Kind == DeviceKind.Known && saved.Devices.Single(d => d.Mac == second.Mac).Kind == DeviceKind.Known, theme + " bulk kinds serialize and reload");
+            Select(main, first.Mac); first.Name = "Renamed fictional phone"; app.Refresh();
+            Check(All(main).OfType<DataGridView>().Where(g => g.Columns.Contains("Select")).SelectMany(g => g.Rows.Cast<DataGridViewRow>()).Single(r => Equals(r.Tag, first.Mac)).Cells[0].Value is true, theme + " selection survives render");
+            Click(main, "Select devices");
+            using (var settings = new SettingsWindow(app, _ => false)) { Capture(settings, theme + "-settings", 1.5f, "default"); CaptureBottom(settings, theme + "-settings-reset", 1.5f); Click(settings, "Reset everything"); Check(app.Engine.Data.Devices.Count == 5 && !settings.IsDisposed, theme + " canceled reset preserves data"); }
+            using (var device = new DeviceWindow(app, second))
+            {
+                var primary = All(device).OfType<CheckBox>().Single(c => c.Text == "Use as this person's primary phone");
+                Check(!primary.Checked && Math.Abs(primary.Font.Size - 12) < .01 && Equals(primary.Tag, "primary-device"), theme + " primary opt-in unchecked and 20 percent larger");
+                Capture(device, theme + "-primary-checkbox", 1.5f, "default");
+            }
+        }
+        Click(main, "Pause scanning"); Check(app.ScanningPaused, "pause icon sets manual pause"); CaptureExisting(main, "paused", 1.5f);
+        Click(main, "Resume scanning"); Check(!app.ScanningPaused && app.Engine.Baselining, "resume resets quiet baseline");
+        app.Store.Save(app.Engine.Data, [PresenceEvent.Create(DateTimeOffset.UtcNow, "new", "Fictional", first.Mac)], [new Observation(first.Mac, "192.0.2.10", "Fictional", "", "test")]);
+        Click(main, "Select devices"); Select(main, first.Mac); SetContext(app, "Monitoring", false); app.Refresh();
+        Check(!All(main).OfType<Button>().Single(b => b.AccessibleName == "Ignore selected").Enabled, "network disconnect clears selection");
+        Click(main, "Pause scanning");
+        using (var settings = new SettingsWindow(app, _ => true)) { settings.Show(); Click(settings, "Reset everything"); Check(settings.IsDisposed, "confirmed reset closes settings"); }
+        Check(app.Engine.Data.Devices.Count == 0 && app.Engine.Data.People.Count == 0 && !app.ScanningPaused && app.Engine.Data.Settings.ScanIntervalSeconds == 3 && app.Engine.Data.Settings.Theme == "System", "full reset clears runtime and restores defaults");
+        Check(app.Store.Load().Devices.Count == 0 && app.Store.History().Count == 0, "full reset persists empty profile and history");
+        CaptureExisting(main, "reset-complete", 1.5f); main.AllowClose = true; main.Close();
+        File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { checks, failures, captures }, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"{checks.Count} behavior checks passed; {failures.Count} findings; {captures.Count} captures."); foreach (var failure in failures) Console.WriteLine(failure);
+        return failures.Count == 0 ? 0 : 2;
+    }
     private static void SetContext(PresenceContext app, string property, object value) => typeof(PresenceContext).GetProperty(property)!.SetValue(app, value);
     private static void Fixture(PresenceContext app)
     {
@@ -124,12 +182,14 @@ internal static class Program
     }
     private static void CaptureBottom(Form form, string name, float scale)
     {
-        foreach (var scroll in All(form).OfType<ScrollBody>()) scroll.AutoScrollPosition = new Point(0, scroll.Content.Height);
-        CaptureExisting(form, name, scale);
-    }
-    private static void CaptureExisting(Form form, string name, float scale)
-    {
         form.PerformLayout(); Application.DoEvents();
+        foreach (var scroll in All(form).OfType<ScrollBody>()) scroll.AutoScrollPosition = new Point(0, scroll.Content.Height);
+        CaptureExisting(form, name, scale, false);
+    }
+    private static void CaptureExisting(Form form, string name, float scale, bool layout = true)
+    {
+        if (form.WindowState == FormWindowState.Minimized) { form.WindowState = FormWindowState.Normal; form.Show(); }
+        if (layout) { form.PerformLayout(); Application.DoEvents(); }
         foreach (var grid in All(form).OfType<DataGridView>()) { grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells); grid.ClearSelection(); }
         using var bitmap = new Bitmap(form.Width, form.Height); form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, form.Size)); bitmap.Save(Path.Combine(output, name + ".png"));
         captures.Add(new { name, width = form.Width, height = form.Height, desktopDpi = form.DeviceDpi, scale });
