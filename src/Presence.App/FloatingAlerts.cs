@@ -68,6 +68,11 @@ internal sealed class FloatingAlerts : IDisposable
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))!);
         bitmap.Save(path, System.Drawing.Imaging.ImageFormat.Png);
     }
+    public void Clear()
+    {
+        queue.Clear(); overflow = 0; var old = current; current = null; old?.Close();
+        PlaySound(IntPtr.Zero, IntPtr.Zero, 0);
+    }
     public void Dispose()
     {
         if (disposed) return;

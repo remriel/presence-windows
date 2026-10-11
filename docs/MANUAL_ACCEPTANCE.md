@@ -29,3 +29,9 @@ Network change acceptance for v1.1.1:
 3. Switch while a scan is running and switch rapidly twice. Confirm no obsolete scan result or error replaces the final network list.
 4. Let DHCP change the local PC address; confirm discovery resumes with the new source address. Sleep/resume and unavailable-gateway time must not accumulate departures.
 5. If an explicit adapter is selected in Settings, Presence continues to honor that choice; choose Automatic for automatic Wi-Fi/Ethernet adapter selection. IPv4-only and physical-adapter discovery constraints remain unchanged.
+# Presence 1.2.0 additions
+
+- On a real network, select devices across Home, Away, Unknown and Ignored; apply Ignore and Set known. Verify only checked devices change and the kinds survive an app restart.
+- Pause during an active scan; confirm scanning/alerts stop. Resume after longer than the departure grace; confirm the quiet baseline avoids a burst of false departures. Repeat with sleep and a network switch while paused.
+- Assign a new phone with the orange/yellow primary checkbox left unchecked; confirm any assigned presence device can keep the person home. Enable it explicitly and verify primary-phone behavior.
+- In an expendable test profile, cancel Reset everything and verify nothing changes. Confirm it and verify defaults, empty saved inventory/history and quiet rediscovery. Never use a real profile for reset testing.

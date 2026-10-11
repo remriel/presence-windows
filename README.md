@@ -4,7 +4,7 @@
 
 **An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.1.2](https://github.com/remriel/presence-windows/releases/tag/v1.1.2) · Windows 10 x64 and later
+[Download Presence 1.2.0](https://github.com/remriel/presence-windows/releases/tag/v1.2.0) · Windows 10 x64 and later
 
 <img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
 
@@ -32,7 +32,17 @@ These screens use fictional preview devices.
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current published release: **1.1.2**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.2.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+
+### Manage several devices, pause, or start fresh
+
+Choose **Select devices** on the main window, then click device rows or press Space to check several devices across sections. **Ignore selected** suppresses their alerts; **Set known** restores normal device tracking. Both actions remove person associations and primary-phone flags from the selected devices. Person groups expand into individual devices while selecting. Selection survives list updates and clears when the network changes. **Done selecting** returns to opening details by clicking a row.
+
+The pause icon beside Settings cancels current scanning and stops further scans. The icon changes to Resume; resuming starts a quiet baseline so time spent paused does not cause false departures. Manual pause lasts until resumed or the app exits.
+
+**Use as this person's primary phone** is unchecked for newly assigned devices. Its text is 20% larger, bold, and highlighted in warm orange/yellow. Saved primary phones remain checked.
+
+**Settings > Reset everything** restores all settings and erases saved devices, names, people, associations, events and observations after confirmation. This cannot be undone. Defaults include starting with Windows, automatic adapter choice, a three-second interval and a 30-second departure grace. Devices on the network are rediscovered with a quiet baseline. Installing a new version does not reset your data; reset runs only when confirmed inside Settings.
 
 ## How it works
 

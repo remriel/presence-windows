@@ -142,6 +142,7 @@ internal static class Ui
         control.BackColor = control is Label ? Color.Transparent : control is TextBox or ComboBox or NumericUpDown ? Surface(s) : Background(s);
         control.ForeColor = Equals(control.Tag, "muted") ? Muted(s) : Equals(control.Tag, "error") ? Negative(s) : Text(s);
         if (control is Button button) StyleButton(button, s);
+        if (Equals(control.Tag, "primary-device")) { control.BackColor = Dark(s) ? Color.FromArgb(245, 155, 65) : Color.FromArgb(255, 202, 110); control.ForeColor = Color.FromArgb(65, 28, 8); }
         foreach (Control child in control.Controls) Theme(child, s);
     }
 }

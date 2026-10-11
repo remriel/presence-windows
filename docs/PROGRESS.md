@@ -1,46 +1,33 @@
 # Presence progress
 
-Current objective: show devices excluded from notifications in an **Ignored devices** section on the main window, using the existing Ignore option.
+Current objective: release Presence 1.2.0 with full reset, main-window bulk Ignore/Set known, pause/resume, and a larger highlighted primary-phone checkbox.
 
-Progress: **100%** [####################]
+Progress: **90%** [##################--]
 
-- [x] Reconcile AGENTS.md, handoffs and the actual clean v1.1.1 repository at 3daa9f5.
-- [x] Add counted, selectable ignored rows and an explanatory empty state; retain the existing current-network boundary and silent Ignore behavior.
-- [x] Update device details, README, release notes and manual acceptance.
-- [x] Pass the existing deterministic core checks and 15 focused fictional UI/core/persistence checks with zero findings.
-- [x] Capture and visually inspect light, dark, compact and device-details screenshots.
-- [x] Complete one Windows x64 self-contained production publish and package the portable ZIP/checksum.
-- [x] Back up the installed 1.1.1 files, replace C:\Presence, and confirm the 1.1.2 tray process, startup command, binary hash and original data path.
-- [x] Push the completed change, create/attach PR #1, and merge it to main.
-- [x] Publish Presence 1.1.2 with the verified portable ZIP/checksum and confirm the uploaded digest.
-- [x] Confirm successful GitHub CI and prepare final PROJECT_STATE.md and PROGRESS.md exports.
+- [x] Read repository instructions and handoffs; reconcile clean GitHub main with source.
+- [x] Implement transactional reset and main-window device selection.
+- [x] Add pause/resume with cancellation and quiet baseline.
+- [x] Make primary phone opt-in, 20% larger, warm orange/yellow.
+- [x] Pass core inference and reset rollback/persistence tests.
+- [x] Build self-contained Windows x64 app without warnings/errors.
+- [x] Finish focused screenshot verification: 24 behavior checks, zero layout findings, 12 captures.
+- [ ] Commit, push, create and merge PR; verify CI.
+- [ ] Publish 1.2.0 ZIP/checksum and verify release asset digest.
+- [ ] Export final project state and progress.
 
-Implementation: MainWindow.Render includes every ignored device in the active network irrespective of presence state. Rows read Ignored and open device details; changing Track as restores normal tracking. Existing Ignore event suppression and serialized DeviceKind persistence are used without a new setting or schema change. During reconnect and network changes the section clears with the other live lists; the full saved inventory remains in Settings > Devices.
+Implementation: source complete, version 1.2.0. Reset removes all profile tables in one transaction and cancels obsolete scans, queued observations/events and alerts. Defaults come from Settings. Bulk selection uses MAC identities scoped to the current network; person groups expand to devices; bulk classification removes associations. Pause is runtime-only and blocks automatic/explicit scans until resumed. Existing primary phones remain checked.
 
-Verification: Windows x64 publish exited 0 with no warnings/errors. The existing Presence.Core executable checks passed. A scratch preview harness referenced the already-built assemblies, so the production app was not rebuilt. Fifteen checks covered present/away ignored rows, no duplicates, other-network exclusion, row-click editing, Save/Cancel behavior, reopening saved SQLite state, reconnect/new-network clearing, an empty state, suppression of first/new/arrival/departure events, and restoration of normal events. Native 150% DPI captures were visually inspected in light/dark and minimum-size layouts. No live Wi-Fi transitions, popup sound or internet speed transfer were tested.
+Verification: core checks and transactional reset checks pass. Initial focused UI run passed 22 behavior checks with zero findings. Expanded persistence checks passed, but minimized preview windows caused invalid tiny captures; preview now restores forms before capture. This affected the harness, not the production build. Final rerun passed 24 behavior checks with zero layout findings; 12 captures visually reviewed. All test devices are fictional. No real profile was reset or changed.
 
-Source checkout: C:\Drive\2026-10-09\gi\work\presence-windows
-Git branch: main
-Pull request: https://github.com/remriel/presence-windows/pull/1 (merged)
-Release: https://github.com/remriel/presence-windows/releases/tag/v1.1.2
-Release target: e7a550ac43262f24ee2e21a533efc121ae3731ae
-Verified feature commit: 3e53b471eb31ef7d492133b4692fedd66ade4d38
-Successful feature CI: https://github.com/remriel/presence-windows/actions/runs/37976713773
-Target app version: 1.1.2
-Current published release is v1.1.2. The uploaded ZIP/checksum and archive digest match the verified local portable package.
-
-Package: C:\Drive\2026-10-09\gi\outputs\Presence-1.1.2-win-x64.zip
-Archive SHA-256: b2f60f709f9e90c6d99d7f2c91c3379460b286dcc9ebe873154112d2a05d789b
-Installed app: C:\Presence\Presence.exe, file version 1.1.2.0, running with --tray. Startup remains "C:\Presence\Presence.exe" --tray.
-Data: original %LOCALAPPDATA%\Presence\presence.db remains in place. No profile data was copied, moved or deleted.
-Binary backup: %LOCALAPPDATA%\PresenceBuild\IgnoredDevices-1.1.2\previous-install.
-Build intermediates/output: %LOCALAPPDATA%\PresenceBuild\IgnoredDevices-1.1.2.
-Fictional screenshots, verification.json and installation.json: task outputs/ignored-devices.
+Checkout: C:\Drive\2026-10-11\ao\work\presence-windows
+Branch: feat/reset-and-bulk-devices
+Build: %LOCALAPPDATA%\PresenceBuild\ResetBulk\portable
+Screenshots: C:\Drive\2026-10-11\ao\outputs\presence-verification
 
 Blockers: none.
 
-RESUME HERE / exact ordered next steps:
-1. No feature, build, package, install or release work remains. Presence 1.1.2 is public and the source is synchronized to GitHub main.
-2. Keep the completed portable package and both handoff exports in this task's outputs. The owner requested immediate release; no extra rebuilds/tests were performed for publication.
-3. If physical LAN acceptance is requested, use docs/MANUAL_ACCEPTANCE.md. Fictional checks and successful builds do not prove physical Wi-Fi behavior.
-4. Before future work, read AGENTS.md and both handoffs, inspect git status/diff, and reconcile source/tests with actual state.
+Exact next steps:
+1. Run corrected focused preview, inspect reset and bulk captures, resolve any findings.
+2. Package the already-published executable with README/notices and checksum.
+3. Commit/push, create PR, wait for CI, merge and publish 1.2.0 targeting full merge SHA.
+4. Verify release digest and export both handoffs to outputs.

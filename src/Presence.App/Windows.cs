@@ -11,6 +11,15 @@ internal sealed class MainWindow : Form
     private readonly TableLayoutPanel root;
     private SpeedTestWindow? speedTest;
     private string signature = "";
+    private bool selecting;
+    private string selectionScope = "";
+    private readonly HashSet<string> selected = new(StringComparer.OrdinalIgnoreCase);
+    private readonly Button selectDevices;
+    private readonly Button ignoreSelected;
+    private readonly Button knownSelected;
+    private readonly WrapLabel selectionCount;
+    private readonly Button pauseScanning;
+    private readonly ToolTip pauseHint = new();
     [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
     public bool AllowClose { get; set; }
     public MainWindow(PresenceContext context)
@@ -19,12 +28,19 @@ internal sealed class MainWindow : Form
         Ui.Configure(this, "Presence", new Size(640, 760), new Size(500, 480), s);
         Text = "Presence"; MinimizeBox = MaximizeBox = true; StartPosition = FormStartPosition.CenterScreen;
         var header = Ui.Stack(); header.Padding = new Padding(Ui.Page, Ui.Section, Ui.Page, Ui.Space);
-        var heading = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Top, ColumnCount = 2, Margin = new Padding(0, 0, 0, Ui.Space) };
-        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); heading.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
+        var heading = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Top, ColumnCount = 3, Margin = new Padding(0, 0, 0, Ui.Space) };
+        heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); heading.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); heading.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         var title = Ui.Label("Presence", s); title.Font = Ui.TitleFont;
-        heading.Controls.Add(title, 0, 0); heading.Controls.Add(Ui.Button("&Settings", ShowSettings, s), 1, 0); Ui.Add(header, heading);
+        pauseScanning = Ui.Button("\uE769", app.ToggleScanning, s); pauseScanning.Font = new Font("Segoe MDL2 Assets", 12); pauseScanning.MinimumSize = new Size(44, 36);
+        heading.Controls.Add(title, 0, 0); heading.Controls.Add(pauseScanning, 1, 0); heading.Controls.Add(Ui.Button("&Settings", ShowSettings, s), 2, 0); Ui.Add(header, heading);
         status = Ui.Label("Finding your network…", s); status.Font = Ui.StrongFont; status.Margin = new Padding(0, 0, 0, Ui.Small); Ui.Add(header, status);
         network = Ui.Label("", s, true); Ui.Add(header, network);
+        selectDevices = Ui.Button("Select &devices", () => { selecting = !selecting; selected.Clear(); signature = ""; Render(); }, s);
+        ignoreSelected = Ui.Button("&Ignore selected", () => SetSelected(DeviceKind.Ignore), s);
+        knownSelected = Ui.Button("Set &known", () => SetSelected(DeviceKind.Known), s);
+        selectionCount = Ui.Label("", s, true);
+        var selectionActions = Ui.Actions(selectDevices, ignoreSelected, knownSelected); selectionActions.Padding = new Padding(0, Ui.Gap, 0, Ui.Gap);
+        Ui.Add(header, selectionActions); Ui.Add(header, selectionCount);
         var footer = Ui.Stack();
         var hint = Ui.Label("Monitoring continues in the tray when you close this window.", s, true); hint.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0); Ui.Add(footer, hint);
         Ui.Add(footer, Ui.Actions(Ui.Button("&Refresh", async () => await app.Scan(true), s, true), Ui.Button("Speed &test", OpenSpeedTest, s), Ui.Button("&Activity", ShowActivity, s)));
@@ -36,7 +52,9 @@ internal sealed class MainWindow : Form
     {
         if (IsDisposed) return;
         var s = app.Engine.Data.Settings;
-        status.Text = app.Monitoring ? (app.IsScanning ? "Scanning your network…" : "Monitoring your network") : "Waiting for your network";
+        pauseScanning.Text = app.ScanningPaused ? "\uE768" : "\uE769";
+        pauseScanning.AccessibleName = app.ScanningPaused ? "Resume scanning" : "Pause scanning"; pauseHint.SetToolTip(pauseScanning, pauseScanning.AccessibleName);
+        status.Text = app.ScanningPaused ? "Scanning paused" : app.Monitoring ? (app.IsScanning ? "Scanning your network…" : "Monitoring your network") : "Waiting for your network";
         network.Text = string.Join("\n", new[] { app.NetworkLabel, app.Status }.Where(x => x.Length > 0));
         var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
         if (next == signature) return;
@@ -46,44 +64,62 @@ internal sealed class MainWindow : Form
         foreach (var control in body.Content.Controls.Cast<Control>().ToArray()) control.Dispose();
         body.Content.Controls.Clear(); body.Content.RowStyles.Clear(); body.Content.RowCount = 0;
         var local = app.Engine.Data.Devices.Where(d => app.NetworkScope != "" && d.Network == app.NetworkScope).ToList();
+        if (selectionScope != app.NetworkScope) { selected.Clear(); selectionScope = app.NetworkScope; }
+        selected.IntersectWith(local.Select(d => d.Mac)); UpdateSelection();
         var people = app.Engine.Data.People.Where(p => p.State != PresenceState.Unknown && local.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
-        var devices = local.Where(d => d.Kind == DeviceKind.Known).ToList();
-        var home = new List<(string State, string Name, string When, Action Open)>();
-        var away = new List<(string State, string Name, string When, Action Open)>();
-        foreach (var person in people)
+        var devices = local.Where(d => d.Kind == DeviceKind.Known || selecting && d.Kind == DeviceKind.Person).ToList();
+        var home = new List<(string State, string Name, string When, Device Device)>();
+        var away = new List<(string State, string Name, string When, Device Device)>();
+        foreach (var person in people.Where(_ => !selecting))
         {
             var device = local.Where(d => d.PersonId == person.Id && d.Kind == DeviceKind.Person).OrderByDescending(d => d.IsPrimary).First();
             var list = person.State is PresenceState.Home or PresenceState.ProbablyHome ? home : away;
-            list.Add((Ui.State(person.State), person.Name, Ui.Time(person.ChangedAt), () => ShowDevice(device)));
+            list.Add((Ui.State(person.State), person.Name, Ui.Time(person.ChangedAt), device));
         }
         foreach (var d in devices)
         {
-            if (d.State is PresenceState.Home or PresenceState.ProbablyHome) home.Add((Ui.State(d.State), d.DisplayName, Ui.Time(d.ChangedAt), () => ShowDevice(d)));
-            else if (d.State == PresenceState.Away) away.Add(("Away", d.DisplayName, Ui.Time(d.ChangedAt), () => ShowDevice(d)));
+            if (d.State is PresenceState.Home or PresenceState.ProbablyHome) home.Add((Ui.State(d.State), d.DisplayName, Ui.Time(d.ChangedAt), d));
+            else if (d.State == PresenceState.Away) away.Add(("Away", d.DisplayName, Ui.Time(d.ChangedAt), d));
         }
         AddSection("Home now", home, "No recognized devices are home right now.", s);
         AddSection("Away", away, "No recognized devices are away.", s);
-        var unknown = local.Where(d => d.Kind == DeviceKind.Unknown && (d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
+        if (selecting) AddSection("Not yet seen", devices.Where(d => d.State == PresenceState.Unknown).Select(d => ("Unknown", d.DisplayName, "Details", d)).ToList(), "All recognized devices have a presence state.", s);
+        var unknown = local.Where(d => d.Kind == DeviceKind.Unknown && (selecting || d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", d)).ToList();
         AddSection("Unknown devices", unknown, "No unidentified devices. Newly discovered devices will appear here.", s);
-        var ignored = local.Where(d => d.Kind == DeviceKind.Ignore).OrderBy(d => d.DisplayName).Select(d => ("Ignored", d.DisplayName, "Details", (Action)(() => ShowDevice(d)))).ToList();
+        var ignored = local.Where(d => d.Kind == DeviceKind.Ignore).OrderBy(d => d.DisplayName).Select(d => ("Ignored", d.DisplayName, "Details", d)).ToList();
         AddSection("Ignored devices", ignored, "No ignored devices. Choose Ignore in device details to stop alerts for a device.", s);
         var recent = Ui.Group("Recent activity", s); var history = app.Store.History(limit: 5);
         Ui.Add(recent, history.Count == 0 ? Ui.Label("Arrivals and departures will appear here. Your first scan establishes a quiet baseline.", s, true) : Ui.History(history, s, true)); Ui.Add(body.Content, recent);
         body.Content.ResumeLayout(true); body.AutoScrollPosition = new Point(0, scroll);
     }
-    private void AddSection(string title, List<(string State, string Name, string When, Action Open)> rows, string empty, Settings s)
+    private void UpdateSelection()
+    {
+        selectDevices.Text = selecting ? "&Done selecting" : "Select &devices";
+        ignoreSelected.Visible = knownSelected.Visible = selecting;
+        ignoreSelected.Enabled = knownSelected.Enabled = selected.Count > 0;
+        selectionCount.Visible = selecting;
+        selectionCount.Text = $"{selected.Count} selected · Click rows or press Space to select. Set known / Ignore removes person associations.";
+    }
+    private void SetSelected(DeviceKind kind)
+    {
+        try { app.SetDeviceKinds(selected, kind); selected.Clear(); signature = ""; Render(); }
+        catch (Exception ex) { MessageBox.Show(this, "Could not update selected devices. " + ex.Message, "Presence", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+    }
+    private void AddSection(string title, List<(string State, string Name, string When, Device Device)> rows, string empty, Settings s)
     {
         var section = Ui.Group(title + "  ·  " + rows.Count, s);
         if (rows.Count == 0) Ui.Add(section, Ui.Label(empty, s, true));
         else
         {
-            var grid = Ui.Grid(s); grid.ColumnHeadersVisible = false; grid.AccessibleName = title + ". Select a row to open device details."; grid.Cursor = Cursors.Hand;
+            var grid = Ui.Grid(s); grid.ColumnHeadersVisible = false; grid.AccessibleName = title + (selecting ? ". Click a row or press Space to select devices." : ". Select a row to open device details."); grid.Cursor = Cursors.Hand;
+            if (selecting) grid.Columns.Add(new DataGridViewCheckBoxColumn { Name = "Select", HeaderText = "Select", Width = 36, MinimumWidth = 36, AutoSizeMode = DataGridViewAutoSizeColumnMode.None });
             var state = Ui.Column("State", "State", 76, DataGridViewAutoSizeColumnMode.None); state.Width = 76;
             var when = Ui.Column("When", "Changed", 118, DataGridViewAutoSizeColumnMode.None); when.Width = 118;
             grid.Columns.Add(state); grid.Columns.Add(Ui.Column("Name", "Device / person", 120)); grid.Columns.Add(when);
-            foreach (var row in rows) { var i = grid.Rows.Add(row.State, row.Name, row.When); grid.Rows[i].Cells[1].Style.Font = Ui.StrongFont; grid.Rows[i].Cells[1].ToolTipText = row.Name + " — open details"; }
-            grid.CellClick += (_, e) => { if (e.RowIndex >= 0) rows[e.RowIndex].Open(); };
-            grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter && grid.CurrentRow is { } row) { e.Handled = e.SuppressKeyPress = true; rows[row.Index].Open(); } };
+            foreach (var row in rows) { var i = selecting ? grid.Rows.Add(selected.Contains(row.Device.Mac), row.State, row.Name, row.When) : grid.Rows.Add(row.State, row.Name, row.When); grid.Rows[i].Tag = row.Device.Mac; grid.Rows[i].Cells[selecting ? 2 : 1].Style.Font = Ui.StrongFont; grid.Rows[i].Cells[selecting ? 2 : 1].ToolTipText = row.Name + (selecting ? " · " + row.Device.Ip + " · " + row.Device.Mac : " — open details"); }
+            void OpenOrSelect(int index) { var d = rows[index].Device; if (!selecting) { ShowDevice(d); return; } if (!selected.Add(d.Mac)) selected.Remove(d.Mac); grid.Rows[index].Cells[0].Value = selected.Contains(d.Mac); UpdateSelection(); }
+            grid.CellClick += (_, e) => { if (e.RowIndex >= 0) OpenOrSelect(e.RowIndex); };
+            grid.KeyDown += (_, e) => { if ((e.KeyCode == Keys.Enter || selecting && e.KeyCode == Keys.Space) && grid.CurrentRow is { } row) { e.Handled = e.SuppressKeyPress = true; OpenOrSelect(row.Index); } };
             Ui.FitRows(grid); Ui.Add(section, grid);
         }
         Ui.Add(body.Content, section);
@@ -96,12 +132,12 @@ internal sealed class MainWindow : Form
         if (speedTest is { IsDisposed: false }) { speedTest.Activate(); return; }
         speedTest = new SpeedTestWindow(app.Engine.Data.Settings); speedTest.FormClosed += (_, _) => speedTest = null; speedTest.Show(this);
     }
-    protected override void Dispose(bool disposing) { if (disposing) { app.Changed -= Render; speedTest?.Close(); } base.Dispose(disposing); }
+    protected override void Dispose(bool disposing) { if (disposing) { app.Changed -= Render; speedTest?.Close(); pauseHint.Dispose(); } base.Dispose(disposing); }
 }
 
 internal sealed class SettingsWindow : Form
 {
-    public SettingsWindow(PresenceContext app)
+    public SettingsWindow(PresenceContext app, Func<IWin32Window, bool>? confirmReset = null)
     {
         var s = app.Engine.Data.Settings;
         Ui.Configure(this, "Settings", new Size(640, 760), new Size(540, 460), s);
@@ -126,6 +162,15 @@ internal sealed class SettingsWindow : Form
         var network = new ThemeComboBox { Margin = new Padding(0, Ui.Gap, 0, Ui.Gap) }; network.Items.Add("Automatic · physical Wi-Fi first"); var lans = Discovery.Interfaces(); foreach (var lan in lans) network.Items.Add(lan.Name); network.SelectedIndex = Math.Max(0, lans.FindIndex(n => n.Id == s.InterfaceId) + 1); network.AccessibleName = "Home network adapter"; Ui.Add(application, network); Ui.Add(body.Content, application);
         var storage = Ui.Group("Local history", s); var retentionFields = Ui.Fields(); Ui.Field(retentionFields, "Keep event history", Ui.Number(s.RetentionDays, 7, 365, "days", s, out var retention), s); Ui.Add(storage, retentionFields);
         Ui.Add(storage, Ui.Label("Device names, person associations and presence history stay on this computer. Device presence is an estimate of whether someone is home; sleeping phones and private MAC changes can affect it.", s, true)); Ui.Add(body.Content, storage);
+        var reset = Ui.Group("Reset Presence", s);
+        Ui.Add(reset, Ui.Label("Restore all settings to defaults and permanently erase saved devices, names, people, assignments and local history. Devices on your network will be discovered again.", s, true));
+        Ui.Add(reset, Ui.Button("&Reset everything", () =>
+        {
+            var confirmed = confirmReset?.Invoke(this) ?? (MessageBox.Show(this, "Reset everything to defaults?\n\nThis permanently erases all saved devices, names, people, assignments, event history and observations. Settings return to defaults, including starting with Windows. Devices will be discovered again with a quiet first scan.\n\nThis cannot be undone.", "Reset Presence", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes);
+            if (!confirmed) return;
+            try { app.ResetEverything(); Close(); }
+            catch (Exception ex) { MessageBox.Show(this, "Could not reset Presence. " + ex.Message, "Presence", MessageBoxButtons.OK, MessageBoxIcon.Error); }
+        }, s)); Ui.Add(body.Content, reset);
         var footer = Ui.Stack(); var error = Ui.Label("", s); error.Tag = "error"; error.Visible = false; error.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0); Ui.Add(footer, error);
         var save = Ui.Button("&Save", () =>
         {
@@ -158,7 +203,9 @@ internal sealed class DeviceWindow : Form
         Ui.Add(association, Ui.Label("Choose an existing person to link another device or a new private MAC, or enter a new person's name.", s, true));
         var person = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Dock = DockStyle.Top, MaxLength = 80, Margin = new Padding(0, Ui.Space, 0, Ui.Gap), AccessibleName = "Assigned person" };
         person.Items.AddRange(app.Engine.Data.People.Select(p => (object)p.Name).ToArray()); person.Text = app.Engine.Data.People.FirstOrDefault(p => p.Id == device.PersonId)?.Name ?? ""; Ui.Add(association, person);
-        var primary = Ui.Check("Use as this person's primary phone", device.IsPrimary || device.PersonId is null, s); Ui.Add(association, primary);
+        var primary = Ui.Check("Use as this person's primary phone", device.IsPrimary, s); primary.Tag = "primary-device";
+        primary.Font = new Font(Ui.StandardFont.FontFamily, Ui.StandardFont.Size * 1.2f, FontStyle.Bold); primary.MinimumSize = new Size(0, 36);
+        primary.Padding = new Padding(Ui.Gap); primary.UseVisualStyleBackColor = false; Ui.Add(association, primary);
         void EnabledState() { person.Enabled = kind.SelectedIndex != (int)DeviceKind.Ignore; primary.Enabled = person.Enabled && !string.IsNullOrWhiteSpace(person.Text); }
         kind.SelectedIndexChanged += (_, _) => EnabledState(); person.TextChanged += (_, _) => EnabledState(); EnabledState(); Ui.Add(body.Content, association);
         var details = Ui.Group("Network information", s); var values = Ui.Fields();

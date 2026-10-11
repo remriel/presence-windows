@@ -75,6 +75,16 @@ public sealed class Repository : IDisposable
         foreach (var o in recorded) observationWrites[o.Mac] = (now, o.Ip);
         if (prune) { lastPruned = now; lastRetention = data.Settings.RetentionDays; }
     }
+    public Snapshot Reset()
+    {
+        var defaults = new Snapshot();
+        using var tx = db.BeginTransaction();
+        using var c = db.CreateCommand(); c.Transaction = tx;
+        c.CommandText = "DELETE FROM PresenceEvent; DELETE FROM Observation; DELETE FROM State; INSERT INTO State VALUES(1,$json)";
+        c.Parameters.AddWithValue("$json", JsonSerializer.Serialize(defaults)); c.ExecuteNonQuery();
+        tx.Commit(); observationWrites.Clear(); lastPruned = default; lastRetention = 0;
+        return defaults;
+    }
     public List<PresenceEvent> History(string? mac = null, string? personId = null, int limit = 300)
     {
         using var c = db.CreateCommand(); c.CommandText = "SELECT Id,At,Type,Name,Mac,PersonId FROM PresenceEvent WHERE ($mac IS NULL AND $person IS NULL) OR Mac=$mac OR PersonId=$person ORDER BY At DESC LIMIT $limit";

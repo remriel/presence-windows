@@ -11,6 +11,7 @@ internal sealed class PresenceContext : ApplicationContext
     public string NetworkLabel { get; private set; } = "";
     public bool Monitoring { get; private set; }
     public bool IsScanning => scanning;
+    public bool ScanningPaused { get; private set; }
     public bool Stopping { get; private set; }
     public string NetworkScope => Monitoring ? (demo && Engine.Network == "" ? "demo" : Engine.Network) : "";
     public CancellationToken Token => cancel.Token;
@@ -93,7 +94,7 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public async Task Scan(bool requested = false)
     {
-        if (suspended || demo || Stopping || reconnect.Enabled) return;
+        if (ScanningPaused || suspended || demo || Stopping || reconnect.Enabled) return;
         if (scanning) { if (requested) refreshQueued = true; return; }
         scanning = true; dirty = true; var generation = epoch;
         using var scanCancel = CancellationTokenSource.CreateLinkedTokenSource(Token);
@@ -124,7 +125,7 @@ internal sealed class PresenceContext : ApplicationContext
         finally
         {
             scanCancellation = null; scanning = false; dirty = true;
-            if (refreshQueued && !Stopping && !suspended && !reconnect.Enabled) { refreshQueued = false; window.BeginInvoke(async () => await Scan()); }
+            if (refreshQueued && !ScanningPaused && !Stopping && !suspended && !reconnect.Enabled) { refreshQueued = false; window.BeginInvoke(async () => await Scan()); }
         }
     }
     private void ApplyResult(ScanResult result)
@@ -167,16 +168,56 @@ internal sealed class PresenceContext : ApplicationContext
         if (adapterId != Engine.Data.Settings.InterfaceId) { adapterId = Engine.Data.Settings.InterfaceId; RestartDiscovery(); }
         Refresh();
     }
+    public void SetDeviceKinds(IEnumerable<string> macs, DeviceKind kind)
+    {
+        if (kind is not (DeviceKind.Ignore or DeviceKind.Known)) throw new ArgumentOutOfRangeException(nameof(kind));
+        var selected = macs.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var devices = Engine.Data.Devices.Where(d => d.Network == NetworkScope && selected.Contains(d.Mac)).ToList();
+        var previous = devices.Select(d => (Device: d, d.Kind, d.PersonId, d.IsPrimary)).ToList();
+        var people = Engine.Data.People.Select(p => (Person: p, p.State, p.ChangedAt)).ToList();
+        foreach (var d in devices) { d.Kind = kind; d.PersonId = null; d.IsPrimary = false; }
+        Engine.ReconcilePeople(DateTimeOffset.UtcNow);
+        try { Flush(true); }
+        catch { foreach (var p in previous) { p.Device.Kind = p.Kind; p.Device.PersonId = p.PersonId; p.Device.IsPrimary = p.IsPrimary; } foreach (var p in people) { p.Person.State = p.State; p.Person.ChangedAt = p.ChangedAt; } throw; }
+        Refresh();
+    }
+    public void ResetEverything()
+    {
+        var oldStartup = Engine.Data.Settings.StartWithWindows;
+        ApplyStartup(new Settings().StartWithWindows);
+        Snapshot defaults;
+        try { defaults = Store.Reset(); }
+        catch { ApplyStartup(oldStartup); throw; }
+        epoch++; scanCancellation?.Cancel(); discovery.Reset(); reconnect.Stop(); refreshQueued = false;
+        pendingEvents.Clear(); pendingObservations.Clear(); alerts.Clear();
+        Engine.Data.Devices.Clear(); Engine.Data.People.Clear(); Engine.Data.Settings = defaults.Settings;
+        Engine.ResetNetwork(); adapterId = defaults.Settings.InterfaceId; lastSaved = DateTimeOffset.UtcNow;
+        ScanningPaused = false;
+        timer.Interval = defaults.Settings.ScanIntervalSeconds * 1000;
+        Monitoring = false; NetworkLabel = ""; Status = "Reset complete · learning your network again…";
+        Refresh(); if (!demo && !suspended) reconnect.Start();
+    }
     public void ApplyStartup(bool enabled)
     {
         if (demo) return;
         using var key = Registry.CurrentUser.CreateSubKey(@"Software\Microsoft\Windows\CurrentVersion\Run");
         if (enabled) key.SetValue("Presence", "\"" + Environment.ProcessPath + "\" --tray"); else key.DeleteValue("Presence", false);
     }
+    public void ToggleScanning()
+    {
+        ScanningPaused = !ScanningPaused;
+        if (ScanningPaused)
+        {
+            epoch++; scanCancellation?.Cancel(); discovery.Reset(); reconnect.Stop(); refreshQueued = false;
+            Engine.Pause(); alerts.Clear(); Status = "Scanning paused · resume when you are ready"; Refresh();
+        }
+        else if (demo) { Engine.ResetNetwork(); Status = "Preview mode · no network scanning or notifications"; Refresh(); }
+        else RestartDiscovery();
+    }
     public void Refresh()
     {
         var home = Engine.Data.Devices.Count(d => d.Kind != DeviceKind.Ignore && d.Network == NetworkScope && d.State is PresenceState.Home or PresenceState.ProbablyHome);
-        tray.Text = Monitoring ? "Presence · " + home + " devices present" : "Presence · monitoring paused";
+        tray.Text = ScanningPaused ? "Presence · scanning paused" : Monitoring ? "Presence · " + home + " devices present" : "Presence · monitoring paused";
         Changed?.Invoke();
     }
     private void PowerChanged(object sender, PowerModeChangedEventArgs e)
@@ -193,10 +234,10 @@ internal sealed class PresenceContext : ApplicationContext
     {
         if (Stopping || demo) return;
         epoch++; scanCancellation?.Cancel(); discovery.Reset(); Engine.ResetNetwork(); Monitoring = false; NetworkLabel = "";
-        Status = suspended ? "Paused while the computer sleeps" : "Connecting to your network…"; Refresh();
+        Status = ScanningPaused ? "Scanning paused · resume when you are ready" : suspended ? "Paused while the computer sleeps" : "Connecting to your network…"; Refresh();
         // Coalesce the address/availability burst while Windows acquires a gateway.
         refreshQueued = false; reconnect.Stop();
-        if (!suspended) reconnect.Start();
+        if (!suspended && !ScanningPaused) reconnect.Start();
     }
     public void Exit()
     {
