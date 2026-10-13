@@ -1,14 +1,12 @@
 # Presence
 
+<img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
+
 <img src="src/Presence.App/assets/presence-icon.png" width="80" alt="Presence application icon">
 
 **An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
 [Download Presence 1.2.0](https://github.com/remriel/presence-windows/releases/tag/v1.2.0) · Windows 10 x64 and later
-
-<img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
-
-
 
 ## Screenshots
 
