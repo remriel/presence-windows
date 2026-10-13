@@ -2,6 +2,8 @@
 
 <img src="docs/images/presence-home.png" width="720" alt="Presence home screen showing devices that are home, away and newly discovered">
 
+**[Download for Windows](https://github.com/remriel/presence-windows/releases/latest)** · [See screenshots](#screenshots) · [How device detection works](#how-it-works)
+
 <img src="src/Presence.App/assets/presence-icon.png" width="80" alt="Presence application icon">
 
 **An open-source Fing clone for Windows, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
@@ -110,3 +112,8 @@ Manual acceptance after launch:
 - [IEEE OUI database](https://standards-oui.ieee.org/oui/oui.csv), bundled as a local vendor lookup snapshot downloaded October 4, 2026. The CSV remains unmodified; no runtime download occurs.
 - Microsoft.Data.Sqlite / SQLitePCLRaw / SQLite and Windows Community Toolkit retain their upstream licenses. NuGet package metadata supplies license details; see THIRD_PARTY_NOTICES.md.
 - The Presence application, tray and floating alert share one icon created for this release. The floating-alert chime is reused from the owner's [Codex Usage Counter](https://github.com/remriel/codex-usage-counter) `assets/milestone-alert.wav`, downloaded October 4, 2026 and embedded locally.
+
+## More Windows utilities
+
+- [Codex Usage Counter](https://github.com/remriel/codex-usage-counter): monitor Codex quotas, reset windows, and token activity in the Windows tray.
+- [Ovo Timer](https://github.com/remriel/ovo-timer-android): a touch-friendly Windows and Android countdown timer.
