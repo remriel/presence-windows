@@ -35,3 +35,11 @@ Network change acceptance for v1.1.1:
 - Pause during an active scan; confirm scanning/alerts stop. Resume after longer than the departure grace; confirm the quiet baseline avoids a burst of false departures. Repeat with sleep and a network switch while paused.
 - Assign a new phone with the orange/yellow primary checkbox left unchecked; confirm any assigned presence device can keep the person home. Enable it explicitly and verify primary-phone behavior.
 - In an expendable test profile, cancel Reset everything and verify nothing changes. Confirm it and verify defaults, empty saved inventory/history and quiet rediscovery. Never use a real profile for reset testing.
+
+Device visibility and identification acceptance for 1.2.1:
+1. On the current network, mark a device Known, let it go absent, and restart Presence while it remains disconnected. Confirm it is visible under Checking presence immediately and under Away after the departure threshold of healthy evaluated monitoring. Restart must not produce a false left alert.
+2. Leave an unidentified device disconnected. Confirm it remains in Unknown devices with Away/Unknown status, visible without Select devices. Select devices should retain the same inventory, expanding person groups into devices.
+3. Switch networks and confirm old-network inventory remains excluded from the main view. Disconnect the PC or pause scanning and confirm unmonitored time does not count as absence.
+4. On a router with reverse DNS entries or a device that advertises mDNS, inspect Hostname and Likely device type. Confirm a saved custom name and tracking choices are unchanged. Devices without useful names may remain Unknown.
+5. Disconnect a device while a DNS lookup is pending. Confirm hostname enrichment cannot mark it Home, update Last seen, or generate an arrival.
+6. Change a device IP while keeping its MAC, then give the old IP to another device. Confirm saved names/Ignore/person choices follow MAC and delayed hostname results for the previous IP are not applied to the moved device.

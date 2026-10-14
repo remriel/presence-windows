@@ -1,11 +1,12 @@
 # Presence project state
 
 ## Current work
-- Repository: https://github.com/remriel/presence-windows. Starting main b646e151ac4c4b1fcc6f5035ad733b0c6c7cd6b0; current branch main. Feature commit 459899a merged through PR #2 as 02afe990131156b989422e93e87b9d88c3e03242.
-- User authorized reset to defaults, main-UI multi-device Ignore/Set known, pause/resume icon, opt-in primary-phone checkbox 20% larger with warm orange/red/yellow coloring, and a new release.
-- Version 1.2.0 is published: https://github.com/remriel/presence-windows/releases/tag/v1.2.0. ZIP and checksum are uploaded; GitHub ZIP digest matches the local verified archive. PR https://github.com/remriel/presence-windows/pull/2 is merged; Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38179914500.
-- This checkout is C:\Drive\2026-10-11\ao\work\presence-windows. Earlier checkout/install/release statements in historical handoffs are not evidence of current local app state. We have not modified the installed app or the real user profile in this session.
-
+- Objective: repair missing known/unknown devices in the main UI and improve hostname/type identification.
+- Repository: https://github.com/remriel/presence-windows. Checkout: C:\Drive\2026-10-13\away\work\presence-windows. Branch: fix/device-visibility-identification; implementation commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
+- PR: https://github.com/remriel/presence-windows/pull/3. Source version and portable build: 1.2.1. This is a tested PR/package, not a published GitHub release or installed update.
+- Verified package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip. SHA-256 8702ed41a8e30f7ecbc65e095d93c009b1654586310928cf07fc62c3f90942c4. Packaged file version 1.2.1.0; informational version includes implementation commit 124c702.
+- Core checks passed; focused native suite 16 checks / zero findings / 6 captures; existing bulk/reset/pause suite 24 checks / zero findings / 12 captures. Self-contained publish and fictional packaged preview succeeded. Windows CI checks are attached to PR #3; inspect the live run before merging.
+- Historical 1.2.0 release and older checkout records below describe earlier work. Current installed app and real profile have not been modified.
 ## Architecture
 - .NET 10 Windows Forms tray app, net10.0-windows10.0.19041.0; Windows 10 x64 1809 minimum. Self-contained single-file releases; do not trim WinForms/WinRT.
 - Core Models.cs owns Snapshot, devices, people and Settings defaults. PresenceEngine.cs is deterministic inference/quiet-baseline state machine. Repository.cs stores snapshot JSON plus event and observation tables in SQLite.
@@ -58,3 +59,8 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - Final Release build and self-contained Windows x64 publish passed without warnings/errors. Version 1.2.1. Screenshots remain in task outputs, not committed.
 - Identity-only enrichment now returns before changing the monitoring clock/baseline/scope and is excluded from persisted physical observation logs.
 - RESUME HERE: Source and local verification are ready for PR. Real LAN hostname availability remains environment-dependent and was not exercised; no real data or installed app modified. Final PR/CI/package references follow in the exported handoffs.
+
+## Final deliverable / RESUME HERE
+- Local implementation and verification are complete; PR #3 and the 1.2.1 portable package are available. Current work summary at the top supersedes historical checkout/release records.
+- Packaged application was smoke-tested in fictional preview mode. No real profile or installed app was touched.
+- Before merging/releasing, inspect the latest Windows CI check on PR #3. For installation/physical acceptance, follow docs/MANUAL_ACCEPTANCE.md. Future agents must not treat fixture tests as proof of real-LAN hostname availability or installed-app behavior.
