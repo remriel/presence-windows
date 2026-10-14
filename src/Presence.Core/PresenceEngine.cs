@@ -26,6 +26,14 @@ public sealed class PresenceEngine(Snapshot snapshot)
     }
     public List<PresenceEvent> Apply(IEnumerable<Observation> observations, string scope, DateTimeOffset now, bool initialSweep = false, IReadOnlyCollection<string>? evaluatedMacs = null, bool partial = false)
     {
+        var batch = observations.ToList();
+        foreach (var o in batch.Where(o => o.Signal == "identity-only"))
+        {
+            var identified = Data.Devices.FirstOrDefault(d => d.Mac.Equals(Identity.NormalizeMac(o.Mac), StringComparison.OrdinalIgnoreCase));
+            if (network == scope && identified is not null && identified.Network == scope && identified.Ip == o.Ip && o.Hostname != "") identified.Hostname = o.Hostname;
+        }
+        // Metadata must not advance the monitoring clock, baseline or network scope.
+        if (batch.Count > 0 && batch.All(o => o.Signal == "identity-only")) return [];
         if (network != scope)
         {
             ResetNetwork(); network = scope;
@@ -42,10 +50,11 @@ public sealed class PresenceEngine(Snapshot snapshot)
         var events = new List<PresenceEvent>();
         var seen = new HashSet<string>();
         var byMac = Data.Devices.ToDictionary(d => d.Mac, StringComparer.OrdinalIgnoreCase);
-        foreach (var o in observations)
+        foreach (var o in batch.Where(o => o.Signal != "identity-only"))
         {
             var mac = Identity.NormalizeMac(o.Mac);
-            if (mac == "" || !seen.Add(mac)) continue;
+            if (mac == "") continue;
+            if (!seen.Add(mac)) continue;
             var observedAt = o.At is { } timestamp && timestamp <= now ? timestamp : now;
             var d = byMac.GetValueOrDefault(mac);
             if (d is null) { d = new Device { Mac = mac, FirstSeen = observedAt }; Data.Devices.Add(d); byMac[mac] = d; }
@@ -78,6 +87,12 @@ public sealed class PresenceEngine(Snapshot snapshot)
             var missingDelta = evaluatedAt.TryGetValue(d.Mac, out var lastEvaluation) ? Math.Max(0, (now - lastEvaluation).TotalSeconds) : evaluated is null ? Math.Max(0, delta) : 0;
             evaluatedAt[d.Mac] = now;
             d.Consecutive = 0; d.MissingSeconds += Math.Min(missingDelta, Math.Max(90, Data.Settings.ScanIntervalSeconds * 3));
+            // A saved absent device after restart must not remain Unknown forever.
+            // Establish Away silently only after healthy, evaluated monitoring.
+            if (d.State == PresenceState.Unknown && d.LastSeen != default && d.MissingSeconds >= Data.Settings.DepartureGraceSeconds)
+            {
+                d.State = PresenceState.Away; d.ChangedAt = now;
+            }
             if (d.State is PresenceState.Home or PresenceState.ProbablyHome)
             {
                 if (d.MissingSeconds >= Data.Settings.DepartureGraceSeconds)

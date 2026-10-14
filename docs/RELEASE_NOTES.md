@@ -1,3 +1,13 @@
+# Presence 1.2.1
+
+- Keep known and unidentified devices visible in the main window. Uncertain recognized devices appear under Checking presence, and unidentified devices retain their actual Home/Recent/Away/Unknown label.
+- Establish Away silently for previously observed saved devices that remain absent after restart or reconnect, once healthy evaluated monitoring reaches the departure threshold.
+- Show orphaned person-device records individually rather than dropping them from the dashboard.
+- Try background reverse DNS alongside mDNS, with bounded concurrency, timeouts, retries and matching-address validation. Hostname lookup cannot create devices, revive absent devices, change last-seen timestamps or trigger arrival alerts.
+- Show likely device types from recognizable hostnames in device details and unidentified-device rows. Ambiguous devices remain Unknown; tracking choices and custom names remain user-controlled.
+- Discover service-only mDNS response senders even when the packet has no hostname A record.
+
+Verified with deterministic core/persistence checks, injected DNS success/failure/timeout/cancellation fixtures, native light/dark UI visibility checks, existing bulk/reset/pause checks and self-contained Windows publishing. Real network hostname availability and physical LAN timing require manual acceptance.
 # Presence 1.2.0
 
 - Select multiple devices directly on the main window and apply Ignore or Set known across sections. Person groups expand into individual devices; selection clears on network changes. Both actions remove person associations from the selected devices.

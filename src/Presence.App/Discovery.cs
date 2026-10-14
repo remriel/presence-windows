@@ -105,10 +105,19 @@ public sealed class Discovery : IDisposable
             if (previous is null || at - previous.At.GetValueOrDefault() >= TimeSpan.FromMilliseconds(500))
                 progress?.Report(new(key, description, [observation], quiet, 0, count, [], true));
         }
+        void Identify(Observation original, string hostname)
+        {
+            if (hostname == "" || token.IsCancellationRequested || key != scope) return;
+            var current = recent.GetValueOrDefault(original.Mac);
+            if (current is null || current.Ip != original.Ip || current.Hostname != "") return;
+            var enriched = current with { Hostname = hostname };
+            if (recent.TryUpdate(original.Mac, enriched, current))
+                progress?.Report(new(key, description, [enriched with { Signal = "identity-only" }], false, 0, count, [], true));
+        }
         Observe(gatewayMac, lan.Gateway, "", "fresh-arp", initial);
         if (lan.Mac != "") Observe(lan.Mac, lan.Address, Environment.MachineName, "local-interface", initial);
         if (background is null || background.IsCompleted)
-            background = BackgroundDiscovery(lan, key, gatewayMac, Observe, token);
+            background = BackgroundDiscovery(lan, key, gatewayMac, Observe, Identify, token);
         var targets = new HashSet<string>();
         foreach (var d in devices.Where(d => d.Network == key && d.Kind != DeviceKind.Ignore))
             if (IPAddress.TryParse(d.Ip, out var ip) && lan.Contains(ip) && !ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip.ToString());
@@ -124,7 +133,7 @@ public sealed class Discovery : IDisposable
         var evaluated = devices.Where(d => d.Network == key && (targets.Contains(d.Ip) || d.Mac == lan.Mac || d.Mac == gatewayMac)).Select(d => d.Mac).ToArray();
         return new(key, description, recent.Values.Where(o => o.At >= started).ToList(), initial, count, count, evaluated);
     }
-    private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, Action<string, IPAddress, string, string, bool> observe, CancellationToken ct)
+    private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, Action<string, IPAddress, string, string, bool> observe, Action<Observation, string> identify, CancellationToken ct)
     {
         var count = (int)(lan.Last - lan.First - 1);
         var quietUntil = DateTimeOffset.UtcNow.AddSeconds(3);
@@ -147,6 +156,7 @@ public sealed class Discovery : IDisposable
         }
         async Task LocalResponses()
         {
+            var hostnameRetries = new ConcurrentDictionary<string, DateTimeOffset>();
             var firstPass = true; uint cursor = lan.First + 1;
             while (!ct.IsCancellationRequested)
             {
@@ -176,6 +186,14 @@ public sealed class Discovery : IDisposable
                     if (mac == "") mac = NativeNeighbors.Read(lan.Index).FirstOrDefault(n => n.Ip.Equals(ip))?.Mac ?? "";
                     observe(mac, ip, pair.Value, "mdns-response", firstPass && DateTimeOffset.UtcNow < quietUntil);
                 }
+                // Enrich only already observed devices; DNS is not evidence of presence.
+                var candidates = recent.Values.Where(o => o.Hostname == "" && DateTimeOffset.UtcNow - o.At.GetValueOrDefault() < TimeSpan.FromMinutes(1)
+                    && (!hostnameRetries.TryGetValue(o.Mac + "|" + o.Ip, out var retry) || retry <= DateTimeOffset.UtcNow)).Take(16).ToList();
+                await Parallel.ForEachAsync(candidates, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct }, async (observation, token) =>
+                {
+                    hostnameRetries[observation.Mac + "|" + observation.Ip] = DateTimeOffset.UtcNow.AddMinutes(5);
+                    identify(observation, await HostnameResolver.ResolveAsync(observation.Ip, token));
+                });
                 firstPass = false;
                 await Task.Delay(3000, ct);
             }
@@ -203,7 +221,9 @@ public sealed class Discovery : IDisposable
             while (!timeout.IsCancellationRequested)
             {
                 var reply = await udp.ReceiveAsync(timeout.Token);
-                if (!lan.Contains(reply.RemoteEndPoint.Address) || reply.Buffer.Length > 9000) continue;
+                if (!lan.Contains(reply.RemoteEndPoint.Address) || reply.Buffer.Length is < 12 or > 9000 || (reply.Buffer[2] & 128) == 0) continue;
+                // Service-only responses may have no A record, but their sender is live.
+                found.TryAdd(reply.RemoteEndPoint.Address.ToString(), "");
                 foreach (var record in DnsPacket.ReadNames(reply.Buffer))
                     if (record.Key == reply.RemoteEndPoint.Address.ToString()) found[record.Key] = record.Value;
             }

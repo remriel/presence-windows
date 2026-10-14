@@ -133,7 +133,7 @@ internal sealed class PresenceContext : ApplicationContext
         var now = DateTimeOffset.UtcNow;
         var events = Engine.Apply(result.Observations, result.Scope, now, result.InitialSweep, result.EvaluatedMacs, result.IsPartial);
         pendingEvents.AddRange(events);
-        foreach (var observation in result.Observations) pendingObservations[observation.Mac] = observation;
+        foreach (var observation in result.Observations.Where(o => o.Signal != "identity-only")) pendingObservations[observation.Mac] = observation;
         Monitoring = true; NetworkLabel = result.Description;
         Status = result.InitialSweep ? "Learning the network…" : "Monitoring · updated " + now.ToLocalTime().ToString("T");
         foreach (var e in events) Notify(e);

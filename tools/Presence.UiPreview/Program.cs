@@ -15,6 +15,7 @@ internal static class Program
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
+        if (args.Contains("--device-visibility")) return DeviceVisibilityChecks();
         if (args.Contains("--network-change"))
         {
             var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "NetworkPreview", Guid.NewGuid().ToString("N"));
@@ -84,6 +85,60 @@ internal static class Program
         return failures.Count == 0 ? 0 : 2;
     }
     private static MainWindow GetMain(PresenceContext app) => (MainWindow)typeof(PresenceContext).GetField("window", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(app)!;
+    private static int DeviceVisibilityChecks()
+    {
+        void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        const string address = "192.0.2.20";
+        string Resolve(string hostname, string answer) => HostnameResolver.ResolveAsync(address, CancellationToken.None, (_, _) => Task.FromResult(new System.Net.IPHostEntry { HostName = hostname, AddressList = [System.Net.IPAddress.Parse(answer)] })).GetAwaiter().GetResult();
+        Check(Resolve("Fixture-iPhone.local.", address) == "Fixture-iPhone.local", "DNS hostname with matching address resolves");
+        Check(Resolve("Wrong-host", "192.0.2.21") == "", "DNS forward mismatch rejected");
+        Check(Resolve(address, address) == "" && Resolve("Bad\nname", address) == "", "Numeric and control-character DNS labels rejected");
+        Check(HostnameResolver.ResolveAsync(address, CancellationToken.None, (_, _) => Task.FromException<System.Net.IPHostEntry>(new System.Net.Sockets.SocketException())).GetAwaiter().GetResult() == "", "DNS failure is nonfatal");
+        Check(HostnameResolver.ResolveAsync(address, CancellationToken.None, (_, _) => new TaskCompletionSource<System.Net.IPHostEntry>().Task).GetAwaiter().GetResult() == "", "DNS timeout is bounded and nonfatal");
+        using (var canceled = new CancellationTokenSource())
+        {
+            canceled.Cancel();
+            try { HostnameResolver.ResolveAsync(address, canceled.Token, (_, token) => Task.FromCanceled<System.Net.IPHostEntry>(token)).GetAwaiter().GetResult(); Check(false, "DNS external cancellation propagated"); }
+            catch (OperationCanceledException) { Check(true, "DNS external cancellation propagated"); }
+        }
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "VisibilityPreview", Guid.NewGuid().ToString("N"));
+        using var app = new PresenceContext(folder, true, true); var main = GetMain(app);
+        app.Engine.Data.Devices.Clear(); app.Engine.Data.People.Clear();
+        var now = DateTimeOffset.UtcNow;
+        var fixtures = new[] {
+            new Device { Mac = "02:00:00:00:00:10", Name = "Known away laptop", Kind = DeviceKind.Known, State = PresenceState.Away },
+            new Device { Mac = "02:00:00:00:00:11", Name = "Known pending phone", Kind = DeviceKind.Known, State = PresenceState.Unknown },
+            new Device { Mac = "02:00:00:00:00:12", Hostname = "Fictional-iPhone", Kind = DeviceKind.Unknown, State = PresenceState.Away },
+            new Device { Mac = "02:00:00:00:00:13", Name = "Unidentified pending", Kind = DeviceKind.Unknown, State = PresenceState.Unknown },
+            new Device { Mac = "02:00:00:00:00:14", Name = "Orphan associated device", Kind = DeviceKind.Person, PersonId = "missing", State = PresenceState.Away },
+            new Device { Mac = "02:00:00:00:00:15", Name = "Ignored fixture", Kind = DeviceKind.Ignore },
+            new Device { Mac = "02:00:00:00:00:16", Name = "Assigned fixture phone", Kind = DeviceKind.Person, PersonId = "fixture-person", State = PresenceState.Unknown }
+        };
+        foreach (var d in fixtures) { d.Network = "demo"; d.FirstSeen = now.AddDays(-1); d.LastSeen = now.AddHours(-1); d.ChangedAt = now; }
+        app.Engine.Data.Devices.AddRange(fixtures);
+        app.Engine.Data.People.Add(new Person { Id = "fixture-person", Name = "Fictional person", State = PresenceState.Unknown });
+        app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:99", Network = "other", State = PresenceState.Home });
+        foreach (var theme in new[] { "Light", "Dark" })
+        {
+            app.Engine.Data.Settings.Theme = theme; app.Refresh(); main.Show(); main.WindowState = FormWindowState.Normal; main.ClientSize = new Size(850, 1100); Application.DoEvents();
+            var grids = All(main).OfType<DataGridView>().Where(g => g.AccessibleName != null).ToList();
+            bool In(string section, Device d) => grids.Any(g => g.AccessibleName!.StartsWith(section + ".") && g.Rows.Cast<DataGridViewRow>().Any(r => Equals(r.Tag, d.Mac)));
+            Check(In("Away", fixtures[0]) && In("Away", fixtures[4]), theme + " known absent and orphan person devices visible normally");
+            Check(In("Checking presence", fixtures[1]) && In("Checking presence", fixtures[6]), theme + " uncertain known and grouped person visible normally");
+            Check(In("Unknown devices", fixtures[2]) && In("Unknown devices", fixtures[3]), theme + " unidentified absent and uncertain visible normally");
+            Check(!grids.SelectMany(g => g.Rows.Cast<DataGridViewRow>()).Any(r => Equals(r.Tag, "02:00:00:00:00:99")), theme + " other networks excluded");
+            CaptureExisting(main, theme + "-device-visibility", 1);
+            All(main).OfType<Button>().Single(b => b.AccessibleName == "Select devices").PerformClick(); Application.DoEvents();
+            Check(All(main).OfType<DataGridView>().Where(g => g.Columns.Contains("Select")).Sum(g => g.Rows.Count) == fixtures.Length, theme + " selection and normal view retain all identities");
+            All(main).OfType<Button>().Single(b => b.AccessibleName == "Select devices").PerformClick(); Application.DoEvents();
+            using var details = new DeviceWindow(app, fixtures[2]); Capture(details, theme + "-device-identification", 1, "default"); CaptureBottom(details, theme + "-device-identification-details", 1);
+        }
+        main.AllowClose = true; main.Close();
+        File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { captures, failures, checks }, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"Device visibility: {checks.Count} checks; {failures.Count} findings; {captures.Count} captures.");
+        foreach (var failure in failures) Console.WriteLine(failure);
+        return failures.Count == 0 ? 0 : 2;
+    }
     private static int ResetBulkChecks()
     {
         void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }

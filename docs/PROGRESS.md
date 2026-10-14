@@ -40,3 +40,27 @@ Exact ordered next steps:
 2. If installation is requested, close the old app, back up binaries, replace the installation with this package, and preserve %LOCALAPPDATA%\Presence\presence.db. Installing does not invoke reset.
 3. Use docs/MANUAL_ACCEPTANCE.md if physical LAN validation is requested. Never reset the real profile for tests.
 4. Before future work, read AGENTS.md and both handoffs and reconcile git/source/tests.
+# Presence device visibility / identification — 2026-10-13
+
+Current objective: fix missing known/unknown main-window records and improve hostname/type discovery; review related state and discovery bugs.
+Progress: **85%** [#################---]
+
+- [x] Reconcile repository instructions, source, Git state and historical handoffs.
+- [x] Fix selection-only visibility, absent unknown filtering, orphan associations, and restart absence inference.
+- [x] Add bounded DNS enrichment, service-only mDNS handling, likely hostname-derived device types.
+- [x] Verify core state/persistence checks and 24 existing bulk/reset/pause UI checks.
+- [x] Verify new visibility and DNS fixtures; inspect light main and dark detail captures.
+- [ ] Run final suites with final source, self-contained publish and package smoke check.
+- [ ] Push completed work and attach PR; inspect Windows CI.
+- [ ] Export handoffs and verified user-facing package.
+
+Implementation: source version 1.2.1; metadata enrichment cannot change live presence or create identities. Original profile/installation untouched.
+Blockers: none. Earlier task records above refer to 1.2.0, not this task.
+Exact next steps: 1. Final core/UI checks. 2. Publish/package and inspect fictional preview. 3. Commit/push branch, create PR and inspect CI. 4. Record results and export both handoffs to current outputs.
+
+Final local verification: **95%** [###################-]
+- [x] Final core and persistence suites passed.
+- [x] Final native visibility/DNS suite: 16 checks, zero findings, 6 screenshots.
+- [x] Existing native bulk/reset/pause suite: 24 checks, zero findings, 12 screenshots.
+- [x] Final self-contained Windows x64 publish passed, zero warnings/errors.
+Remaining: package smoke result, GitHub PR/CI confirmation, final exports. No blockers.

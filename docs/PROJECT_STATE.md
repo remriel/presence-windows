@@ -37,3 +37,24 @@
 
 ## RESUME HERE
 Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed, and ZIP digest verified. Release target: 02afe990131156b989422e93e87b9d88c3e03242. Package: C:\Drive\2026-10-11\ao\outputs\Presence-1.2.0-win-x64.zip; SHA-256 01af0efb2eee95d5ad87f559ef3638d73cc5acee302128f4842692d099a84c19. Binary SHA-256 e85635decc424ccf96a7665a23b0edae1c30a4dbfd8a8bcad3ebd0d9be512fb2; file version 1.2.0.0. Informational version includes starting HEAD b646e15 because publish preceded feature commit. A packaged-app demo smoke capture is in outputs/presence-verification/packaged-app-smoke.png. No installation or real-profile reset was performed. If installation is requested, preserve the original user data and use the published ZIP. Both handoffs are exported to outputs. Future physical LAN testing follows MANUAL_ACCEPTANCE.md.
+
+## 2026-10-13 device visibility and identification fix
+- Active checkout: C:\Drive\2026-10-13\away\work\presence-windows; starting main ac304743. Branch fix/device-visibility-identification. Earlier release paths above are historical.
+- User reports saved known/unknown devices appear in Select devices but disappear from normal main UI; also requests hostname/device-type resolution and related bug fixes.
+- Root causes: Unknown-kind rows were filtered by live state/consecutive responses; uncertain recognized rows existed only in selection mode; ResetNetwork clears presence but evaluated absent saved devices never graduated from Unknown; orphan Person-kind records were silently omitted.
+- Main UI retains unidentified records on current network with actual presence labels; pending known/person groups have Checking presence; orphan associations fall back to individual rows. Existing grouping, Ignore and network boundaries retained.
+- PresenceEngine silently establishes Away for saved devices after evaluated healthy absence reaches configured grace, including after restart. Partial discoveries cannot infer absence; no false departure alert for Unknown to Away.
+- Background hostname enrichment: current mDNS hostnames plus bounded reverse DNS (16 candidates, 4 concurrent, 1.2-second lookup timeout, 5-minute negative retry, scope-local cache). DNS forward results must include observed IP. Metadata-only results preserve timestamps and presence, cannot create devices, cannot revive absent devices, and cannot overwrite real pending observation logs. Ignore identity remains MAC-based.
+- Service-only mDNS response senders now count as observed even without an A record; hostname remains empty until useful evidence is available.
+- DeviceIdentification infers conservative likely categories from hostnames (phone, tablet, computer, TV/streaming, printer, speaker, console, NAS, network equipment). Manufacturer alone does not determine type. Inference does not change DeviceKind or user names/associations.
+- Added native fixture regression mode --device-visibility and injected DNS success/mismatch/failure/timeout/cancellation checks. CI runs it and existing --reset-bulk suite before publishing.
+- Real LAN reverse DNS/mDNS availability and physical absent-device timing remain manual validation. No installed binary or real profile changed.
+- RESUME HERE: Finish final verification/publish, synchronize branch/PR with GitHub, export final handoffs and package. Do not claim all conceivable application bugs are fixed; report reproduced visibility bugs and tested identification behavior.
+
+## Final verification status (2026-10-13)
+- Core inference, SQLite reset/rollback/persistence, restart absence, identity-only stale-IP/new-identity/network/clock isolation and type-inference checks pass.
+- Final focused native suite: 16 passed checks, zero layout findings, six light/dark fixture captures. DNS tests cover matching-address hostname, mismatch, numeric/control labels, socket failure, timeout and external cancellation.
+- Existing bulk/reset/pause suite: 24 passed checks, zero layout findings, twelve fixture captures.
+- Final Release build and self-contained Windows x64 publish passed without warnings/errors. Version 1.2.1. Screenshots remain in task outputs, not committed.
+- Identity-only enrichment now returns before changing the monitoring clock/baseline/scope and is excluded from persisted physical observation logs.
+- RESUME HERE: Source and local verification are ready for PR. Real LAN hostname availability remains environment-dependent and was not exercised; no real data or installed app modified. Final PR/CI/package references follow in the exported handoffs.

@@ -56,7 +56,7 @@ internal sealed class MainWindow : Form
         pauseScanning.AccessibleName = app.ScanningPaused ? "Resume scanning" : "Pause scanning"; pauseHint.SetToolTip(pauseScanning, pauseScanning.AccessibleName);
         status.Text = app.ScanningPaused ? "Scanning paused" : app.Monitoring ? (app.IsScanning ? "Scanning your network…" : "Monitoring your network") : "Waiting for your network";
         network.Text = string.Join("\n", new[] { app.NetworkLabel, app.Status }.Where(x => x.Length > 0));
-        var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
+        var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Hostname}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
         if (next == signature) return;
         signature = next; BackColor = Ui.Background(s); ForeColor = Ui.Text(s); Ui.Theme(root, s);
         var scroll = -body.AutoScrollPosition.Y;
@@ -66,25 +66,27 @@ internal sealed class MainWindow : Form
         var local = app.Engine.Data.Devices.Where(d => app.NetworkScope != "" && d.Network == app.NetworkScope).ToList();
         if (selectionScope != app.NetworkScope) { selected.Clear(); selectionScope = app.NetworkScope; }
         selected.IntersectWith(local.Select(d => d.Mac)); UpdateSelection();
-        var people = app.Engine.Data.People.Where(p => p.State != PresenceState.Unknown && local.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
-        var devices = local.Where(d => d.Kind == DeviceKind.Known || selecting && d.Kind == DeviceKind.Person).ToList();
+        var people = app.Engine.Data.People.Where(p => local.Any(d => d.PersonId == p.Id && d.Kind == DeviceKind.Person)).ToList();
+        var devices = local.Where(d => d.Kind == DeviceKind.Known || d.Kind == DeviceKind.Person && (selecting || !people.Any(p => p.Id == d.PersonId))).ToList();
         var home = new List<(string State, string Name, string When, Device Device)>();
         var away = new List<(string State, string Name, string When, Device Device)>();
+        var pending = new List<(string State, string Name, string When, Device Device)>();
         foreach (var person in people.Where(_ => !selecting))
         {
             var device = local.Where(d => d.PersonId == person.Id && d.Kind == DeviceKind.Person).OrderByDescending(d => d.IsPrimary).First();
-            var list = person.State is PresenceState.Home or PresenceState.ProbablyHome ? home : away;
+            var list = person.State is PresenceState.Home or PresenceState.ProbablyHome ? home : person.State == PresenceState.Away ? away : pending;
             list.Add((Ui.State(person.State), person.Name, Ui.Time(person.ChangedAt), device));
         }
         foreach (var d in devices)
         {
             if (d.State is PresenceState.Home or PresenceState.ProbablyHome) home.Add((Ui.State(d.State), d.DisplayName, Ui.Time(d.ChangedAt), d));
             else if (d.State == PresenceState.Away) away.Add(("Away", d.DisplayName, Ui.Time(d.ChangedAt), d));
+            else pending.Add(("Unknown", d.DisplayName, "Checking…", d));
         }
         AddSection("Home now", home, "No recognized devices are home right now.", s);
         AddSection("Away", away, "No recognized devices are away.", s);
-        if (selecting) AddSection("Not yet seen", devices.Where(d => d.State == PresenceState.Unknown).Select(d => ("Unknown", d.DisplayName, "Details", d)).ToList(), "All recognized devices have a presence state.", s);
-        var unknown = local.Where(d => d.Kind == DeviceKind.Unknown && (selecting || d.State is PresenceState.Home or PresenceState.ProbablyHome || d.Consecutive > 0)).OrderByDescending(d => d.FirstSeen).Select(d => ("New", d.DisplayName, "Details", d)).ToList();
+        if (pending.Count > 0) AddSection("Checking presence", pending, "", s);
+        var unknown = local.Where(d => d.Kind == DeviceKind.Unknown).OrderByDescending(d => d.FirstSeen).Select(d => (Ui.State(d.State), d.DisplayName, d.DeviceType == "Unknown" ? "Details" : d.DeviceType, d)).ToList();
         AddSection("Unknown devices", unknown, "No unidentified devices. Newly discovered devices will appear here.", s);
         var ignored = local.Where(d => d.Kind == DeviceKind.Ignore).OrderBy(d => d.DisplayName).Select(d => ("Ignored", d.DisplayName, "Details", d)).ToList();
         AddSection("Ignored devices", ignored, "No ignored devices. Choose Ignore in device details to stop alerts for a device.", s);
@@ -209,7 +211,7 @@ internal sealed class DeviceWindow : Form
         void EnabledState() { person.Enabled = kind.SelectedIndex != (int)DeviceKind.Ignore; primary.Enabled = person.Enabled && !string.IsNullOrWhiteSpace(person.Text); }
         kind.SelectedIndexChanged += (_, _) => EnabledState(); person.TextChanged += (_, _) => EnabledState(); EnabledState(); Ui.Add(body.Content, association);
         var details = Ui.Group("Network information", s); var values = Ui.Fields();
-        foreach (var field in new[] { ("MAC address", device.Mac + (Identity.IsPrivateMac(device.Mac) ? " (private)" : ""), true), ("IP address", device.Ip, true), ("Hostname", device.Hostname, true), ("Manufacturer", device.Vendor, false), ("First seen", device.FirstSeen.ToLocalTime().ToString("g"), false), ("Last seen", device.LastSeen.ToLocalTime().ToString("g"), false), ("Presence", Ui.State(device.State), false) }) Ui.Field(values, field.Item1, Ui.Value(field.Item2, field.Item1, s, field.Item3), s);
+        foreach (var field in new[] { ("MAC address", device.Mac + (Identity.IsPrivateMac(device.Mac) ? " (private)" : ""), true), ("IP address", device.Ip, true), ("Hostname", device.Hostname, true), ("Manufacturer", device.Vendor, false), ("Likely device type", device.DeviceType, false), ("First seen", device.FirstSeen.ToLocalTime().ToString("g"), false), ("Last seen", device.LastSeen.ToLocalTime().ToString("g"), false), ("Presence", Ui.State(device.State), false) }) Ui.Field(values, field.Item1, Ui.Value(field.Item2, field.Item1, s, field.Item3), s);
         Ui.Add(details, values); Ui.Add(details, Ui.Label("Right-click a value to copy it.", s, true)); Ui.Add(body.Content, details);
         var historySection = Ui.Group("Presence history", s); var history = app.Store.History(device.Mac, device.PersonId, 50);
         if (history.Count == 0) Ui.Add(historySection, Ui.Label("No events yet. The initial scan is a quiet baseline; future arrivals and departures appear here.", s, true));

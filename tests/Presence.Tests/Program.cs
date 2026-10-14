@@ -61,3 +61,29 @@ using (var store = new Repository(resetPath))
 }
 using (var store = new Repository(resetPath)) Expect(store.Load().Devices.Count == 0 && store.Load().Settings.Theme == "System", "Reset must survive database reopen.");
 Console.WriteLine("Transactional reset and persistence checks passed.");
+
+var absentData = new Snapshot();
+var absent = new Device { Mac = mac, Network = scope, Ip = "192.0.2.20", Kind = DeviceKind.Known, LastSeen = start.AddDays(-1) };
+absentData.Devices.Add(absent); var absentEngine = new PresenceEngine(absentData);
+Expect(absentEngine.Apply([], scope, start, evaluatedMacs: [mac]).Count == 0 && absent.State == PresenceState.Unknown, "Restart does not immediately infer absence.");
+absentEngine.Apply([], scope, start.AddSeconds(15), evaluatedMacs: []);
+Expect(absent.State == PresenceState.Unknown, "Unprobed devices stay uncertain.");
+Expect(absentEngine.Apply([], scope, start.AddSeconds(31), evaluatedMacs: [mac]).Count == 0 && absent.State == PresenceState.Away, "Evaluated absent saved device becomes Away silently after grace.");
+var beforeSeen = absent.LastSeen; var beforeChanged = absent.ChangedAt;
+Expect(absentEngine.Apply([new Observation(mac, absent.Ip, "Alex-iPhone", "", "identity-only")], scope, start.AddSeconds(35), partial: true).Count == 0, "Hostname enrichment emits no events.");
+Expect(absent.Hostname == "Alex-iPhone" && absent.State == PresenceState.Away && absent.LastSeen == beforeSeen && absent.ChangedAt == beforeChanged, "DNS metadata cannot revive an absent device or change presence timestamps.");
+absentEngine.Apply([new Observation(mac, "192.0.2.99", "Wrong-host", "", "identity-only"), new Observation(newcomer, absent.Ip, "New-host", "", "identity-only")], scope, start.AddSeconds(36), partial: true);
+Expect(absent.Hostname == "Alex-iPhone" && absentData.Devices.Count == 1, "Stale IP enrichment and DNS-only new identities are ignored.");
+absentEngine.ResetNetwork(); absentEngine.Apply([], scope, start.AddSeconds(40), evaluatedMacs: [mac]);
+absentEngine.Apply([], scope, start.AddSeconds(80), evaluatedMacs: [mac], partial: true);
+Expect(absent.State == PresenceState.Unknown, "Partial discoveries never count as failed probes.");
+Expect(DeviceIdentification.InferType("Alex-iPhone") == "Phone" && DeviceIdentification.InferType("Office-LaserJet") == "Printer" && DeviceIdentification.InferType("living-room-roku") == "TV / streaming", "Recognize common advertised hostname types.");
+Expect(DeviceIdentification.InferType("Apple") == "Unknown" && DeviceIdentification.InferType("") == "Unknown", "Ambiguous manufacturer or absent hostname stays Unknown.");
+var clockData = new Snapshot(); var clockEngine = new PresenceEngine(clockData);
+clockEngine.Apply([new Observation(mac, "192.0.2.20", "", "", "test")], scope, start);
+clockEngine.Apply([new Observation(mac, "192.0.2.20", "Fixture", "", "identity-only")], "other-network", start.AddSeconds(100));
+Expect(clockEngine.Network == scope && clockData.Devices.Single().State == PresenceState.Home, "DNS metadata cannot change network scope.");
+clockEngine.Apply([new Observation(mac, "192.0.2.20", "Fixture", "", "identity-only")], scope, start.AddSeconds(200));
+clockEngine.Apply([], scope, start.AddSeconds(201));
+Expect(clockData.Devices.Single().MissingSeconds == 0, "DNS metadata cannot mask a long monitoring gap or advance absence clock.");
+Console.WriteLine("Restart absence and identity enrichment checks passed.");

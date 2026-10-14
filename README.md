@@ -54,6 +54,10 @@ An arrival is inferred from the first fresh response. A departure requires **30 
 
 Private MAC changes cannot safely be matched automatically. Open the new device, select the existing person, and mark it as their primary phone. This replaces the old primary while retaining its history. Manufacturer lookup uses a bundled offline IEEE OUI table; private MACs do not reveal a reliable manufacturer.
 
+The main window retains known and unidentified devices on the current network even when absent. After reconnect or restart, uncertain recognized devices appear under Checking presence until fresh replies or evaluated absence establish their state. Saved devices that stay absent become Away silently after the configured departure threshold. Unidentified devices show their actual presence state rather than disappearing.
+
+Presence also attempts background reverse DNS alongside mDNS to resolve device hostnames. Lookups use timeouts and retries, and their results must resolve back to the observed IP. Hostname lookup does not establish presence or trigger arrivals. Recognizable hostnames provide a **Likely device type** hint such as Phone, Printer or TV / streaming; ambiguous names remain Unknown. These hints do not change your saved tracking choices or custom device names. Some devices and routers do not publish resolvable hostnames.
+
 The main window has a compact **Speed test** control in its bottom bar. It measures internet download/upload speed, median HTTPS latency and jitter to Cloudflare; download and upload each measure for at least 2.5 seconds (at least five seconds total), with a 35-second timeout. Cloudflare receives your public IP and test traffic and reports collecting measurement results for aggregate internet quality insights. Presence never sends device names, MAC addresses, person mappings or history, and does not save speed results.
 
 ## Privacy and limitations
