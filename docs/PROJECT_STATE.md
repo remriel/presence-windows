@@ -72,3 +72,4 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - ZIP SHA-256: aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4. Package size 57,455,617 bytes.
 - Final PR Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38491343616. Main merged-target CI at https://github.com/remriel/presence-windows/actions/runs/38491556806 is independent and can be inspected.
 - Requested fixes and release are complete. Original installation/profile unchanged. If installing, quit old tray app, replace extracted binaries, preserve presence.db; no reset needed. Physical LAN hostname availability and timing remain manual acceptance.
+- Final merged release-target Windows CI also passed: https://github.com/remriel/presence-windows/actions/runs/38491556806. Source, release assets, tag, package digest and final repository documentation are synchronized; working tree is clean.

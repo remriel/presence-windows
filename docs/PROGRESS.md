@@ -22,7 +22,7 @@ PR: https://github.com/remriel/presence-windows/pull/3 (merged)
 Release: https://github.com/remriel/presence-windows/releases/tag/v1.2.1
 Release target: fb3d7573568945f3b8e5aca6375b8e71c71c0d85
 Passing final PR CI: https://github.com/remriel/presence-windows/actions/runs/38491343616
-Main-target CI: https://github.com/remriel/presence-windows/actions/runs/38491556806
+Passing main-target CI: https://github.com/remriel/presence-windows/actions/runs/38491556806
 Package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip
 ZIP SHA-256: aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4
 File version: 1.2.1.0. Informational version includes release target fb3d757.
