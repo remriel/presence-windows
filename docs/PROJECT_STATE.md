@@ -2,10 +2,10 @@
 
 ## Current work
 - Objective: repair missing known/unknown devices in the main UI and improve hostname/type identification.
-- Repository: https://github.com/remriel/presence-windows. Checkout: C:\Drive\2026-10-13\away\work\presence-windows. Branch: fix/device-visibility-identification; implementation commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
-- PR: https://github.com/remriel/presence-windows/pull/3. Source version and portable build: 1.2.1. This is a tested PR/package, not a published GitHub release or installed update.
-- Verified package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip. SHA-256 8702ed41a8e30f7ecbc65e095d93c009b1654586310928cf07fc62c3f90942c4. Packaged file version 1.2.1.0; informational version includes implementation commit 124c702.
-- Core checks passed; focused native suite 16 checks / zero findings / 6 captures; existing bulk/reset/pause suite 24 checks / zero findings / 12 captures. Self-contained publish and fictional packaged preview succeeded. Windows CI checks are attached to PR #3; inspect the live run before merging.
+- Repository: https://github.com/remriel/presence-windows. Checkout: C:\Drive\2026-10-13\away\work\presence-windows. Branch: main; implementation commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
+- PR: https://github.com/remriel/presence-windows/pull/3. Source version and portable build: 1.2.1. Release 1.2.1 is published at https://github.com/remriel/presence-windows/releases/tag/v1.2.1; PR #3 is merged. The installed app has not been replaced.
+- Verified package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip. SHA-256 aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4. Packaged file version 1.2.1.0; informational version includes release target fb3d7573568945f3b8e5aca6375b8e71c71c0d85.
+- Core checks passed; focused native suite 16 checks / zero findings / 6 captures; existing bulk/reset/pause suite 24 checks / zero findings / 12 captures. Self-contained publish and fictional packaged preview succeeded. Final PR Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38491343616. The main-branch run validates the merged target independently.
 - Historical 1.2.0 release and older checkout records below describe earlier work. Current installed app and real profile have not been modified.
 ## Architecture
 - .NET 10 Windows Forms tray app, net10.0-windows10.0.19041.0; Windows 10 x64 1809 minimum. Self-contained single-file releases; do not trim WinForms/WinRT.
@@ -64,3 +64,11 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - Local implementation and verification are complete; PR #3 and the 1.2.1 portable package are available. Current work summary at the top supersedes historical checkout/release records.
 - Packaged application was smoke-tested in fictional preview mode. No real profile or installed app was touched.
 - Before merging/releasing, inspect the latest Windows CI check on PR #3. For installation/physical acceptance, follow docs/MANUAL_ACCEPTANCE.md. Future agents must not treat fixture tests as proof of real-LAN hostname availability or installed-app behavior.
+
+## 2026-10-13 release completion / RESUME HERE
+- User explicitly requested the new release. PR #3 merged (squash) as fb3d7573568945f3b8e5aca6375b8e71c71c0d85. Current branch main; previous PR/packaging-only statements above are historical.
+- Presence 1.2.1 published: https://github.com/remriel/presence-windows/releases/tag/v1.2.1. Tag target verified as the merged commit. ZIP and checksum uploaded; GitHub ZIP digest matches the tested local archive.
+- Final release rebuilt at merged target; file version 1.2.1.0, informational version 1.2.1+fb3d7573568945f3b8e5aca6375b8e71c71c0d85. Packaged fictional smoke launch passed; extracted binary equals tested publish.
+- ZIP SHA-256: aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4. Package size 57,455,617 bytes.
+- Final PR Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38491343616. Main merged-target CI at https://github.com/remriel/presence-windows/actions/runs/38491556806 is independent and can be inspected.
+- Requested fixes and release are complete. Original installation/profile unchanged. If installing, quit old tray app, replace extracted binaries, preserve presence.db; no reset needed. Physical LAN hostname availability and timing remain manual acceptance.

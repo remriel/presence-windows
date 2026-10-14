@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.2.0](https://github.com/remriel/presence-windows/releases/tag/v1.2.0) · Windows 10 x64 and later
+[Download Presence 1.2.1](https://github.com/remriel/presence-windows/releases/tag/v1.2.1) · Windows 10 x64 and later
 
 ## Screenshots
 

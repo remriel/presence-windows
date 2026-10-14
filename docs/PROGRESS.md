@@ -1,36 +1,36 @@
 # Presence progress
 
-Current objective: fix missing known/unknown records in the main UI and improve hostname/device-type resolution, including related discovery and state bugs.
+Current objective: repair missing known/unknown devices, improve hostname/device-type identification, and publish Presence 1.2.1.
+Progress: **100%** [####################]
 
-Progress: **100% local verification** [####################]
-
-- [x] Read instructions and handoffs; reconcile main ac304743 with source and Git.
-- [x] Reproduce selection-only visibility and absent unknown filtering.
-- [x] Keep uncertain recognized records visible; retain absent unidentified records; display orphan associations individually.
-- [x] Establish Away silently for evaluated absent saved devices after restart/reconnect and the configured grace period.
-- [x] Add bounded reverse DNS, matching-IP validation, service-only mDNS senders, conservative likely hostname-derived types.
-- [x] Keep metadata separate from presence, observation logs, monitoring clock, baseline and network scope.
+- [x] Reconcile instructions, handoffs, Git state and source.
+- [x] Fix normal-view visibility for uncertain known/person records and absent unidentified devices, including orphan person associations.
+- [x] Establish Away silently for saved devices absent after restart/reconnect and healthy evaluated departure grace.
+- [x] Add bounded reverse DNS, address validation, service-only mDNS handling and conservative likely hostname-derived types.
+- [x] Isolate metadata from presence, last-seen time, alerts, logs, baseline, network scope and monitoring clock.
 - [x] Pass core inference, transactional reset/persistence, restart absence and metadata-isolation checks.
-- [x] Pass 16 focused native/DNS checks with zero findings and 6 fictional captures.
-- [x] Pass 24 existing bulk/reset/pause checks with zero findings and 12 fictional captures.
-- [x] Inspect light/dark main/detail screenshots; publish self-contained Windows x64 without warnings/errors.
-- [x] Launch packaged binary in fictional preview mode; verify version and package checksum.
-- [x] Push implementation, create and attach PR #3, add both native regression suites to Windows CI.
-- [x] Export package and handoffs to current task outputs.
+- [x] Pass 16 native visibility/DNS checks with zero findings and 6 fixture screenshots.
+- [x] Pass 24 existing bulk/reset/pause checks with zero findings and 12 fixture screenshots.
+- [x] Inspect native light/dark screens; publish self-contained Windows x64 without warnings/errors.
+- [x] Push and attach PR #3, verify final passing Windows CI, merge into main.
+- [x] Rebuild at merged target; verify version, packaged smoke launch, extracted binary and ZIP checksum.
+- [x] Publish 1.2.1 ZIP/checksum to GitHub and verify uploaded digest/tag target.
+- [x] Synchronize final documentation and export both handoffs.
 
-Implementation: version 1.2.1; commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc. Branch fix/device-visibility-identification. Application source fixes are complete. Installation and real profile untouched. No public release created or main-branch merge performed.
-
-Repository: https://github.com/remriel/presence-windows
-PR: https://github.com/remriel/presence-windows/pull/3
-CI: inspect the current Windows check on PR #3; source validation runs independently on GitHub.
+Implementation: released version 1.2.1. Original installed app/profile untouched. No requested source or release work remains.
+PR: https://github.com/remriel/presence-windows/pull/3 (merged)
+Release: https://github.com/remriel/presence-windows/releases/tag/v1.2.1
+Release target: fb3d7573568945f3b8e5aca6375b8e71c71c0d85
+Passing final PR CI: https://github.com/remriel/presence-windows/actions/runs/38491343616
+Main-target CI: https://github.com/remriel/presence-windows/actions/runs/38491556806
 Package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip
-SHA-256: 8702ed41a8e30f7ecbc65e095d93c009b1654586310928cf07fc62c3f90942c4
-File version: 1.2.1.0. Informational version: 1.2.1+124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
+ZIP SHA-256: aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4
+File version: 1.2.1.0. Informational version includes release target fb3d757.
 
-Blockers: none for the verified local build. Physical LAN hostname availability, restart absence timing, Wi-Fi sleep/reconnect and actual installed-app behavior remain manual acceptance; fixtures cannot prove those environmental behaviors. No claim that every possible app bug is eliminated.
+Blockers: none. Actual LAN hostname availability, physical restart/absence timing and sleeping phones remain manual acceptance. Fixture tests establish reproduced code behavior, not every possible environment or application bug.
 
 Exact ordered next steps:
-1. Check the current Windows CI result on PR #3 before merging or releasing.
-2. If installing, quit the old tray process, preserve %LOCALAPPDATA%\Presence\presence.db, extract the entire portable package and launch Presence.exe. No reset is needed.
-3. Follow the 1.2.1 section in docs/MANUAL_ACCEPTANCE.md on the user's real LAN.
-4. Continue future work from docs/PROJECT_STATE.md and actual Git/source/tests.
+1. No requested implementation or release steps remain.
+2. To install, quit the old tray process, extract the entire new package and launch Presence.exe while preserving %LOCALAPPDATA%\Presence\presence.db. Do not reset the profile.
+3. Follow docs/MANUAL_ACCEPTANCE.md for real LAN checks.
+4. Before future changes, read AGENTS.md and both handoffs and reconcile actual Git/source/tests. Final release records supersede historical checkout paths.
