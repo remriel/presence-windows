@@ -1,39 +1,25 @@
 # Presence progress
 
-Current objective: fix reproducible bugs and optimize Presence, with verified source, portable build and durable handoffs.
-Progress: **100%** [####################]
+Current objective: publish Presence 1.2.2 from the consolidated fixes in PR #5, as explicitly requested on 2026-10-15.
+Progress: **35%** [#######-------------]
 
-- [x] Reconcile instructions, handoffs, Git and source; baseline main 531ad4e.
-- [x] Reproduce/fix stale observations, batch ordering, monitoring gaps and backwards clock correction.
-- [x] Deduplicate observation writes, exclude metadata and reduce snapshot JSON.
-- [x] Roll back failed settings/device edits, including displaced primary phones and new people.
-- [x] Preserve disconnected adapters and reject stale editors after reset.
-- [x] Bound discovery, reduce ICMP concurrency, start workers lazily and isolate network lanes.
-- [x] Skip hidden-window rendering; fix preview resource and repeated shutdown/disposal.
-- [x] Pass original core suites and 11 added reliability checks.
-- [x] Pass 16 native reliability, 16 visibility and 24 bulk/reset/pause checks; zero findings.
-- [x] Pass broad UI smoke: 26 captures, zero layout findings; inspect light/dark fixtures.
-- [x] Build/publish self-contained Windows x64 with zero warnings/errors.
-- [x] Verify ZIP digest, extracted binary equality, version and packaged fictional preview.
-- [x] Push PR #5, verify implementation Windows CI and export handoffs.
+- [x] Reconcile instructions, Git, source and both handoffs.
+- [x] Discover PR #4 is superseded/closed; verify consolidated PR #5 is mergeable and its latest Windows CI passed.
+- [x] Review the consolidated changes and test coverage; prepare version 1.2.2, README links and release notes.
+- [ ] Push release metadata and pass PR Windows checks.
+- [ ] Merge PR #5 with the release-trigger commit title; verify main CI publishes v1.2.2.
+- [ ] Download the published ZIP/checksum; verify tag, digest, binary version and packaged fictional preview.
+- [ ] Synchronize final handoffs with GitHub and export them to outputs.
 
-Branch: fix/reliability-performance. PR is open; no merge, new tagged release, installation or production-profile reset was performed.
+Active checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit
+Local branch: release/presence-1.2.2; source PR branch: fix/reliability-performance.
 PR: https://github.com/remriel/presence-windows/pull/5
-Verified implementation: afc87a0f6334dff22b06f8129a19673ecfa1be14
-Passing CI: https://github.com/remriel/presence-windows/actions/runs/38694066264
-Latest checks: https://github.com/remriel/presence-windows/pull/5/checks
+Pre-release-metadata CI passed: https://github.com/remriel/presence-windows/actions/runs/38694662855
 
-Package: outputs/Presence-1.2.1-fixes-afc87a0-win-x64.zip (57,473,271 bytes).
-SHA-256: 0320a1416a0ccf6e9348298356e0025220e92575356c0952c024e434fd888fe6
-File version 1.2.1.0; product version 1.2.1+afc87a0f6334dff22b06f8129a19673ecfa1be14.
-This is a PR preview; published release remains v1.2.1.
-
-Evidence: outputs/verification has 47 native fixture captures/JSON reports plus packaged preview. All devices/databases are fictional and isolated. No real device data or captures were committed.
-Blockers: none. Real LAN reconnect/sleep, OS suspend/resume and long-term resource use remain physical acceptance. Bounded discovery can increase first discovery time on large networks; known-device priority probes remain independent. Tests do not prove every possible bug absent.
+The consolidated implementation includes the earlier audit plus save rollback, disconnected-adapter retention, bounded discovery and hidden-window work reductions. Prior 1.2.1 preview archives are historical. The installed application and real profile are outside this release task.
+Blockers: none. Physical LAN/sleeping-device/suspend behavior remains manual acceptance, and large-network first discovery may take longer with bounded batches.
 
 Exact ordered next steps:
-1. Review PR #5 and its latest checks; implementation/package verification is complete.
-2. Merge/publish a tagged release only when requested.
-3. If installing, quit the tray app and extract the whole package while preserving %LOCALAPPDATA%/Presence/presence.db.
-4. Follow docs/MANUAL_ACCEPTANCE.md for physical network checks.
-5. For future work, read AGENTS.md and both handoffs, then reconcile actual Git/source/tests.
+1. Commit/push the release metadata to PR #5 and wait for its Windows checks.
+2. Merge with title Release Presence 1.2.2 to trigger the existing CI release workflow.
+3. Download and independently verify the released package, then record/export final handoffs.

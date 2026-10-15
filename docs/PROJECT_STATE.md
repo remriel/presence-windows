@@ -1,6 +1,9 @@
 # Presence project state
 
-## Current delivery / RESUME HERE
+## Active release / RESUME HERE (2026-10-15)
+
+User explicitly requested release. Publish Presence 1.2.2 from consolidated PR #5, which supersedes closed PR #4 and includes its fixes plus the broader completed audit. PR #5's latest CI passed at https://github.com/remriel/presence-windows/actions/runs/38694662855 before release metadata changes. Local release checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit; branch release/presence-1.2.2 tracks origin/fix/reliability-performance. Version/README/release notes are prepared. Follow current PROGRESS.md; audit-preview completion records below are historical. No subagents, installation or real profile changes.
+## Previous audit delivery
 
 The 2026-10-14 reliability/performance audit is complete. Branch `fix/reliability-performance`, baseline `531ad4e`; PR https://github.com/remriel/presence-windows/pull/5. Verified implementation `afc87a0f6334dff22b06f8129a19673ecfa1be14`; passing CI https://github.com/remriel/presence-windows/actions/runs/38694066264. Later commits update handoffs; inspect latest PR checks before merging.
 
