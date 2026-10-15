@@ -12,7 +12,8 @@ internal static class Diagnostic
         Directory.CreateDirectory(System.IO.Path.GetDirectoryName(System.IO.Path.GetFullPath(path))!);
         try
         {
-            var watch = System.Diagnostics.Stopwatch.StartNew(); var result = new Discovery().ScanAsync(new Settings(), [], CancellationToken.None).GetAwaiter().GetResult();
+            using var discovery = new Discovery();
+            var watch = System.Diagnostics.Stopwatch.StartNew(); var result = discovery.ScanAsync(new Settings(), [], CancellationToken.None).GetAwaiter().GetResult();
             // Sanitized evidence: never export discovered MACs, addresses, hostnames or network labels.
             var report = new { success = true, durationSeconds = watch.Elapsed.TotalSeconds, devices = result.Observations.Count, freshArp = result.Observations.Count(o => o.Signal.Contains("fresh-arp")), icmp = result.Observations.Count(o => o.Signal.Contains("icmp")), mdns = result.Observations.Count(o => o.Signal.Contains("mdns")), initialBaseline = result.InitialSweep, addressesInSubnet = result.Total, covered = result.Coverage, localInterfacePresent = result.Observations.Any(o => o.Signal == "local-interface"), windows = Environment.OSVersion.Version.ToString() };
             File.WriteAllText(path, JsonSerializer.Serialize(report, new JsonSerializerOptions { WriteIndented = true }));

@@ -43,3 +43,10 @@ Device visibility and identification acceptance for 1.2.1:
 4. On a router with reverse DNS entries or a device that advertises mDNS, inspect Hostname and Likely device type. Confirm a saved custom name and tracking choices are unchanged. Devices without useful names may remain Unknown.
 5. Disconnect a device while a DNS lookup is pending. Confirm hostname enrichment cannot mark it Home, update Last seen, or generate an arrival.
 6. Change a device IP while keeping its MAC, then give the old IP to another device. Confirm saved names/Ignore/person choices follow MAC and delayed hostname results for the previous IP are not applied to the moved device.
+
+Reliability/performance audit acceptance:
+1. Select a physical network adapter, disconnect it, change an unrelated setting and save. Confirm the selected adapter is retained as disconnected; scanning must not silently switch to Automatic.
+2. In an expendable profile, make the database temporarily unwritable and attempt settings/device edits. Confirm the editor shows an error, previous choices remain active, and retry works after restoring write access. Verify replacing a primary phone does not unset the saved primary after a failed save.
+3. On a large subnet, confirm known-device checking remains responsive while new addresses rotate through background batches. Batches are bounded to 512 addresses per protocol; ICMP concurrency is 32. Smaller batches reduce resource demand but can increase first discovery time on large networks.
+4. Hide/minimize the main window, allow state changes, and show it again. Confirm the current inventory appears and monitoring continued while hidden.
+5. On a test machine/profile, correct the system clock backwards and reconnect. Confirm fresh replies still establish Home and observation history resumes. Never change the system clock on a production machine just to run this test.

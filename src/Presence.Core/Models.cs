@@ -27,7 +27,9 @@ public sealed class Device
     public int Consecutive { get; set; }
     public double MissingSeconds { get; set; }
     public bool Announced { get; set; }
+    [System.Text.Json.Serialization.JsonIgnore]
     public string DeviceType => DeviceIdentification.InferType(Hostname);
+    [System.Text.Json.Serialization.JsonIgnore]
     public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : !string.IsNullOrWhiteSpace(Hostname) ? Hostname : !string.IsNullOrWhiteSpace(Vendor) && Vendor != "Private MAC" ? Vendor + " device" : "Device " + (Mac.Length >= 5 ? Mac[^5..] : Mac);
 }
 public sealed record Observation(string Mac, string Ip, string Hostname, string Vendor, string Signal, DateTimeOffset? At = null);
@@ -38,6 +40,7 @@ public sealed record PresenceEvent(string Id, DateTimeOffset At, string Type, st
 }
 public sealed class Settings
 {
+    public Settings Copy() => (Settings)MemberwiseClone();
     public int ScanIntervalSeconds { get; set; } = 3;
     public int DepartureGraceSeconds { get; set; } = 30;
     public int ResponsivenessVersion { get; set; } = 1;

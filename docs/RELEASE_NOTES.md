@@ -1,3 +1,15 @@
+# Presence 1.2.2
+
+- Prevent replayed observations, older samples and monitoring gaps from producing false presence changes. Resume accepting fresh sightings after backwards clock correction.
+- Restore prior settings and device/person assignments when saving fails, including displaced primary phones and newly created people. Reject stale editors after a reset.
+- Preserve a selected disconnected adapter when saving unrelated settings.
+- Rotate background ARP and ICMP discovery through batches of at most 512 addresses, respecting the scan interval. Reduce ICMP concurrency while retaining independent known-device priority probes.
+- Start ARP workers only when needed, isolate obsolete network lanes and defer inventory rendering while the window is hidden or minimized.
+- Reduce snapshot serialization and observation writes; metadata-only hostname enrichment is not stored as physical presence evidence.
+- Fix repeated shutdown/disposal and the broader native preview's embedded icon reference.
+
+Verified with deterministic core checks, 11 added core reliability checks, 56 focused native checks, a 26-capture broader UI smoke suite, and self-contained Windows x64 packaging. Physical LAN, sleeping devices and suspend/resume remain manual acceptance. Bounded sweeps may increase initial discovery time on large networks. Existing local data is preserved; no reset is required when updating.
+
 # Presence 1.2.1
 
 - Keep known and unidentified devices visible in the main window. Uncertain recognized devices appear under Checking presence, and unidentified devices retain their actual Home/Recent/Away/Unknown label.

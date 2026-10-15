@@ -50,7 +50,7 @@ internal sealed class MainWindow : Form
     }
     private void Render()
     {
-        if (IsDisposed) return;
+        if (IsDisposed || !Visible || WindowState == FormWindowState.Minimized) return;
         var s = app.Engine.Data.Settings;
         pauseScanning.Text = app.ScanningPaused ? "\uE768" : "\uE769";
         pauseScanning.AccessibleName = app.ScanningPaused ? "Resume scanning" : "Pause scanning"; pauseHint.SetToolTip(pauseScanning, pauseScanning.AccessibleName);
@@ -139,7 +139,7 @@ internal sealed class MainWindow : Form
 
 internal sealed class SettingsWindow : Form
 {
-    public SettingsWindow(PresenceContext app, Func<IWin32Window, bool>? confirmReset = null)
+    public SettingsWindow(PresenceContext app, Func<IWin32Window, bool>? confirmReset = null, IReadOnlyList<Lan>? availableNetworks = null)
     {
         var s = app.Engine.Data.Settings;
         Ui.Configure(this, "Settings", new Size(640, 760), new Size(540, 460), s);
@@ -161,7 +161,11 @@ internal sealed class SettingsWindow : Form
         var appearance = new ThemeComboBox(); appearance.Items.AddRange(["System", "Light", "Dark"]); appearance.SelectedItem = s.Theme;
         var appFields = Ui.Fields(); appFields.Margin = new Padding(0, Ui.Space, 0, 0); Ui.Field(appFields, "Appearance", appearance, s); Ui.Add(application, appFields);
         Ui.Add(application, Ui.Label("Home network adapter", s));
-        var network = new ThemeComboBox { Margin = new Padding(0, Ui.Gap, 0, Ui.Gap) }; network.Items.Add("Automatic · physical Wi-Fi first"); var lans = Discovery.Interfaces(); foreach (var lan in lans) network.Items.Add(lan.Name); network.SelectedIndex = Math.Max(0, lans.FindIndex(n => n.Id == s.InterfaceId) + 1); network.AccessibleName = "Home network adapter"; Ui.Add(application, network); Ui.Add(body.Content, application);
+        var network = new ThemeComboBox { Margin = new Padding(0, Ui.Gap, 0, Ui.Gap) }; network.Items.Add("Automatic · physical Wi-Fi first");
+        var lans = (availableNetworks ?? Discovery.Interfaces()).ToList();
+        var adapterIds = new List<string> { "" }; foreach (var lan in lans) { network.Items.Add(lan.Name); adapterIds.Add(lan.Id); }
+        if (s.InterfaceId != "" && !adapterIds.Contains(s.InterfaceId)) { network.Items.Add("Saved adapter · currently disconnected"); adapterIds.Add(s.InterfaceId); }
+        network.SelectedIndex = Math.Max(0, adapterIds.IndexOf(s.InterfaceId)); network.AccessibleName = "Home network adapter"; Ui.Add(application, network); Ui.Add(body.Content, application);
         var storage = Ui.Group("Local history", s); var retentionFields = Ui.Fields(); Ui.Field(retentionFields, "Keep event history", Ui.Number(s.RetentionDays, 7, 365, "days", s, out var retention), s); Ui.Add(storage, retentionFields);
         Ui.Add(storage, Ui.Label("Device names, person associations and presence history stay on this computer. Device presence is an estimate of whether someone is home; sleeping phones and private MAC changes can affect it.", s, true)); Ui.Add(body.Content, storage);
         var reset = Ui.Group("Reset Presence", s);
@@ -178,7 +182,7 @@ internal sealed class SettingsWindow : Form
         {
             try
             {
-                app.ApplyStartup(startup.Checked); s.ScanIntervalSeconds = (int)scan.Value; s.DepartureGraceSeconds = (int)left.Value; s.Arrivals = arrive.Checked; s.Departures = depart.Checked; s.UnknownDevices = unknown.Checked; s.AlertSound = sound.Checked; s.PopupSeconds = (int)duration.Value; s.QuietHours = quiet.Checked; s.QuietStart = (int)start.Value; s.QuietEnd = (int)end.Value; s.StartWithWindows = startup.Checked; s.Theme = appearance.SelectedItem?.ToString() ?? "System"; s.InterfaceId = network.SelectedIndex <= 0 ? "" : lans[network.SelectedIndex - 1].Id; s.RetentionDays = (int)retention.Value; app.Save(); Close();
+                var updated = s.Copy(); updated.ScanIntervalSeconds = (int)scan.Value; updated.DepartureGraceSeconds = (int)left.Value; updated.Arrivals = arrive.Checked; updated.Departures = depart.Checked; updated.UnknownDevices = unknown.Checked; updated.AlertSound = sound.Checked; updated.PopupSeconds = (int)duration.Value; updated.QuietHours = quiet.Checked; updated.QuietStart = (int)start.Value; updated.QuietEnd = (int)end.Value; updated.StartWithWindows = startup.Checked; updated.Theme = appearance.SelectedItem?.ToString() ?? "System"; updated.InterfaceId = network.SelectedIndex <= 0 ? "" : adapterIds[network.SelectedIndex]; updated.RetentionDays = (int)retention.Value; app.SaveSettings(updated); Close();
             }
             catch (Exception ex) { error.Text = "Could not save settings. " + ex.Message; error.ForeColor = Ui.Negative(s); error.Visible = true; }
         }, s, true);
@@ -221,7 +225,7 @@ internal sealed class DeviceWindow : Form
         var save = Ui.Button("&Save", () =>
         {
             if (kind.SelectedIndex == (int)DeviceKind.Person && string.IsNullOrWhiteSpace(person.Text)) { error.Text = "Enter or choose a person's name to use this as a presence device."; error.ForeColor = Ui.Negative(s); error.Visible = true; person.Focus(); return; }
-            try { device.Name = name.Text.Trim(); device.Kind = (DeviceKind)kind.SelectedIndex; if (device.Kind != DeviceKind.Ignore && !string.IsNullOrWhiteSpace(person.Text)) app.Engine.Assign(device, person.Text, primary.Checked); else { device.PersonId = null; device.IsPrimary = false; } app.Save(); Close(); }
+            try { app.SaveDevice(device, name.Text, (DeviceKind)kind.SelectedIndex, person.Text, primary.Checked); Close(); }
             catch (Exception ex) { error.Text = "Could not save this device. " + ex.Message; error.ForeColor = Ui.Negative(s); error.Visible = true; }
         }, s, true);
         var cancel = Ui.Button("&Cancel", Close, s); cancel.DialogResult = DialogResult.Cancel; Ui.Add(footer, Ui.Actions(save, cancel)); AcceptButton = save; CancelButton = cancel;

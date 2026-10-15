@@ -16,6 +16,7 @@ internal static class Program
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
         if (args.Contains("--device-visibility")) return DeviceVisibilityChecks();
+        if (args.Contains("--reliability")) return ReliabilityChecks();
         if (args.Contains("--network-change"))
         {
             var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "NetworkPreview", Guid.NewGuid().ToString("N"));
@@ -65,7 +66,7 @@ internal static class Program
                 speed.ShowError("The Cloudflare speed test took longer than 35 seconds. Try again when your connection is less busy."); CaptureExisting(speed, prefix + "-speed-error", scale);
                 speed.Size = speed.MinimumSize; CaptureExisting(speed, prefix + "-speed-error-minimum", scale);
             }
-            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("Presence.AlertIcon")!; using var icon = Image.FromStream(stream);
+            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("Presence.ProductIcon")!; using var icon = Image.FromStream(stream);
             using (var popup = new FloatingAlertWindow("Alexandra's work phone with a very long device name arrived", "Local network · click to open this device and its presence history", icon, s, _ => { }, "")) Capture(popup, prefix + "-popup-long", scale, "default");
             app.Engine.Data.Devices.Clear(); app.Engine.Data.People.Clear(); app.Refresh();
             using (var empty = new MainWindow(app)) { Capture(empty, prefix + "-main-empty", scale, "minimum"); empty.AllowClose = true; }
@@ -82,6 +83,79 @@ internal static class Program
         File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { captures, failures, checks, scaling = "150% native Windows display scaling on this PC; 100/125/200% are normalized font-and-layout simulations on the same native WinForms controls. Physical desktop DPI is recorded per capture." }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"Rendered {captures.Count} screens; {failures.Count} layout findings; {checks.Count} behavior checks.");
         foreach (var failure in failures.Take(30)) Console.WriteLine(failure);
+        return failures.Count == 0 ? 0 : 2;
+    }
+    private static int ReliabilityChecks()
+    {
+        void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "ReliabilityPreview", Guid.NewGuid().ToString("N"));
+        using var app = new PresenceContext(folder, true, true);
+        var main = GetMain(app); main.Show(); Application.DoEvents();
+        var settings = app.Engine.Data.Settings; settings.InterfaceId = "disconnected-fixture-adapter";
+        app.Store.Save(app.Engine.Data);
+        using var db = new Microsoft.Data.Sqlite.SqliteConnection(new Microsoft.Data.Sqlite.SqliteConnectionStringBuilder { DataSource = app.Store.Path }.ToString()); db.Open();
+        using var command = db.CreateCommand();
+        command.CommandText = "CREATE TRIGGER RejectSave BEFORE UPDATE ON State BEGIN SELECT RAISE(ABORT,'fixture save failure'); END"; command.ExecuteNonQuery();
+        using (var form = new SettingsWindow(app, availableNetworks: []))
+        {
+            form.Show(); Application.DoEvents();
+            var adapter = All(form).OfType<ThemeComboBox>().Single(c => c.AccessibleName == "Home network adapter");
+            Check(adapter.SelectedIndex == 1 && adapter.Text.Contains("disconnected"), "Unavailable selected adapter is retained and visible");
+            All(form).OfType<NumericUpDown>().First().Value = 17;
+            All(form).OfType<Button>().Single(b => b.AccessibleName == "Save").PerformClick();
+            Check(!form.IsDisposed && ReferenceEquals(app.Engine.Data.Settings, settings) && settings.ScanIntervalSeconds == 3,
+                "Failed settings save rolls back live settings and leaves editor open");
+            Capture(form, "settings-save-failure", 1, "default"); CaptureBottom(form, "settings-save-failure-bottom", 1);
+            command.CommandText = "DROP TRIGGER RejectSave"; command.ExecuteNonQuery();
+            All(form).OfType<Button>().Single(b => b.AccessibleName == "Save").PerformClick();
+            Check(form.IsDisposed && app.Store.Load().Settings.ScanIntervalSeconds == 17 && app.Store.Load().Settings.InterfaceId == settings.InterfaceId,
+                "Retry saves settings while preserving disconnected adapter choice");
+        }
+        command.CommandText = "CREATE TRIGGER RejectSave BEFORE UPDATE ON State BEGIN SELECT RAISE(ABORT,'fixture save failure'); END"; command.ExecuteNonQuery();
+        var first = app.Engine.Data.Devices[0]; var target = app.Engine.Data.Devices[3]; var oldName = target.Name;
+        try { app.SaveDevice(target, "Unsaved", DeviceKind.Person, app.Engine.Data.People[0].Name, true); Check(false, "Device save failure propagates"); }
+        catch (Microsoft.Data.Sqlite.SqliteException) { Check(true, "Device save failure propagates"); }
+        Check(first.IsPrimary && target.Name == oldName && target.Kind == DeviceKind.Unknown && target.PersonId is null,
+            "Failed device edit restores names, associations and previous primary phone");
+        var peopleCount = app.Engine.Data.People.Count;
+        try { app.SaveDevice(target, "Unsaved", DeviceKind.Person, "New fictional person", true); }
+        catch (Microsoft.Data.Sqlite.SqliteException) { }
+        Check(app.Engine.Data.People.Count == peopleCount && target.PersonId is null, "Failed assignment leaves no orphan person");
+        try { app.SetDeviceKinds([first.Mac], DeviceKind.Ignore); }
+        catch (Microsoft.Data.Sqlite.SqliteException) { }
+        Check(first.Kind == DeviceKind.Person && first.IsPrimary && first.PersonId is not null, "Failed bulk save preserves previous primary association");
+        command.CommandText = "DROP TRIGGER RejectSave"; command.ExecuteNonQuery();
+        app.SaveDevice(target, "Fixture renamed", DeviceKind.Person, app.Engine.Data.People[0].Name, true);
+        Check(!first.IsPrimary && target.IsPrimary && app.Store.Load().Devices.Single(d => d.Mac == target.Mac).Name == "Fixture renamed",
+            "Successful edit commits name and primary replacement");
+        main.Hide(); var signatureField = typeof(MainWindow).GetField("signature", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var signature = (string)signatureField.GetValue(main)!; target.Name = "Changed while hidden"; app.Refresh();
+        Check((string)signatureField.GetValue(main)! == signature, "Hidden window skips inventory rendering");
+        main.Show(); Application.DoEvents();
+        Check((string)signatureField.GetValue(main)! != signature, "Showing window renders current inventory");
+        CaptureExisting(main, "reliability-main", 1);
+        var lan = new Lan("fixture", "Fictional LAN", 1, System.Net.IPAddress.Parse("192.0.2.2"), 24, System.Net.IPAddress.Parse("192.0.2.1"), first.Mac);
+        var small = new SubnetSweep(lan).Next();
+        Check(small.Count == 252 && small.All(ip => lan.Contains(ip) && !ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)), "Small subnet covers all eligible hosts and excludes infrastructure");
+        lan = lan with { Address = System.Net.IPAddress.Parse("198.18.0.2"), Gateway = System.Net.IPAddress.Parse("198.18.0.1"), Prefix = 16 };
+        var sweep = new SubnetSweep(lan); var visited = new HashSet<string>(); var bounded = true;
+        for (var i = 0; i < 128; i++) { var batch = sweep.Next(); bounded &= batch.Count <= 512 && batch.Distinct().Count() == batch.Count; foreach (var ip in batch) visited.Add(ip.ToString()); }
+        Check(bounded && visited.Count == 65532, "Large subnet rotates through every eligible host in batches of at most 512");
+        using (var workers = new ArpWorkers(12))
+        {
+            Check(!(bool)typeof(ArpWorkers).GetField("started", BindingFlags.NonPublic | BindingFlags.Instance)!.GetValue(workers)!, "Idle discovery creates no ARP worker threads");
+            using var canceled = new CancellationTokenSource(); canceled.Cancel();
+            Check(workers.ResolveAsync(lan, lan.Gateway, canceled.Token).IsCanceled, "Canceled ARP request does not enqueue work");
+        }
+        app.ResetEverything();
+        try { app.SaveDevice(target, "Stale", DeviceKind.Known, "", false); Check(false, "Stale editor cannot restore a reset device"); }
+        catch (InvalidOperationException) { Check(app.Engine.Data.Devices.Count == 0, "Stale editor cannot restore a reset device"); }
+        main.AllowClose = true; main.Close();
+        app.Dispose(); app.Dispose(); app.Exit();
+        Check(app.Stopping, "Repeated context disposal and exit are safe");
+        File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { checks, failures, captures }, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"Reliability: {checks.Count} checks; {failures.Count} findings; {captures.Count} captures.");
+        foreach (var failure in failures) Console.WriteLine(failure);
         return failures.Count == 0 ? 0 : 2;
     }
     private static MainWindow GetMain(PresenceContext app) => (MainWindow)typeof(PresenceContext).GetField("window", BindingFlags.Instance | BindingFlags.NonPublic)!.GetValue(app)!;

@@ -31,6 +31,7 @@ internal sealed class PresenceContext : ApplicationContext
     private readonly bool demo;
     private bool refreshQueued;
     private bool dirty;
+    private bool resourcesDisposed;
     private string adapterId = "";
     private DateTimeOffset lastSaved;
     private readonly List<PresenceEvent> pendingEvents = [];
@@ -143,7 +144,7 @@ internal sealed class PresenceContext : ApplicationContext
     }
     private void Flush(bool force)
     {
-        if (demo || (!force && DateTimeOffset.UtcNow - lastSaved < TimeSpan.FromSeconds(10))) return;
+        if (!force && DateTimeOffset.UtcNow - lastSaved < TimeSpan.FromSeconds(10)) return;
         Store.Save(Engine.Data, pendingEvents, pendingObservations.Values);
         pendingEvents.Clear(); pendingObservations.Clear(); lastSaved = DateTimeOffset.UtcNow;
     }
@@ -166,6 +167,44 @@ internal sealed class PresenceContext : ApplicationContext
     {
         Engine.ReconcilePeople(DateTimeOffset.UtcNow); Flush(true); timer.Interval = Engine.Data.Settings.ScanIntervalSeconds * 1000;
         if (adapterId != Engine.Data.Settings.InterfaceId) { adapterId = Engine.Data.Settings.InterfaceId; RestartDiscovery(); }
+        Refresh();
+    }
+    public void SaveSettings(Settings settings)
+    {
+        var previous = Engine.Data.Settings;
+        ApplyStartup(settings.StartWithWindows);
+        Engine.Data.Settings = settings;
+        try { Flush(true); }
+        catch
+        {
+            Engine.Data.Settings = previous;
+            ApplyStartup(previous.StartWithWindows);
+            throw;
+        }
+        timer.Interval = settings.ScanIntervalSeconds * 1000;
+        if (adapterId != settings.InterfaceId) { adapterId = settings.InterfaceId; RestartDiscovery(); }
+        Refresh();
+    }
+    public void SaveDevice(Device device, string name, DeviceKind kind, string person, bool primary)
+    {
+        if (!Engine.Data.Devices.Contains(device)) throw new InvalidOperationException("This device is no longer saved. Close its details and refresh the device list.");
+        if (kind == DeviceKind.Person && string.IsNullOrWhiteSpace(person)) throw new ArgumentException("Enter a person's name.");
+        var devices = Engine.Data.Devices.Select(d => (Device: d, d.Name, d.Kind, d.PersonId, d.IsPrimary)).ToList();
+        var people = Engine.Data.People.Select(p => (Person: p, p.State, p.ChangedAt)).ToList();
+        try
+        {
+            device.Name = name.Trim(); device.Kind = kind;
+            if (kind != DeviceKind.Ignore && !string.IsNullOrWhiteSpace(person)) Engine.Assign(device, person, primary);
+            else { device.PersonId = null; device.IsPrimary = false; }
+            Engine.ReconcilePeople(DateTimeOffset.UtcNow); Flush(true);
+        }
+        catch
+        {
+            foreach (var old in devices) { old.Device.Name = old.Name; old.Device.Kind = old.Kind; old.Device.PersonId = old.PersonId; old.Device.IsPrimary = old.IsPrimary; }
+            Engine.Data.People.Clear();
+            foreach (var old in people) { old.Person.State = old.State; old.Person.ChangedAt = old.ChangedAt; Engine.Data.People.Add(old.Person); }
+            throw;
+        }
         Refresh();
     }
     public void SetDeviceKinds(IEnumerable<string> macs, DeviceKind kind)
@@ -241,12 +280,13 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public void Exit()
     {
+        if (Stopping) return;
         try { Flush(true); } catch (Exception ex) { MessageBox.Show("Recent history could not be saved. Presence is still running.\n" + ex.Message, "Presence"); return; }
         Stopping = true; cancel.Cancel(); discovery.Reset(); timer.Stop(); repaint.Stop(); reconnect.Stop(); tray.Visible = false; window.AllowClose = true; window.Close(); ExitThread();
     }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); reconnect.Dispose(); tray.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
+        if (disposing && !resourcesDisposed) { resourcesDisposed = true; Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); reconnect.Dispose(); tray.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
         base.Dispose(disposing);
     }
     private static void SeedDemo(Snapshot data)
