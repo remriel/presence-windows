@@ -87,3 +87,5 @@ clockEngine.Apply([new Observation(mac, "192.0.2.20", "Fixture", "", "identity-o
 clockEngine.Apply([], scope, start.AddSeconds(201));
 Expect(clockData.Devices.Single().MissingSeconds == 0, "DNS metadata cannot mask a long monitoring gap or advance absence clock.");
 Console.WriteLine("Restart absence and identity enrichment checks passed.");
+
+ReliabilityChecks.Run();

@@ -1,6 +1,22 @@
 # Presence project state
 
-## Current work
+## Active audit implementation (2026-10-14)
+- Branch: `fix/reliability-performance`; baseline `531ad4e`; current checkout is under this task's `work/presence-windows`.
+- Core fixes: choose newest observation per MAC, reject timestamp replays, advance global health clock only for completed scans, and exclude long per-device evaluation gaps from absence. Repository excludes metadata-only observations, deduplicates physical evidence per save and omits computed display fields from snapshot JSON. Eight new core regressions pass after seven reproduced initial failures.
+- Discovery: rotating 512-address budgets for ARP and ICMP, 32 concurrent ICMP operations (formerly 128), cadence follows configured scan interval, per-lane observation dictionaries isolate obsolete work, background work runs off UI context, and ARP threads start lazily. Priority known-device probes remain independent. Report actual foreground coverage rather than claiming the full subnet was probed.
+- UI: settings use a copy and commit only after persistence, restoring previous settings/startup preference on failure. Device edits restore all affected primary flags, associations and person states on failure. Disconnected adapter choices survive saving. Hidden/minimized main windows skip inventory rendering until shown. The broad preview harness uses the correct embedded icon.
+- Demo saves now persist only in their separate fictional profiles so injected SQLite failures exercise the same save path. No production profile is used for fixture checks.
+- RESUME HERE: run `--reliability`, `--device-visibility`, `--reset-bulk` native suites; inspect fixture screenshots; publish and smoke-test portable package; push PR and verify Windows CI. Record final results and export both handoffs. Local build startup is slow; shared compiler bypass is in use. Earlier release completion records below are historical.
+
+## Current work (2026-10-14)
+- User request: fix bugs and optimize https://github.com/remriel/presence-windows. No subagents authorized.
+- Active checkout: `C:\Drive\2026-10-14\fix-all-bugs-and-optimize\work\presence-windows`; branch `fix/reliability-performance`; clean baseline `531ad4e`.
+- Existing core checks pass locally with .NET SDK 10.0.402. Build artifacts belong on local disk under `%LOCALAPPDATA%\PresenceBuild\Reliability` to avoid mapped-file issues on Drive.
+- Audit focus: discovery scheduling/cancellation, partial observations and false departures, transactional settings/device updates, hidden-window rendering and persistence overhead, malformed local-network inputs.
+- Discovered mismatch: README says bounded 512-address sweeps, but `Discovery.BackgroundDiscovery` repeatedly ARP-probes the entire subnet and sends up to 4096 ICMP probes per pass. Verify and repair with bounded rotating batches and independent priority probes.
+- RESUME HERE: baseline checks passed; finish reading UI editing paths and harness, reproduce concrete issues, add focused regression checks and implement fixes. Current progress is in PROGRESS.md; older completion statements below describe previous work.
+
+## Previous release
 - Objective: repair missing known/unknown devices in the main UI and improve hostname/type identification.
 - Repository: https://github.com/remriel/presence-windows. Checkout: C:\Drive\2026-10-13\away\work\presence-windows. Branch: main; implementation commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
 - PR: https://github.com/remriel/presence-windows/pull/3. Source version and portable build: 1.2.1. Release 1.2.1 is published at https://github.com/remriel/presence-windows/releases/tag/v1.2.1; PR #3 is merged. The installed app has not been replaced.

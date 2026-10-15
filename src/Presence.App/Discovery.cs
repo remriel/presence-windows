@@ -24,7 +24,7 @@ public sealed class Discovery : IDisposable
 {
     private readonly ArpWorkers priority = new(12);
     private readonly ArpWorkers sweep = new(32);
-    private readonly ConcurrentDictionary<string, Observation> recent = new(StringComparer.OrdinalIgnoreCase);
+    private ConcurrentDictionary<string, Observation> recent = new(StringComparer.OrdinalIgnoreCase);
     private readonly VendorLookup vendors = new();
     private CancellationTokenSource? laneCancellation;
     private Task? background;
@@ -35,10 +35,11 @@ public sealed class Discovery : IDisposable
     private bool baselinePending = true;
     private Lan? cachedLan;
     private DateTimeOffset interfacesRead;
+    private volatile int backgroundIntervalSeconds = 3;
     public string CurrentScope => scope;
     public void Reset()
     {
-        generation++; laneCancellation?.Cancel(); cachedLan = null; scope = ""; laneId = ""; baselinePending = true; recent.Clear(); background = null;
+        generation++; laneCancellation?.Cancel(); cachedLan = null; scope = ""; laneId = ""; baselinePending = true; recent = new(StringComparer.OrdinalIgnoreCase); background = null;
     }
     public static List<Lan> Interfaces()
     {
@@ -67,6 +68,7 @@ public sealed class Discovery : IDisposable
     }
     public async Task<ScanResult> ScanAsync(Settings settings, IReadOnlyList<Device> devices, CancellationToken ct, IProgress<ScanResult>? progress = null)
     {
+        backgroundIntervalSeconds = Math.Clamp(settings.ScanIntervalSeconds, 2, 600);
         var scanGeneration = generation;
         if (cachedLan is null || DateTimeOffset.UtcNow - interfacesRead > TimeSpan.FromSeconds(10) || (settings.InterfaceId != "" && settings.InterfaceId != cachedLan.Id))
         {
@@ -86,9 +88,10 @@ public sealed class Discovery : IDisposable
         if (laneId != nextLane || laneCancellation?.IsCancellationRequested == true)
         {
             laneCancellation?.Cancel(); laneCancellation?.Dispose(); laneCancellation = CancellationTokenSource.CreateLinkedTokenSource(ct);
-            scope = key; laneId = nextLane; baselinePending = true; recent.Clear(); background = null;
+            scope = key; laneId = nextLane; baselinePending = true; recent = new(StringComparer.OrdinalIgnoreCase); background = null;
         }
         var token = laneCancellation!.Token;
+        var laneObservations = recent;
         var started = DateTimeOffset.UtcNow;
         var initial = baselinePending;
         var count = (int)(lan.Last - lan.First - 1);
@@ -98,26 +101,26 @@ public sealed class Discovery : IDisposable
             if (token.IsCancellationRequested || key != scope || mac == "") return;
             if (!ip.Equals(lan.Gateway) && mac == gatewayMac || !ip.Equals(lan.Address) && mac == lan.Mac) return;
             var at = DateTimeOffset.UtcNow;
-            var previous = recent.GetValueOrDefault(mac);
+            var previous = laneObservations.GetValueOrDefault(mac);
             if (hostname == "" && previous?.Ip == ip.ToString()) hostname = previous.Hostname;
             var observation = new Observation(mac, ip.ToString(), hostname, vendors.Find(mac), signal, at);
-            recent[mac] = observation;
+            laneObservations[mac] = observation;
             if (previous is null || at - previous.At.GetValueOrDefault() >= TimeSpan.FromMilliseconds(500))
                 progress?.Report(new(key, description, [observation], quiet, 0, count, [], true));
         }
         void Identify(Observation original, string hostname)
         {
             if (hostname == "" || token.IsCancellationRequested || key != scope) return;
-            var current = recent.GetValueOrDefault(original.Mac);
+            var current = laneObservations.GetValueOrDefault(original.Mac);
             if (current is null || current.Ip != original.Ip || current.Hostname != "") return;
             var enriched = current with { Hostname = hostname };
-            if (recent.TryUpdate(original.Mac, enriched, current))
+            if (laneObservations.TryUpdate(original.Mac, enriched, current))
                 progress?.Report(new(key, description, [enriched with { Signal = "identity-only" }], false, 0, count, [], true));
         }
         Observe(gatewayMac, lan.Gateway, "", "fresh-arp", initial);
         if (lan.Mac != "") Observe(lan.Mac, lan.Address, Environment.MachineName, "local-interface", initial);
         if (background is null || background.IsCompleted)
-            background = BackgroundDiscovery(lan, key, gatewayMac, Observe, Identify, token);
+            background = Task.Run(() => BackgroundDiscovery(lan, key, gatewayMac, laneObservations, Observe, Identify, token), token);
         var targets = new HashSet<string>();
         foreach (var d in devices.Where(d => d.Network == key && d.Kind != DeviceKind.Ignore))
             if (IPAddress.TryParse(d.Ip, out var ip) && lan.Contains(ip) && !ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip.ToString());
@@ -131,44 +134,37 @@ public sealed class Discovery : IDisposable
         token.ThrowIfCancellationRequested();
         baselinePending = false;
         var evaluated = devices.Where(d => d.Network == key && (targets.Contains(d.Ip) || d.Mac == lan.Mac || d.Mac == gatewayMac)).Select(d => d.Mac).ToArray();
-        return new(key, description, recent.Values.Where(o => o.At >= started).ToList(), initial, count, count, evaluated);
+        return new(key, description, laneObservations.Values.Where(o => o.At >= started).ToList(), initial, Math.Min(count, targets.Count + 2), count, evaluated);
     }
-    private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, Action<string, IPAddress, string, string, bool> observe, Action<Observation, string> identify, CancellationToken ct)
+    private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, ConcurrentDictionary<string, Observation> observations, Action<string, IPAddress, string, string, bool> observe, Action<Observation, string> identify, CancellationToken ct)
     {
         var count = (int)(lan.Last - lan.First - 1);
         var quietUntil = DateTimeOffset.UtcNow.AddSeconds(3);
         async Task ArpSweep()
         {
             var firstPass = true;
+            var cursor = new SubnetSweep(lan);
             while (!ct.IsCancellationRequested)
             {
-                await Parallel.ForEachAsync(Enumerable.Range(1, count), new ParallelOptions { MaxDegreeOfParallelism = 32, CancellationToken = ct }, async (offset, token) =>
+                await Parallel.ForEachAsync(cursor.Next(), new ParallelOptions { MaxDegreeOfParallelism = 32, CancellationToken = ct }, async (ip, token) =>
                 {
-                    if ((DateTimeOffset.UtcNow.UtcTicks - Interlocked.Read(ref gatewaySeen)) > TimeSpan.FromSeconds(30).Ticks) return;
-                    var ip = Lan.Ip(lan.First + (uint)offset);
-                    if (ip.Equals(lan.Address) || ip.Equals(lan.Gateway)) return;
+                    if ((DateTimeOffset.UtcNow.UtcTicks - Interlocked.Read(ref gatewaySeen)) > TimeSpan.FromSeconds(Math.Max(30, backgroundIntervalSeconds * 3)).Ticks) return;
                     var mac = await sweep.ResolveAsync(lan, ip, token);
                     observe(mac, ip, "", "fresh-arp", firstPass && DateTimeOffset.UtcNow < quietUntil);
                 });
                 firstPass = false;
-                await Task.Delay(1000, ct);
+                await Task.Delay(backgroundIntervalSeconds * 1000, ct);
             }
         }
         async Task LocalResponses()
         {
             var hostnameRetries = new ConcurrentDictionary<string, DateTimeOffset>();
-            var firstPass = true; uint cursor = lan.First + 1;
+            var firstPass = true; var cursor = new SubnetSweep(lan);
             while (!ct.IsCancellationRequested)
             {
                 var multicast = MdnsAsync(lan, ct);
                 // Async ICMP finds responsive new hosts without blocking the known-device path.
-                var targets = new List<IPAddress>();
-                for (var i = 0; i < Math.Min(count, 4096); i++)
-                {
-                    if (cursor >= lan.Last) cursor = lan.First + 1;
-                    var ip = Lan.Ip(cursor++); if (!ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip);
-                }
-                await Parallel.ForEachAsync(targets, new ParallelOptions { MaxDegreeOfParallelism = 128, CancellationToken = ct }, async (ip, token) =>
+                await Parallel.ForEachAsync(cursor.Next(), new ParallelOptions { MaxDegreeOfParallelism = 32, CancellationToken = ct }, async (ip, token) =>
                 {
                     using var ping = new Ping();
                     try
@@ -187,7 +183,7 @@ public sealed class Discovery : IDisposable
                     observe(mac, ip, pair.Value, "mdns-response", firstPass && DateTimeOffset.UtcNow < quietUntil);
                 }
                 // Enrich only already observed devices; DNS is not evidence of presence.
-                var candidates = recent.Values.Where(o => o.Hostname == "" && DateTimeOffset.UtcNow - o.At.GetValueOrDefault() < TimeSpan.FromMinutes(1)
+                var candidates = observations.Values.Where(o => o.Hostname == "" && DateTimeOffset.UtcNow - o.At.GetValueOrDefault() < TimeSpan.FromMinutes(1)
                     && (!hostnameRetries.TryGetValue(o.Mac + "|" + o.Ip, out var retry) || retry <= DateTimeOffset.UtcNow)).Take(16).ToList();
                 await Parallel.ForEachAsync(candidates, new ParallelOptions { MaxDegreeOfParallelism = 4, CancellationToken = ct }, async (observation, token) =>
                 {
@@ -195,7 +191,7 @@ public sealed class Discovery : IDisposable
                     identify(observation, await HostnameResolver.ResolveAsync(observation.Ip, token));
                 });
                 firstPass = false;
-                await Task.Delay(3000, ct);
+                await Task.Delay(backgroundIntervalSeconds * 1000, ct);
             }
         }
         try
@@ -235,19 +231,49 @@ public sealed class Discovery : IDisposable
     public void Dispose() { Reset(); priority.Dispose(); sweep.Dispose(); laneCancellation?.Dispose(); }
 }
 
+// Rotating bounded discovery keeps large LANs from monopolizing workers and sockets.
+internal sealed class SubnetSweep(Lan lan)
+{
+    internal const int BatchSize = 512;
+    private uint cursor = lan.First + 1;
+    internal IReadOnlyList<IPAddress> Next()
+    {
+        var targets = new List<IPAddress>();
+        var budget = Math.Min((int)(lan.Last - lan.First - 1), BatchSize);
+        for (var i = 0; i < budget; i++)
+        {
+            if (cursor >= lan.Last) cursor = lan.First + 1;
+            var ip = Lan.Ip(cursor++);
+            if (!ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)) targets.Add(ip);
+        }
+        return targets;
+    }
+}
+
 // Fixed background workers isolate blocking Windows ARP from the CLR/UI thread pool.
 internal sealed class ArpWorkers : IDisposable
 {
     private sealed record Work(Lan Lan, IPAddress Ip, CancellationToken Token, TaskCompletionSource<string> Completion);
     private readonly BlockingCollection<Work> queue = new(1024);
+    private readonly object lifecycle = new();
+    private readonly int workerCount;
+    private bool started;
     private bool disposed;
     public ArpWorkers(int count)
     {
-        for (var i = 0; i < count; i++) new Thread(Run, 256 * 1024) { IsBackground = true, Name = "Presence ARP" }.Start();
+        workerCount = count;
     }
     public Task<string> ResolveAsync(Lan lan, IPAddress ip, CancellationToken token)
     {
-        if (disposed || token.IsCancellationRequested) return Task.FromCanceled<string>(new CancellationToken(true));
+        lock (lifecycle)
+        {
+            if (disposed || token.IsCancellationRequested) return Task.FromCanceled<string>(new CancellationToken(true));
+            if (!started)
+            {
+                started = true;
+                for (var i = 0; i < workerCount; i++) new Thread(Run, 256 * 1024) { IsBackground = true, Name = "Presence ARP" }.Start();
+            }
+        }
         var completion = new TaskCompletionSource<string>(TaskCreationOptions.RunContinuationsAsynchronously);
         try { if (!queue.TryAdd(new(lan, ip, token, completion))) completion.TrySetException(new IOException("Discovery queue is busy.")); }
         catch (InvalidOperationException) { completion.TrySetCanceled(); }
@@ -262,7 +288,7 @@ internal sealed class ArpWorkers : IDisposable
             catch (Exception ex) { work.Completion.TrySetException(ex); }
         }
     }
-    public void Dispose() { if (disposed) return; disposed = true; queue.CompleteAdding(); }
+    public void Dispose() { lock (lifecycle) { if (disposed) return; disposed = true; queue.CompleteAdding(); } }
 }
 internal static class DnsPacket
 {

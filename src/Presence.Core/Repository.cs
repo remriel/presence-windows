@@ -56,6 +56,7 @@ public sealed class Repository : IDisposable
     {
         var now = at ?? DateTimeOffset.UtcNow;
         var recorded = new List<Observation>();
+        var recordedMacs = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         using var tx = db.BeginTransaction();
         using (var c = db.CreateCommand()) { c.Transaction = tx; c.CommandText = "INSERT INTO State VALUES(1,$json) ON CONFLICT(Id) DO UPDATE SET Json=$json"; c.Parameters.AddWithValue("$json", JsonSerializer.Serialize(data)); c.ExecuteNonQuery(); }
         foreach (var e in events ?? [])
@@ -63,8 +64,10 @@ public sealed class Repository : IDisposable
             using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "INSERT OR IGNORE INTO PresenceEvent VALUES($id,$at,$type,$name,$mac,$person)";
             c.Parameters.AddWithValue("$id", e.Id); c.Parameters.AddWithValue("$at", Stamp(e.At)); c.Parameters.AddWithValue("$type", e.Type); c.Parameters.AddWithValue("$name", e.Name); c.Parameters.AddWithValue("$mac", (object?)e.Mac ?? DBNull.Value); c.Parameters.AddWithValue("$person", (object?)e.PersonId ?? DBNull.Value); c.ExecuteNonQuery();
         }
-        foreach (var o in observations ?? [])
+        foreach (var o in (observations ?? []).Where(o => o.Signal != "identity-only")
+            .OrderByDescending(o => o.At ?? now))
         {
+            if (!recordedMacs.Add(o.Mac)) continue;
             if (observationWrites.TryGetValue(o.Mac, out var last) && last.Ip == o.Ip && now - last.At < TimeSpan.FromSeconds(30)) continue;
             using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "INSERT INTO Observation(At,Mac,Ip,Signal) VALUES($at,$mac,$ip,$signal)";
             c.Parameters.AddWithValue("$at", Stamp(o.At ?? now)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery(); recorded.Add(o);
