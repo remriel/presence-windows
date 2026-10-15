@@ -35,6 +35,7 @@ jobs:
           [xml]$project = Get-Content "src/Presence.App/Presence.App.csproj"
           $version = [string]($project.Project.PropertyGroup.Version | Select-Object -First 1)
           if ([string]::IsNullOrWhiteSpace($version)) { throw "Project version is missing." }
+          Copy-Item -LiteralPath README.md,THIRD_PARTY_NOTICES.md -Destination artifacts/portable
           $zip = "artifacts/Presence-$version-win-x64.zip"
           if (Test-Path $zip) { Remove-Item $zip -Force }
           Compress-Archive -Path "artifacts/portable/*" -DestinationPath $zip -CompressionLevel Optimal
