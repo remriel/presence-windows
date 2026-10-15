@@ -35,6 +35,7 @@ internal sealed class MainWindow : Form
         heading.Controls.Add(title, 0, 0); heading.Controls.Add(pauseScanning, 1, 0); heading.Controls.Add(Ui.Button("&Settings", ShowSettings, s), 2, 0); Ui.Add(header, heading);
         status = Ui.Label("Finding your network…", s); status.Font = Ui.StrongFont; status.Margin = new Padding(0, 0, 0, Ui.Small); Ui.Add(header, status);
         network = Ui.Label("", s, true); Ui.Add(header, network);
+        Ui.Add(header, Ui.Button("&Networks", () => { using var dialog = new NetworksWindow(app); dialog.ShowDialog(this); }, s));
         selectDevices = Ui.Button("Select &devices", () => { selecting = !selecting; selected.Clear(); signature = ""; Render(); }, s);
         ignoreSelected = Ui.Button("&Ignore selected", () => SetSelected(DeviceKind.Ignore), s);
         knownSelected = Ui.Button("Set &known", () => SetSelected(DeviceKind.Known), s);
@@ -135,6 +136,41 @@ internal sealed class MainWindow : Form
         speedTest = new SpeedTestWindow(app.Engine.Data.Settings); speedTest.FormClosed += (_, _) => speedTest = null; speedTest.Show(this);
     }
     protected override void Dispose(bool disposing) { if (disposing) { app.Changed -= Render; speedTest?.Close(); pauseHint.Dispose(); } base.Dispose(disposing); }
+}
+
+internal sealed class NetworksWindow : Form
+{
+    public NetworksWindow(PresenceContext app)
+    {
+        var s = app.Engine.Data.Settings; var scope = app.NetworkScope;
+        Ui.Configure(this, "Networks", new Size(600, 650), new Size(500, 460), s);
+        var body = new ScrollBody();
+        var current = Ui.Group("Remember this network", s);
+        Ui.Add(current, Ui.Label(scope == "" ? "Connect to a network to save it." : app.NetworkLabel, s, true));
+        var name = new TextBox { Text = app.Engine.Data.Networks.FirstOrDefault(n => n.Scope == scope)?.Name ?? app.DefaultNetworkName, MaxLength = 128, AccessibleName = "Network name", Dock = DockStyle.Top, Margin = new Padding(0, Ui.Gap, 0, Ui.Space) };
+        Ui.Add(current, Ui.Label("Network name", s)); Ui.Add(current, name);
+        Ui.Add(current, Ui.Label("Defaults to your Wi-Fi SSID. If Windows cannot provide it, enter a name. Saved names are recognized when this network returns.", s, true));
+        var error = Ui.Label("", s); error.Visible = false;
+        void Attempt(Action action)
+        {
+            try { action(); Close(); }
+            catch (Exception ex) { error.Text = "Could not save network changes. " + ex.Message; error.ForeColor = Ui.Negative(s); error.Visible = true; }
+        }
+        var save = Ui.Button("&Save network", () => Attempt(() => app.SaveNetwork(scope, name.Text)), s, true); save.Enabled = scope != "";
+        Ui.Add(current, save); Ui.Add(body.Content, current);
+        var saved = Ui.Group("Saved networks", s);
+        if (app.Engine.Data.Networks.Count == 0) Ui.Add(saved, Ui.Label("No saved networks yet.", s, true));
+        foreach (var item in app.Engine.Data.Networks)
+        {
+            Ui.Add(saved, Ui.Label(item.Name + (item.Scope == scope ? " · connected" : ""), s));
+            Ui.Add(saved, Ui.Button("Forget " + item.Name.Replace("&", "&&"), () => Attempt(() => app.ForgetNetwork(item.Scope)), s));
+        }
+        Ui.Add(saved, Ui.Label("Forgetting removes the saved network name. Device names, people and activity remain stored locally.", s, true));
+        Ui.Add(body.Content, saved); Ui.Add(body.Content, error);
+        var footer = Ui.Stack(); var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel; Ui.Add(footer, Ui.Actions(close));
+        CancelButton = close; AcceptButton = save;
+        Ui.Shell(this, Ui.Header("Networks", "Save a familiar name for your connected network.", s), body, footer); Ui.Theme(this, s);
+    }
 }
 
 internal sealed class SettingsWindow : Form

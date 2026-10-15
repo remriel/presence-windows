@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.2.2](https://github.com/remriel/presence-windows/releases/tag/v1.2.2) · Windows 10 x64 and later
+[Download Presence 1.3.0](https://github.com/remriel/presence-windows/releases/tag/v1.3.0) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -32,7 +32,7 @@ These screens use fictional preview devices.
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current published release: **1.2.2**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current published release: **1.3.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
@@ -121,3 +121,8 @@ Manual acceptance after launch:
 
 - [Codex Usage Counter](https://github.com/remriel/codex-usage-counter): monitor Codex quotas, reset windows, and token activity in the Windows tray.
 - [Ovo Timer](https://github.com/remriel/ovo-timer-android): a touch-friendly Windows and Android countdown timer.
+
+
+## Saved networks
+
+Open **Networks** in the main window, keep the default Wi-Fi SSID or enter a custom name, then choose **Save network**. Reopen Networks to rename the connected saved network or forget a saved name. Forgetting preserves devices, person assignments and activity. Names stay in the local profile and survive restarting. If Windows cannot expose the SSID (or you use Ethernet), the adapter/subnet description is the editable default. Recognition uses the existing physical adapter, subnet and gateway identity; replacing an adapter/router or changing subnet may require saving the network again. Saving a network does not change your Windows Wi-Fi connection or store its password.

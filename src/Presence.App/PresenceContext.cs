@@ -9,6 +9,8 @@ internal sealed class PresenceContext : ApplicationContext
     public Repository Store { get; }
     public string Status { get; private set; } = "Finding your local network…";
     public string NetworkLabel { get; private set; } = "";
+    public string DefaultNetworkName { get; private set; } = "";
+    private string networkDescription = "";
     public bool Monitoring { get; private set; }
     public bool IsScanning => scanning;
     public bool ScanningPaused { get; private set; }
@@ -135,7 +137,9 @@ internal sealed class PresenceContext : ApplicationContext
         var events = Engine.Apply(result.Observations, result.Scope, now, result.InitialSweep, result.EvaluatedMacs, result.IsPartial);
         pendingEvents.AddRange(events);
         foreach (var observation in result.Observations.Where(o => o.Signal != "identity-only")) pendingObservations[observation.Mac] = observation;
-        Monitoring = true; NetworkLabel = result.Description;
+        Monitoring = true; networkDescription = result.Description;
+        DefaultNetworkName = NetworkNames.Default(result.Ssid, result.Description);
+        UpdateNetworkLabel();
         Status = result.InitialSweep ? "Learning the network…" : "Monitoring · updated " + now.ToLocalTime().ToString("T");
         foreach (var e in events) Notify(e);
         try { Flush(events.Count > 0); }
@@ -183,6 +187,25 @@ internal sealed class PresenceContext : ApplicationContext
         }
         timer.Interval = settings.ScanIntervalSeconds * 1000;
         if (adapterId != settings.InterfaceId) { adapterId = settings.InterfaceId; RestartDiscovery(); }
+        Refresh();
+    }
+    private void UpdateNetworkLabel()
+    {
+        var saved = Engine.Data.Networks.FirstOrDefault(n => n.Scope == NetworkScope);
+        NetworkLabel = saved is null ? networkDescription : saved.Name + " · saved network\n" + networkDescription;
+    }
+    public void SaveNetwork(string scope, string name)
+    {
+        if (scope == "" || scope != NetworkScope) throw new InvalidOperationException("The connected network changed. Reopen Networks and try again.");
+        ChangeNetworks(() => NetworkNames.Remember(Engine.Data.Networks, scope, name));
+    }
+    public void ForgetNetwork(string scope) => ChangeNetworks(() => Engine.Data.Networks.RemoveAll(n => n.Scope == scope));
+    private void ChangeNetworks(Action change)
+    {
+        var previous = Engine.Data.Networks.ToList();
+        try { change(); Flush(true); }
+        catch { Engine.Data.Networks = previous; throw; }
+        if (NetworkScope != "") UpdateNetworkLabel();
         Refresh();
     }
     public void SaveDevice(Device device, string name, DeviceKind kind, string person, bool primary)

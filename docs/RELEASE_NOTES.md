@@ -1,3 +1,13 @@
+# Presence 1.3.0
+
+- Add Networks from the main window to remember/save the connected network and rename it later.
+- Default the name to the selected adapter's Wi-Fi SSID. If Windows restricts SSID access or the connection is wired, use the adapter/subnet description as an editable fallback.
+- Recognize saved names by the existing adapter/subnet/gateway identity when reconnecting; identical names do not merge separate networks.
+- List saved networks and allow forgetting a name while preserving devices, people and activity.
+- Persist names locally, roll back failed saves/forgets, reject saving after the network changes, and clear saved names with Reset everything.
+
+Existing profiles are preserved without a reset. SSID availability and real Wi-Fi reconnect behavior depend on Windows permissions and the local network.
+
 # Presence 1.2.2
 
 - Prevent replayed observations, older samples and monitoring gaps from producing false presence changes. Resume accepting fresh sightings after backwards clock correction.

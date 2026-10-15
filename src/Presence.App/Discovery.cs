@@ -18,7 +18,7 @@ public sealed record Lan(string Id, string Name, int Index, IPAddress Address, i
     public static uint Number(IPAddress ip) { var b = ip.GetAddressBytes(); return ((uint)b[0] << 24) | ((uint)b[1] << 16) | ((uint)b[2] << 8) | b[3]; }
     public static IPAddress Ip(uint value) => new(new byte[] { (byte)(value >> 24), (byte)(value >> 16), (byte)(value >> 8), (byte)value });
 }
-public sealed record ScanResult(string Scope, string Description, IReadOnlyList<Observation> Observations, bool InitialSweep, int Coverage, int Total, IReadOnlyCollection<string>? EvaluatedMacs = null, bool IsPartial = false);
+public sealed record ScanResult(string Scope, string Description, IReadOnlyList<Observation> Observations, bool InitialSweep, int Coverage, int Total, IReadOnlyCollection<string>? EvaluatedMacs = null, bool IsPartial = false, string Ssid = "");
 
 public sealed class Discovery : IDisposable
 {
@@ -34,6 +34,7 @@ public sealed class Discovery : IDisposable
     private long gatewaySeen;
     private bool baselinePending = true;
     private Lan? cachedLan;
+    private string ssid = "";
     private DateTimeOffset interfacesRead;
     private volatile int backgroundIntervalSeconds = 3;
     public string CurrentScope => scope;
@@ -74,6 +75,7 @@ public sealed class Discovery : IDisposable
         {
             var interfaces = Interfaces();
             cachedLan = settings.InterfaceId == "" ? interfaces.FirstOrDefault() : interfaces.FirstOrDefault(n => n.Id == settings.InterfaceId);
+            ssid = cachedLan is null ? "" : NetworkIdentity.Ssid(cachedLan.Id);
             interfacesRead = DateTimeOffset.UtcNow;
         }
         var lan = cachedLan ?? throw new IOException("No connected local network. Monitoring is paused.");
@@ -96,6 +98,7 @@ public sealed class Discovery : IDisposable
         var initial = baselinePending;
         var count = (int)(lan.Last - lan.First - 1);
         var description = lan.Name + " · " + Lan.Ip(lan.First) + "/" + lan.Prefix;
+        var networkSsid = ssid;
         void Observe(string mac, IPAddress ip, string hostname, string signal, bool quiet)
         {
             if (token.IsCancellationRequested || key != scope || mac == "") return;
@@ -106,7 +109,7 @@ public sealed class Discovery : IDisposable
             var observation = new Observation(mac, ip.ToString(), hostname, vendors.Find(mac), signal, at);
             laneObservations[mac] = observation;
             if (previous is null || at - previous.At.GetValueOrDefault() >= TimeSpan.FromMilliseconds(500))
-                progress?.Report(new(key, description, [observation], quiet, 0, count, [], true));
+                progress?.Report(new(key, description, [observation], quiet, 0, count, [], true, networkSsid));
         }
         void Identify(Observation original, string hostname)
         {
@@ -115,7 +118,7 @@ public sealed class Discovery : IDisposable
             if (current is null || current.Ip != original.Ip || current.Hostname != "") return;
             var enriched = current with { Hostname = hostname };
             if (laneObservations.TryUpdate(original.Mac, enriched, current))
-                progress?.Report(new(key, description, [enriched with { Signal = "identity-only" }], false, 0, count, [], true));
+                progress?.Report(new(key, description, [enriched with { Signal = "identity-only" }], false, 0, count, [], true, networkSsid));
         }
         Observe(gatewayMac, lan.Gateway, "", "fresh-arp", initial);
         if (lan.Mac != "") Observe(lan.Mac, lan.Address, Environment.MachineName, "local-interface", initial);
@@ -134,7 +137,7 @@ public sealed class Discovery : IDisposable
         token.ThrowIfCancellationRequested();
         baselinePending = false;
         var evaluated = devices.Where(d => d.Network == key && (targets.Contains(d.Ip) || d.Mac == lan.Mac || d.Mac == gatewayMac)).Select(d => d.Mac).ToArray();
-        return new(key, description, laneObservations.Values.Where(o => o.At >= started).ToList(), initial, Math.Min(count, targets.Count + 2), count, evaluated);
+        return new(key, description, laneObservations.Values.Where(o => o.At >= started).ToList(), initial, Math.Min(count, targets.Count + 2), count, evaluated, Ssid: networkSsid);
     }
     private async Task BackgroundDiscovery(Lan lan, string key, string gatewayMac, ConcurrentDictionary<string, Observation> observations, Action<string, IPAddress, string, string, bool> observe, Action<Observation, string> identify, CancellationToken ct)
     {

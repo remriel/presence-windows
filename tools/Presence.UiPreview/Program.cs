@@ -14,6 +14,7 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--saved-networks")) return SavedNetworkChecks();
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
         if (args.Contains("--device-visibility")) return DeviceVisibilityChecks();
         if (args.Contains("--reliability")) return ReliabilityChecks();
@@ -85,6 +86,61 @@ internal static class Program
         foreach (var failure in failures.Take(30)) Console.WriteLine(failure);
         return failures.Count == 0 ? 0 : 2;
     }
+    private static int SavedNetworkChecks()
+    {
+        void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "Networks", Guid.NewGuid().ToString("N"));
+        using var app = new PresenceContext(folder, true, true);
+        var apply = typeof(PresenceContext).GetMethod("ApplyResult", BindingFlags.NonPublic | BindingFlags.Instance)!;
+        var result = new ScanResult("demo", "Fictional adapter · 192.0.2.0/24", [], true, 0, 254, Ssid: "Fictional Wi-Fi");
+        apply.Invoke(app, [result]);
+        foreach (var theme in new[] { "Light", "Dark" })
+        {
+            app.Engine.Data.Settings.Theme = theme;
+            using var dialog = new NetworksWindow(app);
+            Capture(dialog, "networks-" + theme.ToLowerInvariant(), 1, "minimum");
+            Check(All(dialog).OfType<TextBox>().Single().Text == "Fictional Wi-Fi", theme + " SSID default");
+        }
+        using (var dialog = new NetworksWindow(app))
+        {
+            dialog.Show(); Application.DoEvents();
+            All(dialog).OfType<Button>().Single(b => b.AccessibleName == "Save network").PerformClick();
+            Check(dialog.IsDisposed, "Save network button persists and closes");
+        }
+        Check(app.Store.Load().Networks.Single().Name == "Fictional Wi-Fi", "Network persists to SQLite");
+        app.SaveNetwork("demo", "Home");
+        Check(app.Engine.Data.Networks.Count == 1 && app.NetworkLabel.StartsWith("Home · saved network"), "Rename replaces and updates header");
+        app.Engine.ResetNetwork(); apply.Invoke(app, [result]);
+        Check(app.NetworkLabel.StartsWith("Home · saved network"), "Reconnect result restores saved label");
+        Capture(GetMain(app), "networks-main", 1, "default");
+        using (var saved = new NetworksWindow(app)) Capture(saved, "networks-saved", 1, "minimum");
+        try { app.SaveNetwork("other", "Wrong"); failures.Add("Stale network save accepted"); } catch (InvalidOperationException) { checks.Add("Stale network rejected"); }
+        using (var db = new Microsoft.Data.Sqlite.SqliteConnection($"Data Source={Path.Combine(folder, "presence.db")}"))
+        {
+            db.Open(); using var command = db.CreateCommand();
+            command.CommandText = "CREATE TRIGGER RejectNetworkSave BEFORE UPDATE ON State BEGIN SELECT RAISE(ABORT,'fixture failure'); END"; command.ExecuteNonQuery();
+            try { app.SaveNetwork("demo", "Failed"); failures.Add("Failed save accepted"); } catch (Microsoft.Data.Sqlite.SqliteException) { }
+            Check(app.Engine.Data.Networks.Single().Name == "Home" && app.Store.Load().Networks.Single().Name == "Home", "Save failure rolls back memory and database");
+            try { app.ForgetNetwork("demo"); failures.Add("Failed forget accepted"); } catch (Microsoft.Data.Sqlite.SqliteException) { }
+            Check(app.Engine.Data.Networks.Single().Name == "Home", "Forget failure rolls back");
+            command.CommandText = "DROP TRIGGER RejectNetworkSave"; command.ExecuteNonQuery();
+        }
+        var devices = app.Engine.Data.Devices.Count;
+        app.ForgetNetwork("demo");
+        Check(app.Store.Load().Networks.Count == 0 && app.Engine.Data.Devices.Count == devices, "Forget preserves devices");
+        SetContext(app, "Monitoring", false);
+        using (var disconnected = new NetworksWindow(app))
+        {
+            Capture(disconnected, "networks-disconnected", 1, "minimum");
+            Check(!All(disconnected).OfType<Button>().Single(b => b.AccessibleName == "Save network").Enabled, "Disconnected save disabled");
+        }
+        GetMain(app).AllowClose = true;
+        File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { captures, failures, checks }));
+        Console.WriteLine($"Saved networks: {checks.Count} checks, {failures.Count} findings.");
+        foreach (var failure in failures) Console.WriteLine(failure);
+        return failures.Count == 0 ? 0 : 1;
+    }
+
     private static int ReliabilityChecks()
     {
         void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }

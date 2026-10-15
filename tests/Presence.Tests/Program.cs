@@ -89,3 +89,27 @@ Expect(clockData.Devices.Single().MissingSeconds == 0, "DNS metadata cannot mask
 Console.WriteLine("Restart absence and identity enrichment checks passed.");
 
 ReliabilityChecks.Run();
+
+var networks = new List<SavedNetwork>();
+Expect(NetworkNames.Default("Café Wi-Fi", "Wi-Fi · subnet") == "Café Wi-Fi", "Use the actual SSID, including Unicode, by default.");
+Expect(NetworkNames.Default("", "Ethernet · subnet") == "Ethernet · subnet", "Unavailable SSID has a usable adapter/subnet fallback.");
+NetworkNames.Remember(networks, "network-a", " Home ");
+NetworkNames.Remember(networks, "network-b", "Home");
+NetworkNames.Remember(networks, "network-a", "Renamed");
+Expect(networks.Count == 2 && networks.Single(n => n.Scope == "network-a").Name == "Renamed", "Separate identities may share a name; renaming does not duplicate a network.");
+foreach (var invalidName in new[] { "", "   ", new string('a', 129) })
+{
+    try { NetworkNames.Remember(networks, "network-a", invalidName); throw new Exception("Invalid name accepted."); } catch (ArgumentException) { }
+}
+var legacy = System.Text.Json.JsonSerializer.Deserialize<Snapshot>("{\"Devices\":[],\"People\":[],\"Settings\":{}}")!;
+Expect(legacy.Networks.Count == 0, "Existing profiles load with an empty saved-network list.");
+var networkFolder = Path.Combine(Path.GetTempPath(), "PresenceNetworkTests", Guid.NewGuid().ToString("N"));
+var networkPath = Path.Combine(networkFolder, "presence.db");
+using (var repository = new Repository(networkPath)) repository.Save(new Snapshot { Networks = networks });
+using (var repository = new Repository(networkPath))
+{
+    Expect(repository.Load().Networks.SequenceEqual(networks), "Saved names survive closing and reopening SQLite.");
+    repository.Reset();
+    Expect(repository.Load().Networks.Count == 0, "Reset clears saved network names.");
+}
+Console.WriteLine("Saved network identity, validation, migration and persistence checks passed.");

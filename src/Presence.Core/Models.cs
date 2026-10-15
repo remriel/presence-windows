@@ -61,9 +61,24 @@ public sealed class Settings
 }
 public sealed class Snapshot
 {
+    public List<SavedNetwork> Networks { get; set; } = [];
     public List<Device> Devices { get; set; } = [];
     public List<Person> People { get; set; } = [];
     public Settings Settings { get; set; } = new();
+}
+public sealed record SavedNetwork(string Scope, string Name);
+public static class NetworkNames
+{
+    public static string Default(string ssid, string description) => string.IsNullOrWhiteSpace(ssid) ? description : ssid;
+    public static SavedNetwork Remember(List<SavedNetwork> networks, string scope, string name)
+    {
+        if (string.IsNullOrWhiteSpace(scope)) throw new InvalidOperationException("Connect to a network before saving it.");
+        if (string.IsNullOrWhiteSpace(name) || name.Trim().Length > 128) throw new ArgumentException("Enter a network name of 1 to 128 characters.");
+        var saved = new SavedNetwork(scope, name.Trim());
+        var index = networks.FindIndex(n => n.Scope == scope);
+        if (index < 0) networks.Add(saved); else networks[index] = saved;
+        return saved;
+    }
 }
 public static class Identity
 {
