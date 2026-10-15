@@ -1,25 +1,30 @@
 # Presence progress
 
-Current objective: finish the reproduced presence/persistence fixes and preview repair, verify them, and deliver a portable audit build and GitHub PR.
-Progress: **90%** [##################--]
+Current objective: deliver the finished audit patch, portable build, and reviewable GitHub PR.
+Progress: **95%** [###################-]
 
-- [x] Reconcile instructions, source and clean main at 531ad4e.
-- [x] Isolate work in work/presence-audit after concurrent edits appeared in the original checkout.
-- [x] Reproduce stale/replayed sightings, oldest-sample selection, clock recovery and observation-write defects with failing checks.
-- [x] Fix session observation freshness, newest-sample selection, clock recovery, transaction-local throttling and metadata filtering.
-- [x] Stop serializing computed display properties and repair the obsolete UI-preview icon resource.
-- [x] Pass original and added core checks; Release native build has zero warnings/errors.
-- [x] Pass 16 visibility checks (6 captures), 24 bulk/reset/pause checks (12 captures), and broader UI smoke (26 captures, zero findings).
-- [x] Add broader UI smoke to Windows CI; inspect a fictional native screenshot.
-- [ ] Complete self-contained portable publish and packaged smoke check.
-- [ ] Commit/push, create PR, inspect CI, and export final handoffs.
+- [x] Reconcile instructions and clean main 531ad4e; isolate concurrent checkout work.
+- [x] Reproduce and fix replayed sightings, newest-sample selection and backwards-clock recovery.
+- [x] Fix transaction-local observation throttling, exclude identity-only metadata, and resume writes after a backwards clock change.
+- [x] Omit computed display/type properties from persisted snapshots.
+- [x] Fix the broader preview's missing icon resource and add that suite to Windows CI.
+- [x] Original and added core tests pass; Release native build has zero warnings/errors.
+- [x] Visibility: 16 checks/zero findings/6 captures; bulk/reset/pause: 24 checks/zero findings/12 captures; broader smoke: 26 captures/zero layout findings.
+- [x] Push implementation fcb1880; open and attach PR #4.
+- [x] Windows CI passes for fcb1880: https://github.com/remriel/presence-windows/actions/runs/38693354265.
+- [x] Initial portable archive integrity verified; packaged smoke exposed a second-disposal shutdown exception.
+- [x] Make application-context disposal idempotent, guard repeated Exit, and add an explicit repeated-disposal native regression.
+- [ ] Rebuild/archive the shutdown fix, verify packaged exit, synchronize final documentation, and export handoffs.
 
-Implementation: focused audit patch on branch fix/audit-reliability-20261014 in C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit. No UI redesign. No real profile or installed application changed.
+PR: https://github.com/remriel/presence-windows/pull/4 (open; not merged).
+Checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit
+Branch: fix/audit-reliability-20261014
+Build root: %LOCALAPPDATA%/PresenceBuild/Audit20261014
 
-Known unresolved work: the source review also identified editor save-failure rollback gaps and a mismatch between documented bounded discovery and full-subnet background sweeps. Those broader changes were not implemented after the user requested finishing up. Real LAN, sleeping devices and Windows suspend/resume remain manual acceptance. This patch does not establish that every possible application bug is fixed.
+Known unresolved work: editor save-failure rollback gaps and a mismatch between documented bounded discovery and full-subnet background sweeps remain follow-up work after the user's request to finish. Physical LAN, sleeping-device and suspend/resume behavior needs manual acceptance. This patch does not establish that all conceivable application bugs are fixed. The installed app and real profile were not changed.
 
 Exact ordered next steps:
-1. Finish portable publish and fictional packaged smoke check.
-2. Commit and push the patch; open and attach a PR; inspect Windows CI.
-3. Update this checklist with exact PR/artifact/check references and export both handoffs to outputs.
-4. Future work: reproduce editor save failures and bounded discovery in dedicated native tests before changing those paths.
+1. Complete the shutdown-fix portable rebuild and package verification.
+2. Update/push PR #4 and inspect final CI status; export both handoffs.
+3. Review/merge the PR when ready; no release or installation has been performed.
+4. Future work: add failure-injection tests for editor saves and deterministic tests for bounded discovery before changing those paths.

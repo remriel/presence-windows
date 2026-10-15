@@ -31,6 +31,7 @@ internal sealed class PresenceContext : ApplicationContext
     private readonly bool demo;
     private bool refreshQueued;
     private bool dirty;
+    private bool resourcesDisposed;
     private string adapterId = "";
     private DateTimeOffset lastSaved;
     private readonly List<PresenceEvent> pendingEvents = [];
@@ -241,12 +242,13 @@ internal sealed class PresenceContext : ApplicationContext
     }
     public void Exit()
     {
+        if (Stopping) return;
         try { Flush(true); } catch (Exception ex) { MessageBox.Show("Recent history could not be saved. Presence is still running.\n" + ex.Message, "Presence"); return; }
         Stopping = true; cancel.Cancel(); discovery.Reset(); timer.Stop(); repaint.Stop(); reconnect.Stop(); tray.Visible = false; window.AllowClose = true; window.Close(); ExitThread();
     }
     protected override void Dispose(bool disposing)
     {
-        if (disposing) { Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); reconnect.Dispose(); tray.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
+        if (disposing && !resourcesDisposed) { resourcesDisposed = true; Stopping = true; cancel.Cancel(); SystemEvents.PowerModeChanged -= PowerChanged; System.Net.NetworkInformation.NetworkChange.NetworkAddressChanged -= NetworkChanged; System.Net.NetworkInformation.NetworkChange.NetworkAvailabilityChanged -= NetworkAvailabilityChanged; discovery.Dispose(); alerts.Dispose(); timer.Dispose(); repaint.Dispose(); reconnect.Dispose(); tray.Dispose(); window.Dispose(); Store.Dispose(); cancel.Dispose(); }
         base.Dispose(disposing);
     }
     private static void SeedDemo(Snapshot data)

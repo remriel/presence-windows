@@ -91,3 +91,9 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - Verification: original and added core suite passes; Release native build 0 warnings/errors; visibility 16 checks/0 findings/6 captures; bulk/reset/pause 24 checks/0 findings/12 captures; broader smoke 26 captures/0 layout findings. Captures use fictional devices and stay outside Git.
 - Known unresolved audit findings: settings/device edits mutate live state before persistence and lack complete rollback; background discovery ARP-enumerates the entire subnet and ICMP batches reach 4096 despite the README's bounded-sweep description. These remain follow-up work, not fixed by this PR. Physical LAN acceptance remains required.
 - RESUME HERE: finish portable publish, packaged fictional smoke, GitHub PR/CI and output handoff export. The current PROGRESS.md supersedes all historical completion sections above.
+
+## Packaged shutdown discovery (2026-10-14)
+- PR #4 is open: https://github.com/remriel/presence-windows/pull/4. Initial implementation fcb1880 passes Windows CI at https://github.com/remriel/presence-windows/actions/runs/38693354265.
+- Extracted portable binary matched publish, but running the packaged preview exposed ObjectDisposedException in PresenceContext.Dispose when shutdown disposed the context repeatedly.
+- PresenceContext now guards resource disposal and repeated Exit. The native visibility suite explicitly disposes its context twice, followed by the using-scope cleanup, to cover this lifecycle.
+- RESUME HERE: complete the shutdown-fix package/retest and update/export the current PROGRESS.md. Earlier package hashes are superseded by the final archive.

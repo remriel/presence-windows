@@ -134,6 +134,8 @@ internal static class Program
             using var details = new DeviceWindow(app, fixtures[2]); Capture(details, theme + "-device-identification", 1, "default"); CaptureBottom(details, theme + "-device-identification-details", 1);
         }
         main.AllowClose = true; main.Close();
+        app.Dispose(); app.Dispose();
+        Check(true, "Application context can be disposed repeatedly during shutdown");
         File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { captures, failures, checks }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"Device visibility: {checks.Count} checks; {failures.Count} findings; {captures.Count} captures.");
         foreach (var failure in failures) Console.WriteLine(failure);
