@@ -1,15 +1,14 @@
 # Presence project state
 
-## Active release / RESUME HERE (2026-10-15)
+## Current release / RESUME HERE (2026-10-15)
 
-User explicitly requested release. Publish Presence 1.2.2 from consolidated PR #5, which supersedes closed PR #4 and includes its fixes plus the broader completed audit. PR #5's latest CI passed at https://github.com/remriel/presence-windows/actions/runs/38694662855 before release metadata changes. Local release checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit; branch release/presence-1.2.2 tracks origin/fix/reliability-performance. Version/README/release notes are prepared. Follow current PROGRESS.md; audit-preview completion records below are historical. No subagents, installation or real profile changes.
-## Previous audit delivery
+Presence 1.2.2 is published: https://github.com/remriel/presence-windows/releases/tag/v1.2.2. Consolidated PR #5 is merged as bc644851863d47be3ac7eba10fe8feb8cf1bfaba, the verified release/tag target. It superseded closed PR #4 and includes its fixes plus save rollback, disconnected-adapter retention, bounded discovery and hidden-window work reductions. User explicitly authorized publication. No subagents, installation or production-profile changes.
 
-The 2026-10-14 reliability/performance audit is complete. Branch `fix/reliability-performance`, baseline `531ad4e`; PR https://github.com/remriel/presence-windows/pull/5. Verified implementation `afc87a0f6334dff22b06f8129a19673ecfa1be14`; passing CI https://github.com/remriel/presence-windows/actions/runs/38694066264. Later commits update handoffs; inspect latest PR checks before merging.
+Final PR Windows CI: https://github.com/remriel/presence-windows/actions/runs/38763761891 (passed). Merged-target release CI: https://github.com/remriel/presence-windows/actions/runs/38764156565 (passed; published assets). Version 1.2.2; README/download links and release notes updated. Release ZIP now includes README.md and THIRD_PARTY_NOTICES.md with Presence.exe and oui.csv.
 
-Checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-windows. Source is pushed; PR remains open. No merge, tagged release, installation or production-profile reset was performed.
-Package: outputs/Presence-1.2.1-fixes-afc87a0-win-x64.zip, 57,473,271 bytes. SHA-256 0320a1416a0ccf6e9348298356e0025220e92575356c0952c024e434fd888fe6. File version 1.2.1.0; product version includes afc87a0. Extracted EXE equals publish and packaged fictional preview passes. This is a PR preview build.
+Verified public archive: outputs/Presence-1.2.2-win-x64.zip, 57,472,969 bytes. SHA-256 aff8d0dea419910e00bd9141a378aaefbbf0ca78743b997477d7a8650cb10bd5 matches both the uploaded checksum and GitHub's asset digest. Tag points to the merged target. Extracted file version 1.2.2.0; product version 1.2.2+bc644851863d47be3ac7eba10fe8feb8cf1bfaba. Packaged fictional preview exits with code 0; screenshot at outputs/Presence-1.2.2-preview.png. The official public package replaces the earlier audit-preview build as the deliverable.
 
+Active checkout: C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit; branch main. Final documentation commits after bc64485 only record delivery; do not move the release tag. Both handoffs are exported under task outputs. Requested publication is complete; installation and physical acceptance remain optional future work. Preserve the production database; updates do not require reset.
 ## Architecture and constraints
 
 - .NET 10 Windows Forms tray app, net10.0-windows10.0.19041.0; Windows 10 x64 1809 minimum. Self-contained single-file packaging; never trim WinForms/WinRT.
@@ -54,4 +53,9 @@ Package: outputs/Presence-1.2.1-fixes-afc87a0-win-x64.zip, 57,473,271 bytes. SHA
 
 ## Next steps
 
-Review PR #5 and latest checks. Merge/release/install only when requested, preserving the production database. Otherwise no implementation step remains. Future agents must read AGENTS.md and both handoffs, inspect Git status/diff and relevant tests, and reconcile notes against the repository.
+Presence 1.2.2 publication is complete. For installation, quit the old tray process and replace the full portable package while preserving the production database. No implementation or publication step remains. Future agents must read AGENTS.md and both handoffs, inspect Git status/diff and relevant tests, and reconcile notes against the repository.
+
+## Release merge history (2026-10-15)
+- Final release PR Windows CI passed: https://github.com/remriel/presence-windows/actions/runs/38763761891. PR #5 merged as bc644851863d47be3ac7eba10fe8feb8cf1bfaba with commit title Release Presence 1.2.2, triggering the existing main release workflow.
+- Checkout now on main at that merged target. Release metadata sets 1.2.2; ZIP packaging includes README.md and THIRD_PARTY_NOTICES.md. No installation/profile changes.
+- Completed: main CI passed, v1.2.2 was published, public assets were downloaded and verified, and final handoffs were synchronized/exported. Current release details at the top supersede this intermediate record.
