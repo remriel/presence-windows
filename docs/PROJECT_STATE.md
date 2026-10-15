@@ -97,3 +97,12 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - Extracted portable binary matched publish, but running the packaged preview exposed ObjectDisposedException in PresenceContext.Dispose when shutdown disposed the context repeatedly.
 - PresenceContext now guards resource disposal and repeated Exit. The native visibility suite explicitly disposes its context twice, followed by the using-scope cleanup, to cover this lifecycle.
 - RESUME HERE: complete the shutdown-fix package/retest and update/export the current PROGRESS.md. Earlier package hashes are superseded by the final archive.
+
+## Final audit delivery / RESUME HERE (2026-10-14)
+- Implementation is pushed in PR #4: https://github.com/remriel/presence-windows/pull/4. Final code/package commit: 71e11c92f04da38bbfbc3abedfe664499bd5ab4f. Later commits only record handoff details.
+- Final visibility/shutdown native suite passed 17 checks with zero findings and six captures; existing bulk/reset/pause passed 24 checks with zero findings and 12 captures; broader smoke produced 26 captures with zero layout findings. Core checks and Release build/publish pass without warnings/errors.
+- Final archive: outputs/Presence-audit-71e11c9-win-x64.zip. SHA-256 2a7ac2f9eaae8021f0b5c815337373cdf07c1279062bb96e53ecabd46ca68c57. Extracted executable equals published executable, identifies code commit 71e11c9 in informational version, and its fictional preview exits with code 0 after the shutdown fix. Earlier fcb1880 archives were removed.
+- File version stays 1.2.1.0: this is an audit branch build, not a new published release. No installed app/profile was changed.
+- Initial code CI passed: https://github.com/remriel/presence-windows/actions/runs/38693354265. Final shutdown-fix CI: https://github.com/remriel/presence-windows/actions/runs/38693668802 (in progress at handoff). Inspect its result before merging.
+- Remaining findings are explicitly unresolved: editor save-failure rollback and the bounded-sweep documentation/implementation mismatch. User requested finishing up before those broader refactors. Physical LAN acceptance remains manual. Do not describe this work as fixing every possible bug.
+- Current execution is complete apart from reviewing final remote CI and the PR. Both handoffs and the audit ZIP are exported under this task's outputs directory. The current PROGRESS.md and this section supersede historical RESUME sections.
