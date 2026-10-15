@@ -22,6 +22,8 @@ jobs:
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-visibility" --device-visibility
       - name: Save rollback and bounded discovery regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-reliability" --reliability
+      - name: Broad native UI smoke checks
+        run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-broad" --quick
       - name: Bulk selection, reset and pause regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-bulk" --reset-bulk
       - name: Publish Windows app

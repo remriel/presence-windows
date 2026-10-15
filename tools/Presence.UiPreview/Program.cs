@@ -151,6 +151,8 @@ internal static class Program
         try { app.SaveDevice(target, "Stale", DeviceKind.Known, "", false); Check(false, "Stale editor cannot restore a reset device"); }
         catch (InvalidOperationException) { Check(app.Engine.Data.Devices.Count == 0, "Stale editor cannot restore a reset device"); }
         main.AllowClose = true; main.Close();
+        app.Dispose(); app.Dispose(); app.Exit();
+        Check(app.Stopping, "Repeated context disposal and exit are safe");
         File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { checks, failures, captures }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"Reliability: {checks.Count} checks; {failures.Count} findings; {captures.Count} captures.");
         foreach (var failure in failures) Console.WriteLine(failure);

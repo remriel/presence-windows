@@ -41,6 +41,15 @@ internal static class ReliabilityChecks
         Check(data.Devices[0].Ip == latest.Ip && data.Devices[0].LastSeen == latest.At,
             "Duplicate MAC observations choose the freshest evidence in a batch");
 
+        engine.ResetNetwork();
+        var corrected = original with { At = start.AddHours(-1) };
+        engine.Apply([corrected], scope, start.AddHours(-1));
+        Check(data.Devices[0].State == PresenceState.Home && data.Devices[0].LastSeen == corrected.At,
+            "Fresh observations after reconnect survive backwards clock correction");
+        engine.Apply([original], scope, start);
+        engine.Apply([original with { At = start.AddMinutes(-1) }], scope, start.AddMinutes(-1));
+        Check(data.Devices[0].LastSeen == start.AddMinutes(-1), "Backwards clock jump restarts accepted observation timestamps");
+
         var folder = Path.Combine(Path.GetTempPath(), "PresenceReliability", Guid.NewGuid().ToString("N"));
         var path = Path.Combine(folder, "presence.db");
         using (var store = new Repository(path))
@@ -63,6 +72,8 @@ internal static class ReliabilityChecks
             store.Save(data, observations: [next], at: start.AddSeconds(40));
             command.CommandText = "SELECT COUNT(*) FROM Observation";
             Check(Convert.ToInt32(command.ExecuteScalar()) == 2, "Failed saves do not advance observation throttle");
+            store.Save(data, observations: [original], at: start.AddMinutes(-1));
+            Check(Convert.ToInt32(command.ExecuteScalar()) == 3, "Clock correction cannot indefinitely suppress observation writes");
         }
         Console.WriteLine($"Reliability checks: {passed} passed, {failures.Count} failed.");
         foreach (var failure in failures) Console.WriteLine("FAIL: " + failure);

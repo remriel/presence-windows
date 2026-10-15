@@ -68,7 +68,7 @@ public sealed class Repository : IDisposable
             .OrderByDescending(o => o.At ?? now))
         {
             if (!recordedMacs.Add(o.Mac)) continue;
-            if (observationWrites.TryGetValue(o.Mac, out var last) && last.Ip == o.Ip && now - last.At < TimeSpan.FromSeconds(30)) continue;
+            if (observationWrites.TryGetValue(o.Mac, out var last) && last.Ip == o.Ip && now >= last.At && now - last.At < TimeSpan.FromSeconds(30)) continue;
             using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "INSERT INTO Observation(At,Mac,Ip,Signal) VALUES($at,$mac,$ip,$signal)";
             c.Parameters.AddWithValue("$at", Stamp(o.At ?? now)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery(); recorded.Add(o);
         }
