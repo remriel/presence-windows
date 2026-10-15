@@ -1,29 +1,39 @@
 # Presence progress
 
-Current objective: audit Presence 1.2.1, repair reproducible reliability bugs, reduce unnecessary work, and deliver a verified portable build and GitHub pull request.
-Progress: **70%** [##############------]
+Current objective: fix reproducible bugs and optimize Presence, with verified source, portable build and durable handoffs.
+Progress: **100%** [####################]
 
-- [x] Read instructions and handoffs; reconcile clean main at 531ad4e with source and GitHub.
-- [x] Create branch `fix/reliability-performance`; confirm no open issues or PRs.
-- [x] Baseline core tests and Release build pass without warnings or errors.
-- [x] Add failing regression coverage for discovered defects (seven initial failures).
-- [x] Implement presence and persistence fixes; all eight new core checks pass.
-- [x] Implement save rollback, adapter preservation, bounded discovery, lazy workers, hidden-window rendering and preview resource fixes.
-- [ ] Run native fixture suites, inspect screenshots, and publish a portable build.
-- [ ] Push branch, create PR, verify Windows CI, and export final handoffs.
+- [x] Reconcile instructions, handoffs, Git and source; baseline main 531ad4e.
+- [x] Reproduce/fix stale observations, batch ordering, monitoring gaps and backwards clock correction.
+- [x] Deduplicate observation writes, exclude metadata and reduce snapshot JSON.
+- [x] Roll back failed settings/device edits, including displaced primary phones and new people.
+- [x] Preserve disconnected adapters and reject stale editors after reset.
+- [x] Bound discovery, reduce ICMP concurrency, start workers lazily and isolate network lanes.
+- [x] Skip hidden-window rendering; fix preview resource and repeated shutdown/disposal.
+- [x] Pass original core suites and 11 added reliability checks.
+- [x] Pass 16 native reliability, 16 visibility and 24 bulk/reset/pause checks; zero findings.
+- [x] Pass broad UI smoke: 26 captures, zero layout findings; inspect light/dark fixtures.
+- [x] Build/publish self-contained Windows x64 with zero warnings/errors.
+- [x] Verify ZIP digest, extracted binary equality, version and packaged fictional preview.
+- [x] Push PR #5, verify implementation Windows CI and export handoffs.
 
-Current findings under investigation:
-- Device/settings editors mutate live state before persistence and do not roll back on save failure.
-- Discovery continuously enumerates the full subnet for ARP and up to 4,096 ICMP addresses per pass, contradicting the documented bounded sweep.
-- The full UI preview suite references the obsolete `Presence.AlertIcon` resource.
-- Review ongoing for stale observations, cancellation, background failures, database hot paths, and idle UI work.
+Branch: fix/reliability-performance. PR is open; no merge, new tagged release, installation or production-profile reset was performed.
+PR: https://github.com/remriel/presence-windows/pull/5
+Verified implementation: afc87a0f6334dff22b06f8129a19673ecfa1be14
+Passing CI: https://github.com/remriel/presence-windows/actions/runs/38694066264
+Latest checks: https://github.com/remriel/presence-windows/pull/5/checks
 
-Verification: original core suite and all eight added reliability checks pass. Native regression/build and package verification are in progress. Current build artifacts use `%LOCALAPPDATA%/PresenceBuild/Reliability/artifacts`. A slow local shared compiler was bypassed with `UseSharedCompilation=false`; do not mistake a running build for a passing result.
-Blockers: none. Physical LAN, sleeping-device behavior, and Windows suspend/resume require real-world acceptance; fixture testing cannot prove all possible bugs absent.
+Package: outputs/Presence-1.2.1-fixes-afc87a0-win-x64.zip (57,473,271 bytes).
+SHA-256: 0320a1416a0ccf6e9348298356e0025220e92575356c0952c024e434fd888fe6
+File version 1.2.1.0; product version 1.2.1+afc87a0f6334dff22b06f8129a19673ecfa1be14.
+This is a PR preview; published release remains v1.2.1.
+
+Evidence: outputs/verification has 47 native fixture captures/JSON reports plus packaged preview. All devices/databases are fictional and isolated. No real device data or captures were committed.
+Blockers: none. Real LAN reconnect/sleep, OS suspend/resume and long-term resource use remain physical acceptance. Bounded discovery can increase first discovery time on large networks; known-device priority probes remain independent. Tests do not prove every possible bug absent.
 
 Exact ordered next steps:
-1. Finish source audit and reproduce the identified defects in deterministic core/native tests.
-2. Implement focused fixes and record design choices in PROJECT_STATE.md.
-3. Run core and native regressions, inspect captures, publish and smoke-test the package.
-4. Synchronize changes to GitHub via a PR and verify CI.
-5. Export PROGRESS.md and PROJECT_STATE.md with the final deliverables.
+1. Review PR #5 and its latest checks; implementation/package verification is complete.
+2. Merge/publish a tagged release only when requested.
+3. If installing, quit the tray app and extract the whole package while preserving %LOCALAPPDATA%/Presence/presence.db.
+4. Follow docs/MANUAL_ACCEPTANCE.md for physical network checks.
+5. For future work, read AGENTS.md and both handoffs, then reconcile actual Git/source/tests.
