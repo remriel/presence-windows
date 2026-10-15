@@ -1,6 +1,14 @@
 # Presence project state
 
-## Current work
+## Current audit (2026-10-14)
+- User request: fix bugs and optimize the repository. No subagents used.
+- Isolated checkout: `C:\Drive\2026-10-14\fix-all-bugs-and-optimize\work\presence-audit`; branch `fix/audit-reliability-20261014`; clean baseline `531ad4e`.
+- Another process changed the original `work/presence-windows` checkout/branch during inspection. Leave that checkout alone; all remaining work uses this isolated checkout and dedicated `PresenceBuild/Audit20261014` artifacts.
+- Baseline core suite and native Release build pass. The broader preview reproducibly crashes on obsolete resource `Presence.AlertIcon` (actual resource: `Presence.ProductIcon`).
+- Audit targets: transactional device/settings editing, stale observations, bounded discovery, independent mDNS/DNS scheduling, hidden-window work and database hot paths.
+- RESUME HERE: follow current PROGRESS.md. Historical release records below describe completed 1.2.1 work and are not this audit's status.
+
+## Previous release
 - Objective: repair missing known/unknown devices in the main UI and improve hostname/type identification.
 - Repository: https://github.com/remriel/presence-windows. Checkout: C:\Drive\2026-10-13\away\work\presence-windows. Branch: main; implementation commit 124c702cb65f049fbf4cbaa3556f2cb17fb381dc.
 - PR: https://github.com/remriel/presence-windows/pull/3. Source version and portable build: 1.2.1. Release 1.2.1 is published at https://github.com/remriel/presence-windows/releases/tag/v1.2.1; PR #3 is merged. The installed app has not been replaced.
@@ -73,3 +81,13 @@ Requested work is complete. Presence 1.2.0 is published, PR #2 merged, CI passed
 - Final PR Windows CI passed at https://github.com/remriel/presence-windows/actions/runs/38491343616. Main merged-target CI at https://github.com/remriel/presence-windows/actions/runs/38491556806 is independent and can be inspected.
 - Requested fixes and release are complete. Original installation/profile unchanged. If installing, quit old tray app, replace extracted binaries, preserve presence.db; no reset needed. Physical LAN hostname availability and timing remain manual acceptance.
 - Final merged release-target Windows CI also passed: https://github.com/remriel/presence-windows/actions/runs/38491556806. Source, release assets, tag, package digest and final repository documentation are synchronized; working tree is clean.
+
+## Audit implementation and verification (2026-10-14)
+- User requested finishing up. Final patch scope is the reproduced core freshness/persistence bugs and the broader UI-preview crash; avoid starting the larger discovery/editor refactor in this task.
+- PresenceEngine now collapses repeated MAC samples to the newest timestamp and tracks accepted observation timestamps per monitoring session. Equal/replayed samples cannot revive an absent device, update LastSeen or reset absence timers. Session reset/clock-gap recovery clears this tracking, allowing fresh observations after a backwards clock correction despite future persisted LastSeen.
+- Repository.Save ignores identity-only metadata, throttles duplicate physical observations within the current transaction, updates the persistent throttle cache only after commit, and permits writes again after a backwards clock jump.
+- Computed Device.DisplayName and Device.DeviceType are JsonIgnore properties; older snapshots containing them still deserialize. This removes redundant strings and repeated type inference from persistence serialization without changing UI behavior.
+- Broader UI preview now loads Presence.ProductIcon; the obsolete Presence.AlertIcon caused a reproducible ArgumentNullException. Windows CI now runs the broader --quick smoke suite as well as both focused suites.
+- Verification: original and added core suite passes; Release native build 0 warnings/errors; visibility 16 checks/0 findings/6 captures; bulk/reset/pause 24 checks/0 findings/12 captures; broader smoke 26 captures/0 layout findings. Captures use fictional devices and stay outside Git.
+- Known unresolved audit findings: settings/device edits mutate live state before persistence and lack complete rollback; background discovery ARP-enumerates the entire subnet and ICMP batches reach 4096 despite the README's bounded-sweep description. These remain follow-up work, not fixed by this PR. Physical LAN acceptance remains required.
+- RESUME HERE: finish portable publish, packaged fictional smoke, GitHub PR/CI and output handoff export. The current PROGRESS.md supersedes all historical completion sections above.

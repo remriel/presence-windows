@@ -56,6 +56,7 @@ public sealed class Repository : IDisposable
     {
         var now = at ?? DateTimeOffset.UtcNow;
         var recorded = new List<Observation>();
+        var pendingWrites = new Dictionary<string, (DateTimeOffset At, string Ip)>();
         using var tx = db.BeginTransaction();
         using (var c = db.CreateCommand()) { c.Transaction = tx; c.CommandText = "INSERT INTO State VALUES(1,$json) ON CONFLICT(Id) DO UPDATE SET Json=$json"; c.Parameters.AddWithValue("$json", JsonSerializer.Serialize(data)); c.ExecuteNonQuery(); }
         foreach (var e in events ?? [])
@@ -65,9 +66,11 @@ public sealed class Repository : IDisposable
         }
         foreach (var o in observations ?? [])
         {
-            if (observationWrites.TryGetValue(o.Mac, out var last) && last.Ip == o.Ip && now - last.At < TimeSpan.FromSeconds(30)) continue;
+            if (o.Signal == "identity-only") continue;
+            var hasLast = pendingWrites.TryGetValue(o.Mac, out var last) || observationWrites.TryGetValue(o.Mac, out last);
+            if (hasLast && last.Ip == o.Ip && now >= last.At && now - last.At < TimeSpan.FromSeconds(30)) continue;
             using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "INSERT INTO Observation(At,Mac,Ip,Signal) VALUES($at,$mac,$ip,$signal)";
-            c.Parameters.AddWithValue("$at", Stamp(o.At ?? now)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery(); recorded.Add(o);
+            c.Parameters.AddWithValue("$at", Stamp(o.At ?? now)); c.Parameters.AddWithValue("$mac", o.Mac); c.Parameters.AddWithValue("$ip", o.Ip); c.Parameters.AddWithValue("$signal", o.Signal); c.ExecuteNonQuery(); recorded.Add(o); pendingWrites[o.Mac] = (now, o.Ip);
         }
         var prune = now - lastPruned >= TimeSpan.FromHours(1) || lastRetention != data.Settings.RetentionDays;
         if (prune) { using var c = db.CreateCommand(); c.Transaction = tx; c.CommandText = "DELETE FROM PresenceEvent WHERE At < $cut; DELETE FROM Observation WHERE At < $obsCut"; c.Parameters.AddWithValue("$cut", Stamp(now.AddDays(-data.Settings.RetentionDays))); c.Parameters.AddWithValue("$obsCut", Stamp(now.AddDays(-Math.Min(7, data.Settings.RetentionDays)))); c.ExecuteNonQuery(); }

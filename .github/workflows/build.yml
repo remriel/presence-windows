@@ -22,6 +22,8 @@ jobs:
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-visibility" --device-visibility
       - name: Bulk selection, reset and pause regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-bulk" --reset-bulk
+      - name: Broader native UI smoke checks
+        run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-preview" --quick
       - name: Publish Windows app
         run: dotnet publish src/Presence.App/Presence.App.csproj -c Release -r win-x64 --self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:DebugType=None -p:DebugSymbols=false -o artifacts/portable
       - name: Package portable build

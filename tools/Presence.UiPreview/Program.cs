@@ -65,7 +65,7 @@ internal static class Program
                 speed.ShowError("The Cloudflare speed test took longer than 35 seconds. Try again when your connection is less busy."); CaptureExisting(speed, prefix + "-speed-error", scale);
                 speed.Size = speed.MinimumSize; CaptureExisting(speed, prefix + "-speed-error-minimum", scale);
             }
-            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("Presence.AlertIcon")!; using var icon = Image.FromStream(stream);
+            using var stream = typeof(MainWindow).Assembly.GetManifestResourceStream("Presence.ProductIcon") ?? throw new InvalidDataException("Missing Presence product icon."); using var icon = Image.FromStream(stream);
             using (var popup = new FloatingAlertWindow("Alexandra's work phone with a very long device name arrived", "Local network · click to open this device and its presence history", icon, s, _ => { }, "")) Capture(popup, prefix + "-popup-long", scale, "default");
             app.Engine.Data.Devices.Clear(); app.Engine.Data.People.Clear(); app.Refresh();
             using (var empty = new MainWindow(app)) { Capture(empty, prefix + "-main-empty", scale, "minimum"); empty.AllowClose = true; }

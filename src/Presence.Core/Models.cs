@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Presence.Core;
 
 public enum DeviceKind { Unknown, Person, Known, Ignore }
@@ -27,7 +29,9 @@ public sealed class Device
     public int Consecutive { get; set; }
     public double MissingSeconds { get; set; }
     public bool Announced { get; set; }
+    [JsonIgnore]
     public string DeviceType => DeviceIdentification.InferType(Hostname);
+    [JsonIgnore]
     public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : !string.IsNullOrWhiteSpace(Hostname) ? Hostname : !string.IsNullOrWhiteSpace(Vendor) && Vendor != "Private MAC" ? Vendor + " device" : "Device " + (Mac.Length >= 5 ? Mac[^5..] : Mac);
 }
 public sealed record Observation(string Mac, string Ip, string Hostname, string Vendor, string Signal, DateTimeOffset? At = null);

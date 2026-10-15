@@ -1,36 +1,25 @@
 # Presence progress
 
-Current objective: repair missing known/unknown devices, improve hostname/device-type identification, and publish Presence 1.2.1.
-Progress: **100%** [####################]
+Current objective: finish the reproduced presence/persistence fixes and preview repair, verify them, and deliver a portable audit build and GitHub PR.
+Progress: **90%** [##################--]
 
-- [x] Reconcile instructions, handoffs, Git state and source.
-- [x] Fix normal-view visibility for uncertain known/person records and absent unidentified devices, including orphan person associations.
-- [x] Establish Away silently for saved devices absent after restart/reconnect and healthy evaluated departure grace.
-- [x] Add bounded reverse DNS, address validation, service-only mDNS handling and conservative likely hostname-derived types.
-- [x] Isolate metadata from presence, last-seen time, alerts, logs, baseline, network scope and monitoring clock.
-- [x] Pass core inference, transactional reset/persistence, restart absence and metadata-isolation checks.
-- [x] Pass 16 native visibility/DNS checks with zero findings and 6 fixture screenshots.
-- [x] Pass 24 existing bulk/reset/pause checks with zero findings and 12 fixture screenshots.
-- [x] Inspect native light/dark screens; publish self-contained Windows x64 without warnings/errors.
-- [x] Push and attach PR #3, verify final passing Windows CI, merge into main.
-- [x] Rebuild at merged target; verify version, packaged smoke launch, extracted binary and ZIP checksum.
-- [x] Publish 1.2.1 ZIP/checksum to GitHub and verify uploaded digest/tag target.
-- [x] Synchronize final documentation and export both handoffs.
+- [x] Reconcile instructions, source and clean main at 531ad4e.
+- [x] Isolate work in work/presence-audit after concurrent edits appeared in the original checkout.
+- [x] Reproduce stale/replayed sightings, oldest-sample selection, clock recovery and observation-write defects with failing checks.
+- [x] Fix session observation freshness, newest-sample selection, clock recovery, transaction-local throttling and metadata filtering.
+- [x] Stop serializing computed display properties and repair the obsolete UI-preview icon resource.
+- [x] Pass original and added core checks; Release native build has zero warnings/errors.
+- [x] Pass 16 visibility checks (6 captures), 24 bulk/reset/pause checks (12 captures), and broader UI smoke (26 captures, zero findings).
+- [x] Add broader UI smoke to Windows CI; inspect a fictional native screenshot.
+- [ ] Complete self-contained portable publish and packaged smoke check.
+- [ ] Commit/push, create PR, inspect CI, and export final handoffs.
 
-Implementation: released version 1.2.1. Original installed app/profile untouched. No requested source or release work remains.
-PR: https://github.com/remriel/presence-windows/pull/3 (merged)
-Release: https://github.com/remriel/presence-windows/releases/tag/v1.2.1
-Release target: fb3d7573568945f3b8e5aca6375b8e71c71c0d85
-Passing final PR CI: https://github.com/remriel/presence-windows/actions/runs/38491343616
-Passing main-target CI: https://github.com/remriel/presence-windows/actions/runs/38491556806
-Package: C:\Drive\2026-10-13\away\outputs\Presence-1.2.1-win-x64.zip
-ZIP SHA-256: aeb15d862132dba7a38307e042452ec0e6b29597fd946d5150fc43d0dd61c2c4
-File version: 1.2.1.0. Informational version includes release target fb3d757.
+Implementation: focused audit patch on branch fix/audit-reliability-20261014 in C:/Drive/2026-10-14/fix-all-bugs-and-optimize/work/presence-audit. No UI redesign. No real profile or installed application changed.
 
-Blockers: none. Actual LAN hostname availability, physical restart/absence timing and sleeping phones remain manual acceptance. Fixture tests establish reproduced code behavior, not every possible environment or application bug.
+Known unresolved work: the source review also identified editor save-failure rollback gaps and a mismatch between documented bounded discovery and full-subnet background sweeps. Those broader changes were not implemented after the user requested finishing up. Real LAN, sleeping devices and Windows suspend/resume remain manual acceptance. This patch does not establish that every possible application bug is fixed.
 
 Exact ordered next steps:
-1. No requested implementation or release steps remain.
-2. To install, quit the old tray process, extract the entire new package and launch Presence.exe while preserving %LOCALAPPDATA%\Presence\presence.db. Do not reset the profile.
-3. Follow docs/MANUAL_ACCEPTANCE.md for real LAN checks.
-4. Before future changes, read AGENTS.md and both handoffs and reconcile actual Git/source/tests. Final release records supersede historical checkout paths.
+1. Finish portable publish and fictional packaged smoke check.
+2. Commit and push the patch; open and attach a PR; inspect Windows CI.
+3. Update this checklist with exact PR/artifact/check references and export both handoffs to outputs.
+4. Future work: reproduce editor save failures and bounded discovery in dedicated native tests before changing those paths.

@@ -9,12 +9,13 @@ public sealed class PresenceEngine(Snapshot snapshot)
     private int baselineScans;
     private readonly HashSet<string> baselineDevices = [];
     private readonly Dictionary<string, DateTimeOffset> evaluatedAt = [];
+    private readonly Dictionary<string, DateTimeOffset> observedAt = [];
     public string Network => network;
     public bool Baselining => baselineScans < 1;
 
     public void Pause()
     {
-        previous = null; evaluatedAt.Clear();
+        previous = null; evaluatedAt.Clear(); observedAt.Clear();
         foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
     }
     public void ResetNetwork()
@@ -42,7 +43,7 @@ public sealed class PresenceEngine(Snapshot snapshot)
         // A suspend, long scan failure or clock jump forces a silent re-baseline.
         if (delta < 0 || delta > Math.Max(90, Data.Settings.ScanIntervalSeconds * 3))
         {
-            delta = 0; baselineScans = 0; baselineDevices.Clear(); evaluatedAt.Clear();
+            delta = 0; baselineScans = 0; baselineDevices.Clear(); evaluatedAt.Clear(); observedAt.Clear();
             foreach (var d in Data.Devices) { d.Consecutive = 0; d.MissingSeconds = 0; }
         }
         previous = now;
@@ -50,17 +51,28 @@ public sealed class PresenceEngine(Snapshot snapshot)
         var events = new List<PresenceEvent>();
         var seen = new HashSet<string>();
         var byMac = Data.Devices.ToDictionary(d => d.Mac, StringComparer.OrdinalIgnoreCase);
-        foreach (var o in batch.Where(o => o.Signal != "identity-only"))
+        // A foreground result may repeat observations already delivered by progress.
+        // Collapse a batch to its newest sample, and reject samples already applied
+        // in this monitoring session. Persisted LastSeen may be ahead after a clock correction.
+        var newest = batch.Where(o => o.Signal != "identity-only")
+            .GroupBy(o => Identity.NormalizeMac(o.Mac))
+            .Select(group => (Mac: group.Key, Observation: group.MaxBy(o => o.At is { } at && at <= now ? at : now)!));
+        foreach (var (mac, o) in newest)
         {
-            var mac = Identity.NormalizeMac(o.Mac);
             if (mac == "") continue;
-            if (!seen.Add(mac)) continue;
-            var observedAt = o.At is { } timestamp && timestamp <= now ? timestamp : now;
+            var timestamp = o.At is { } at && at <= now ? at : now;
             var d = byMac.GetValueOrDefault(mac);
-            if (d is null) { d = new Device { Mac = mac, FirstSeen = observedAt }; Data.Devices.Add(d); byMac[mac] = d; }
-            if (d.LastSeen > observedAt) continue;
+            if (observedAt.TryGetValue(mac, out var accepted) && timestamp <= accepted)
+            {
+                // The full scan includes its progress sample; avoid an artificial miss,
+                // but never revive an absent device or reset its absence clock.
+                if (timestamp == accepted && d?.State == PresenceState.Home) seen.Add(mac);
+                continue;
+            }
+            seen.Add(mac); observedAt[mac] = timestamp;
+            if (d is null) { d = new Device { Mac = mac, FirstSeen = timestamp }; Data.Devices.Add(d); byMac[mac] = d; }
             if (silent) baselineDevices.Add(mac);
-            d.Ip = o.Ip; d.Network = scope; d.LastSeen = observedAt; evaluatedAt[mac] = now;
+            d.Ip = o.Ip; d.Network = scope; d.LastSeen = timestamp; evaluatedAt[mac] = now;
             if (o.Hostname != "") d.Hostname = o.Hostname;
             if (o.Vendor != "") d.Vendor = o.Vendor;
             d.MissingSeconds = 0; d.Consecutive = Math.Min(2, d.Consecutive + 1);
