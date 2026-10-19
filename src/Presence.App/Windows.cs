@@ -44,7 +44,7 @@ internal sealed class MainWindow : Form
         Ui.Add(header, selectionActions); Ui.Add(header, selectionCount);
         var footer = Ui.Stack();
         var hint = Ui.Label("Monitoring continues in the tray when you close this window.", s, true); hint.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0); Ui.Add(footer, hint);
-        Ui.Add(footer, Ui.Actions(Ui.Button("&Refresh", async () => await app.Scan(true), s, true), Ui.Button("Speed &test", OpenSpeedTest, s), Ui.Button("&Activity", ShowActivity, s)));
+        Ui.Add(footer, Ui.Actions(Ui.Button("&Refresh", async () => await app.Scan(true), s, true), Ui.Button("Speed &test", OpenSpeedTest, s), Ui.Button("&Timeline", ShowTimeline, s), Ui.Button("&Activity", ShowActivity, s)));
         root = Ui.Shell(this, header, body, footer);
         FormClosing += (_, e) => { if (!AllowClose && e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); } };
         app.Changed += Render; VisibleChanged += (_, _) => { if (Visible) Render(); }; Render();
@@ -128,6 +128,7 @@ internal sealed class MainWindow : Form
         Ui.Add(body.Content, section);
     }
     public void ShowDevice(Device device) { Show(); using var dialog = new DeviceWindow(app, device); dialog.ShowDialog(this); }
+    public void ShowTimeline() { Show(); using var dialog = new PresenceTimelineWindow(app); dialog.ShowDialog(this); }
     public void ShowActivity() { Show(); using var dialog = new ActivityWindow(app); dialog.ShowDialog(this); }
     public void ShowSettings() { Show(); using var dialog = new SettingsWindow(app); dialog.ShowDialog(this); }
     private void OpenSpeedTest()
@@ -281,6 +282,196 @@ internal sealed class ActivityWindow : Form
     }
 }
 
+internal sealed class PresenceTimelineWindow : Form
+{
+    private readonly PresenceContext app;
+    private readonly Panel body = new() { Dock = DockStyle.Fill, Padding = new Padding(Ui.Page, Ui.Space, Ui.Page, Ui.Space) };
+    private readonly FlowLayoutPanel ranges = new() { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, WrapContents = true, Margin = Padding.Empty, Padding = new Padding(0, Ui.Space, 0, Ui.Space) };
+    private int selectedDays = 14;
+    private DataGridView? grid;
+
+    public PresenceTimelineWindow(PresenceContext context)
+    {
+        app = context;
+        var s = app.Engine.Data.Settings;
+        Ui.Configure(this, "Presence timeline", new Size(800, 540), new Size(720, 420), s);
+        var header = Ui.Header("Presence timeline", "Daily presence estimates for each device on the connected network.", s);
+        foreach (var days in new[] { 7, 14, 21, 28 })
+        {
+            var button = Ui.Button(days + "&d", () => ShowRange(days), s, days == selectedDays);
+            button.AccessibleName = days + " days";
+            ranges.Controls.Add(button);
+        }
+        Ui.Add(header, ranges);
+
+        var legend = Ui.Label("Green shows time present; gray shows away or unrecorded time. Hover over a day for details.", s, true);
+        legend.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, Ui.Gap);
+        var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel;
+        var footer = Ui.Stack(); Ui.Add(footer, legend); Ui.Add(footer, Ui.Actions(close));
+        CancelButton = close;
+        ShowRange(selectedDays);
+        Ui.Shell(this, header, body, footer);
+        Ui.Theme(this, s);
+    }
+
+    private void ShowRange(int days)
+    {
+        selectedDays = days;
+        var s = app.Engine.Data.Settings;
+        foreach (Control control in body.Controls.Cast<Control>().ToArray())
+        {
+            body.Controls.Remove(control);
+            control.Dispose();
+        }
+        grid = null;
+
+        var scope = app.NetworkScope;
+        var devices = app.Engine.Data.Devices
+            .Where(device => scope != "" && device.Network == scope)
+            .OrderBy(device => device.DisplayName, StringComparer.CurrentCultureIgnoreCase)
+            .ToList();
+        if (devices.Count == 0)
+        {
+            var empty = Ui.Label("No devices are being monitored on the connected network yet.", s, true);
+            empty.AutoSize = false;
+            body.Controls.Add(empty);
+        }
+        else
+        {
+            var now = DateTimeOffset.Now;
+            var first = DateOnly.FromDateTime(now.LocalDateTime).AddDays(1 - days);
+            var from = PresenceTimeline.StartOfDay(first);
+            var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
+            var rows = PresenceTimeline.Build(devices, events, from, now);
+            ShowGrid(days, first, rows, s);
+        }
+
+        foreach (Button button in ranges.Controls)
+        {
+            var active = button.AccessibleName == days + " days";
+            button.Tag = active ? "primary" : "button";
+            Ui.Theme(button, s);
+        }
+    }
+
+    private void ShowGrid(int days, DateOnly first, IReadOnlyList<PresenceTimelineRow> rows, Settings settings)
+    {
+        var table = Ui.Grid(settings);
+        grid = table;
+        table.AccessibleName = "Daily device presence. Each day cell shows the share of the day the device was present.";
+        table.ColumnHeadersHeight = 36;
+        table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
+        table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        table.RowTemplate.Height = 34;
+        table.DefaultCellStyle.Padding = new Padding(2);
+        var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
+        nameColumn.Width = 200;
+        nameColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        nameColumn.HeaderCell.Style.Padding = new Padding(Ui.Gap, 0, 0, 0);
+        table.Columns.Add(nameColumn);
+        var dates = rows.Count == 0 ? Enumerable.Range(0, days).Select(first.AddDays).ToArray() : rows[0].Days.Select(day => day.Date).ToArray();
+        for (var i = 0; i < days; i++)
+        {
+            var column = Ui.Column("Day" + i, "", 16, DataGridViewAutoSizeColumnMode.None);
+            column.Width = 24;
+            column.HeaderCell.ToolTipText = dates[i].ToString("dddd, MMMM d");
+            table.Columns.Add(column);
+        }
+
+        foreach (var row in rows)
+        {
+            var values = new object[days + 1];
+            Array.Fill(values, "");
+            values[0] = row.Device.DisplayName;
+            var index = table.Rows.Add(values);
+            var gridRow = table.Rows[index];
+            gridRow.Tag = row.Device;
+            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + Ui.State(row.Device.State);
+            for (var i = 0; i < days; i++)
+            {
+                var cell = gridRow.Cells[i + 1];
+                var day = row.Days[i];
+                var color = PresenceColor(day.Fraction, settings);
+                cell.Style.BackColor = color;
+                cell.Style.SelectionBackColor = color;
+                cell.ToolTipText = Tooltip(row.Device, day);
+            }
+        }
+
+        void FitColumns()
+        {
+            if (table.IsDisposed || table.Columns.Count == 0) return;
+            var nameWidth = Math.Clamp(table.ClientSize.Width / 4, 160, 240);
+            var available = Math.Max(0, table.ClientSize.Width - nameWidth - SystemInformation.VerticalScrollBarWidth - 4);
+            var cellWidth = Math.Max(16, available / days);
+            table.Columns[0].Width = nameWidth;
+            for (var i = 1; i < table.Columns.Count; i++) table.Columns[i].Width = cellWidth;
+        }
+
+        table.SizeChanged += (_, _) => FitColumns();
+        table.CellPainting += (_, e) =>
+        {
+            if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
+            e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+            var dayIndex = e.ColumnIndex - 1;
+            var interval = days > 21 ? 4 : 2;
+            if ((dayIndex + 1) % interval == 0 || dayIndex == days - 1)
+            {
+                var firstColumn = dayIndex - dayIndex % interval + 1;
+                var firstBounds = table.GetCellDisplayRectangle(firstColumn, -1, true);
+                var groupBounds = Rectangle.FromLTRB(firstBounds.Left, e.CellBounds.Top, e.CellBounds.Right, e.CellBounds.Bottom);
+                var font = e.CellStyle?.Font ?? table.ColumnHeadersDefaultCellStyle.Font ?? Ui.StrongFont;
+                var color = e.CellStyle?.ForeColor ?? Ui.Muted(settings);
+                if (e.Graphics is { } graphics)
+                    TextRenderer.DrawText(graphics, dates[dayIndex].Day.ToString(), font, groupBounds, color,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+            }
+            e.Handled = true;
+        };
+        table.CellDoubleClick += (_, e) => OpenDevice(table, e.RowIndex);
+        table.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter && table.CurrentRow is { } row)
+            {
+                e.Handled = e.SuppressKeyPress = true;
+                OpenDevice(table, row.Index);
+            }
+        };
+        body.Controls.Add(table);
+        FitColumns();
+    }
+
+    private void OpenDevice(DataGridView table, int rowIndex)
+    {
+        if (rowIndex < 0 || rowIndex >= table.Rows.Count || table.Rows[rowIndex].Tag is not Device device) return;
+        using var details = new DeviceWindow(app, device);
+        details.ShowDialog(this);
+    }
+
+    private static Color PresenceColor(double? fraction, Settings settings)
+    {
+        if (Ui.Dark(settings))
+        {
+            if (fraction is null or <= 0) return Color.FromArgb(68, 74, 82);
+            if (fraction < .25) return Color.FromArgb(63, 108, 78);
+            if (fraction < .6) return Color.FromArgb(52, 142, 76);
+            if (fraction < .9) return Color.FromArgb(42, 173, 79);
+            return Color.FromArgb(34, 112, 57);
+        }
+        if (fraction is null or <= 0) return Color.FromArgb(230, 233, 237);
+        if (fraction < .25) return Color.FromArgb(191, 227, 199);
+        if (fraction < .6) return Color.FromArgb(124, 204, 141);
+        if (fraction < .9) return Color.FromArgb(66, 170, 91);
+        return Color.FromArgb(35, 111, 57);
+    }
+
+    private static string Tooltip(Device device, PresenceTimelineCell day)
+    {
+        if (day.Fraction is null) return $"{device.DisplayName} · {day.Date:dddd, MMMM d}: no recorded presence state.";
+        return $"{device.DisplayName} · {day.Date:dddd, MMMM d}: present {day.Present.TotalHours:0.#}h of {day.Duration.TotalHours:0.#}h · state recorded for {day.Recorded.TotalHours:0.#}h.";
+    }
+}
+
 internal sealed class DevicesWindow : Form
 {
     public DevicesWindow(PresenceContext app)
@@ -298,4 +489,3 @@ internal sealed class DevicesWindow : Form
         Ui.Shell(this, Ui.Header("All devices", "Select a device to edit its name, person association or tracking behavior.", s), body, Ui.Actions(edit, close));
     }
 }
-

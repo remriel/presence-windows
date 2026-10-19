@@ -96,6 +96,22 @@ public sealed class Repository : IDisposable
         while (r.Read()) events.Add(new(r.GetString(0), DateTimeOffset.Parse(r.GetString(1)), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5)));
         return events;
     }
+    public List<PresenceEvent> TimelineHistory(DateTimeOffset since, IReadOnlyCollection<string> macs)
+    {
+        var events = new List<PresenceEvent>();
+        foreach (var batch in macs.Distinct(StringComparer.OrdinalIgnoreCase).Chunk(900))
+        {
+            if (batch.Length == 0) continue;
+            using var c = db.CreateCommand();
+            var parameters = batch.Select((_, i) => "$mac" + i).ToArray();
+            c.CommandText = $"SELECT Id,At,Type,Name,Mac,PersonId FROM PresenceEvent WHERE At >= $since AND Mac IN ({string.Join(",", parameters)}) ORDER BY At";
+            c.Parameters.AddWithValue("$since", Stamp(since));
+            for (var i = 0; i < batch.Length; i++) c.Parameters.AddWithValue(parameters[i], batch[i]);
+            using var r = c.ExecuteReader();
+            while (r.Read()) events.Add(new(r.GetString(0), DateTimeOffset.Parse(r.GetString(1)), r.GetString(2), r.GetString(3), r.IsDBNull(4) ? null : r.GetString(4), r.IsDBNull(5) ? null : r.GetString(5)));
+        }
+        return events;
+    }
     private static string Stamp(DateTimeOffset value) => value.UtcDateTime.ToString("O");
     private void Execute(string sql) { using var c = db.CreateCommand(); c.CommandText = sql; c.ExecuteNonQuery(); }
     public void Dispose() => db.Dispose();

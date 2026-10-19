@@ -14,6 +14,7 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--timeline")) return TimelineChecks();
         if (args.Contains("--saved-networks")) return SavedNetworkChecks();
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
         if (args.Contains("--device-visibility")) return DeviceVisibilityChecks();
@@ -85,6 +86,66 @@ internal static class Program
         Console.WriteLine($"Rendered {captures.Count} screens; {failures.Count} layout findings; {checks.Count} behavior checks.");
         foreach (var failure in failures.Take(30)) Console.WriteLine(failure);
         return failures.Count == 0 ? 0 : 2;
+    }
+    private static int TimelineChecks()
+    {
+        void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "TimelinePreview", Guid.NewGuid().ToString("N"));
+        using var app = new PresenceContext(folder, true, true);
+        app.Engine.Data.Devices.Clear();
+        app.Engine.Data.People.Clear();
+        var now = DateTimeOffset.Now;
+        var home = new Device { Mac = "02:00:00:00:00:21", Name = "Anne's fictional phone", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Home, ChangedAt = now.AddHours(-3) };
+        var away = new Device { Mac = "02:00:00:00:00:22", Name = "John's fictional tablet", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Away, ChangedAt = now.AddDays(-3) };
+        var unknown = new Device { Mac = "02:00:00:00:00:23", Name = "Unrecorded fictional device", Network = "demo", FirstSeen = now.AddDays(-2), State = PresenceState.Unknown };
+        app.Engine.Data.Devices.AddRange([home, away, unknown]);
+        app.Store.Save(app.Engine.Data,
+        [
+            PresenceEvent.Create(now.AddDays(-12), "arrived", home.Name, home.Mac),
+            PresenceEvent.Create(now.AddDays(-6), "left", home.Name, home.Mac),
+            PresenceEvent.Create(now.AddHours(-3), "arrived", home.Name, home.Mac),
+            PresenceEvent.Create(now.AddDays(-7), "arrived", away.Name, away.Mac),
+            PresenceEvent.Create(now.AddDays(-3), "left", away.Name, away.Mac)
+        ]);
+
+        foreach (var theme in new[] { "Light", "Dark" })
+        {
+            app.Engine.Data.Settings.Theme = theme;
+            using var form = new PresenceTimelineWindow(app);
+            form.Show(); Application.DoEvents();
+            var grid = All(form).OfType<DataGridView>().Single();
+            Check(grid.Rows.Count == 3 && grid.Columns.Count == 15, theme + " 14-day device and date layout");
+            Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Length > 0), theme + " date tooltips");
+            Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells[1].ToolTipText.Contains("present"),
+                theme + " presence details are available per day");
+            CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-14d", 1);
+
+            foreach (var (days, columns) in new[] { (7, 8), (21, 22) })
+            {
+                All(form).OfType<Button>().Single(button => button.AccessibleName == days + " days").PerformClick();
+                Application.DoEvents();
+                grid = All(form).OfType<DataGridView>().Single();
+                Check(grid.Columns.Count == columns, theme + $" {days}-day range selector");
+            }
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
+            Application.DoEvents();
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "28 days").PerformClick();
+            Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+            Check(grid.Columns.Count == 29, theme + " 28-day range selector");
+            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " timeline fits without horizontal clipping");
+            CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-28d", 1);
+        }
+
+        app.Engine.Data.Devices.Clear();
+        using (var empty = new PresenceTimelineWindow(app))
+        {
+            Check(All(empty).OfType<WrapLabel>().Any(label => label.Text.Contains("No devices")), "Empty network has an explanatory timeline state");
+        }
+        File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { captures, failures, checks }, new JsonSerializerOptions { WriteIndented = true }));
+        Console.WriteLine($"Presence timeline: {checks.Count} checks, {failures.Count} findings, {captures.Count} captures.");
+        foreach (var failure in failures) Console.WriteLine(failure);
+        return failures.Count == 0 ? 0 : 1;
     }
     private static int SavedNetworkChecks()
     {
@@ -423,4 +484,3 @@ internal static class Program
         }
     }
 }
-

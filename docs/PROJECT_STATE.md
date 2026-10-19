@@ -1,5 +1,17 @@
 # Presence project state
 
+## RESUME HERE — Presence 1.4.0 release and installation (2026-10-18)
+
+User-requested feature: per-device daily presence graph like the supplied heatmap reference. User also explicitly requested publishing the new version and updating this PC. Implementation is in progress on branch `remriel-device-presence-graph`; target version is 1.4.0. Do not call the release or local update complete until the GitHub release is published and the installed app is verified.
+
+Implementation: main-window Timeline action opens a local, current-network device heatmap with 7/14/21/28-day ranges. Daily color estimates present time from saved arrival/departure events plus last-seen/state-change timestamps; unknown/away time is neutral. Tooltips show duration and state coverage. Existing event retention is unchanged. No schema migration or reset is needed. Person reconciliation is silent at every production call site, so aggregate person transitions are not persisted as device-MAC events. Fictional preview screenshot at `docs/images/presence-timeline.png`.
+
+Verification so far: core timeline reconstruction/history checks pass; native fixture preview passes 15 timeline checks in light/dark themes, including all ranges, date tooltips, no horizontal clipping and empty state. Final local suites pass: timeline (15), saved networks (11), visibility (16), reliability (16), broad UI (26 captures, zero layout findings), bulk/reset/pause (24), and core. Self-contained x64 build and fictional packaged preview pass; final Release build has zero warnings/errors. GitHub release and PC update remain pending. Preserve `%LOCALAPPDATA%/Presence/presence.db`; never include it or real-device screenshots in Git.
+
+PC update context: the existing portable installation is under `%LOCALAPPDATA%/Programs/Presence`, with the live profile under `%LOCALAPPDATA%/Presence`. A Presence process currently runs from `%LOCALAPPDATA%/PresenceBuild/Visibility/.../Presence.exe`; the startup entry also targets that build path. Inspect/resolve it carefully before installing or changing startup, and preserve the profile. A separate `Presence.exe` process is not in the portable install folder at the last check.
+
+## Previous completed release — Presence 1.3.0
+
 ## RESUME HERE — Presence 1.3.0 published (2026-10-15)
 
 Release: https://github.com/remriel/presence-windows/releases/tag/v1.3.0

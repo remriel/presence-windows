@@ -20,6 +20,8 @@ jobs:
         run: dotnet run --project tests/Presence.Tests/Presence.Tests.csproj -c Release
       - name: Saved network regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-networks" --saved-networks
+      - name: Presence timeline regression checks
+        run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-timeline" --timeline
       - name: Device visibility and identification regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-visibility" --device-visibility
       - name: Save rollback and bounded discovery regression checks

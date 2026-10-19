@@ -113,3 +113,35 @@ using (var repository = new Repository(networkPath))
     Expect(repository.Load().Networks.Count == 0, "Reset clears saved network names.");
 }
 Console.WriteLine("Saved network identity, validation, migration and persistence checks passed.");
+
+var timelineStart = DateTimeOffset.Parse("2026-10-03T00:00:00Z");
+var timelineEnd = timelineStart.AddDays(1).AddHours(12);
+var timelineDevice = new Device { Mac = mac, Name = "Fictional phone", FirstSeen = timelineStart, State = PresenceState.Home };
+var timelineEvents = new[]
+{
+    PresenceEvent.Create(timelineStart.AddHours(12), "left", timelineDevice.Name, mac),
+    PresenceEvent.Create(timelineStart.AddDays(1).AddHours(6), "arrived", timelineDevice.Name, mac)
+};
+var timeline = PresenceTimeline.Build([timelineDevice], timelineEvents, timelineStart, timelineEnd, TimeZoneInfo.Utc).Single();
+Expect(timeline.Days.Count == 2 && Math.Abs(timeline.Days[0].Fraction!.Value - .5) < .001 && Math.Abs(timeline.Days[1].Fraction!.Value - .25) < .001,
+    "Timeline reconstructs per-day presence from arrival and departure intervals.");
+var unknownTimeline = PresenceTimeline.Build(
+    [new Device { Mac = newcomer, FirstSeen = timelineStart, State = PresenceState.Unknown }],
+    [], timelineStart, timelineEnd, TimeZoneInfo.Utc).Single();
+Expect(unknownTimeline.Days.All(day => day.Fraction is null), "Timeline leaves days without recorded presence state unfilled.");
+var baselineAway = new Device
+{
+    Mac = newcomer, FirstSeen = timelineStart.AddDays(-1), LastSeen = timelineStart.AddHours(6),
+    ChangedAt = timelineStart.AddDays(1), State = PresenceState.Away
+};
+var inferredTimeline = PresenceTimeline.Build([baselineAway], [], timelineStart, timelineEnd, TimeZoneInfo.Utc).Single();
+Expect(Math.Abs(inferredTimeline.Days[0].Fraction!.Value - .75) < .001 && inferredTimeline.Days[1].Fraction == 0,
+    "Timeline uses saved last-seen and state-change timestamps when a quiet baseline emitted no events.");
+using (var repository = new Repository(networkPath))
+{
+    repository.Save(new Snapshot(), [.. timelineEvents]);
+    Expect(repository.TimelineHistory(timelineStart, [mac]).Count == 2 &&
+           repository.TimelineHistory(timelineStart, [newcomer]).Count == 0,
+        "Timeline history query is date-bounded and scoped to selected devices.");
+}
+Console.WriteLine("Presence timeline reconstruction and history checks passed.");
