@@ -1,18 +1,20 @@
 # Presence project state
 
-## RESUME HERE — Presence 1.5.1 larger timeline window (2026-10-19)
+## RESUME HERE — Presence 1.5.1 larger timeline window (complete, 2026-10-19)
 
-Objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and update both portable copies on this PC while preserving the local profile.
+Objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and replace both portable copies on this PC while preserving the local profile. All requested work is complete.
 
-Baseline: Presence 1.5.0 is already published and installed. The working branch is `fix/timeline-window-space`, based on the post-release docs commit `a589044`. No persistence or timeline-calculation change is needed.
+Implementation: `PresenceTimelineWindow` opens maximized, has a larger restored size, and allows maximize/restore. The timeline-specific header and footer use less vertical space. Daily/hourly `DataGridView`s recalculate columns and row heights after first display and on resize; rows retain a readable minimum and full device names remain available in tooltips. No database or timeline-calculation changes were needed.
 
-Implementation: `PresenceTimelineWindow` opens maximized, can be maximized/restored, and has a larger restore size. Its timeline-only header/footer use less vertical space. The daily and hourly `DataGridView`s recalculate columns and row heights after first display and when resized; rows have a readable minimum and names remain available in tooltips. This avoids measuring the initial daily grid before the maximized layout is settled.
+Rationale and failed approaches: a larger fixed window and reduced toolbar spacing still left a scrollbar in the 20-device fixture at 144 DPI. The initial daily grid was also measured before the maximized layout settled. Refit on first display and resize, then size rows to the available viewport. Lists larger than the screen's readable capacity can still require scrolling.
 
-Failed approaches: a larger fixed size still showed vertical scrollbars at 144 DPI, and compacting the toolbar alone did not fit the 20-device fixture. `Ui.Configure`'s initial size clamp did not guarantee a post-layout column fit. The final approach fills rows and columns against the visible grid area on first show and on resize.
+Verification: the native fictional timeline preview passed 39 checks with zero findings and six light/dark captures at 1942×1056, 144 DPI. Twenty device rows fit without vertical or horizontal scrollbars across the tested daily/hourly ranges. PR #8 merged as `f6813837d00e77ca9fca09a846a6b057abfd30c0`; main-branch Windows CI [39299052655](https://github.com/remriel/presence-windows/actions/runs/39299052655) passed all behavior, UI and packaging steps. Release [v1.5.1](https://github.com/remriel/presence-windows/releases/tag/v1.5.1) is published. The official ZIP is 57,489,917 bytes; SHA-256 `9091e23de7b350bf79d8c8e33d4f1fce952168fdb382a574988b8ce9e2c0d55c` matches both the checksum asset and GitHub's asset digest. Its EXE reports 1.5.1.0, and the packaged fictional preview exported successfully.
 
-Verification: the native fictional timeline preview passed 39 checks with zero findings. Light/dark daily, hourly, 7-, 21- and 28-day ranges showed 20 rows without vertical scrolling; the ranges fit without horizontal scrolling. Six screenshots were captured at 1942×1056 and 144 DPI. Packaged build, Windows CI, publication, public package verification, and PC replacement are pending. No real-device data is used in preview images.
+PC update: both portable copies were replaced from the verified package and their executable hashes match it. The Windows startup entry remains unchanged; the active copy restarted as 1.5.1.0. A consistent local SQLite backup was made before update. Integrity checks passed before and after; saved device configurations/associations, people, saved networks, settings and retained event history were present afterward. No reset or schema migration was needed. Machine-specific paths, profile identifiers, counts and diagnostics remain private and are not committed.
 
-Next steps: (1) build and inspect the 1.5.1 package; (2) push the branch and create a PR; (3) attach the PR, wait for Windows CI, then merge with the release-trigger title `Release Presence 1.5.1`; (4) verify the published ZIP and checksum and launch the packaged fictional preview; (5) back up both installed 1.5.0 folders, replace from the verified release, preserve startup/profile, and verify executable version/hash plus SQLite integrity; (6) finalize docs, `WISDOM.MD`, shared AI Brain handoff, and task outputs.
+### RESUME HERE
+
+No required steps remain. The 20-device screenshot and fit check apply to this PC's 144-DPI, 1942×1056 display. Larger device lists or a smaller display may still need scrolling. Keep the demo screenshots fictional and preserve the local profile when updating future releases.
 
 ## Completed release — Presence 1.5.0 hourly timeline (2026-10-19)
 
