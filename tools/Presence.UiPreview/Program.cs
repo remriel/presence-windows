@@ -98,7 +98,16 @@ internal static class Program
         var home = new Device { Mac = "02:00:00:00:00:21", Name = "Anne's fictional phone", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Home, ChangedAt = now.AddHours(-3) };
         var away = new Device { Mac = "02:00:00:00:00:22", Name = "John's fictional tablet", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Away, ChangedAt = now.AddDays(-3) };
         var unknown = new Device { Mac = "02:00:00:00:00:23", Name = "Unrecorded fictional device", Network = "demo", FirstSeen = now.AddDays(-2), State = PresenceState.Unknown };
-        app.Engine.Data.Devices.AddRange([home, away, unknown]);
+        var devices = new List<Device> { home, away, unknown };
+        devices.AddRange(Enumerable.Range(0, 17).Select(i => new Device
+        {
+            Mac = $"02:00:00:00:00:{0x30 + i:X2}",
+            Name = $"Fictional device {i + 4:00}",
+            Network = "demo",
+            FirstSeen = now.AddDays(-i - 1),
+            State = PresenceState.Unknown
+        }));
+        app.Engine.Data.Devices.AddRange(devices);
         app.Store.Save(app.Engine.Data,
         [
             PresenceEvent.Create(now.AddDays(-12), "arrived", home.Name, home.Mac),
@@ -114,7 +123,9 @@ internal static class Program
             using var form = new PresenceTimelineWindow(app);
             form.Show(); Application.DoEvents();
             var grid = All(form).OfType<DataGridView>().Single();
-            Check(grid.Rows.Count == 3 && grid.Columns.Count == 15, theme + " 14-day device and date layout");
+            Check(grid.Rows.Count == 20 && grid.Columns.Count == 15, theme + " 14-day device and date layout");
+            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 devices fit without a vertical scrollbar");
+            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " default 14-day timeline fits without a horizontal scrollbar");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Length > 0), theme + " date tooltips");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells[1].ToolTipText.Contains("present"),
                 theme + " presence details are available per day");
@@ -123,7 +134,8 @@ internal static class Program
             All(form).OfType<Button>().Single(button => button.AccessibleName == "24 hours").PerformClick();
             Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
-            Check(grid.Rows.Count == 3 && grid.Columns.Count == 25, theme + " 24-hour device and hour layout");
+            Check(grid.Rows.Count == 20 && grid.Columns.Count == 25, theme + " 24-hour device and hour layout");
+            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 hourly rows fit without a vertical scrollbar");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " hourly labels include exact local intervals and offsets");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).Any(cell => cell.ToolTipText.Contains("present")),
                 theme + " hourly presence details are available per device");
@@ -140,6 +152,8 @@ internal static class Program
                 Application.DoEvents();
                 grid = All(form).OfType<DataGridView>().Single();
                 Check(grid.Columns.Count == columns, theme + $" {days}-day range selector");
+                Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + $" all 20 devices fit in the {days}-day view");
+                Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + $" {days}-day view fits without a horizontal scrollbar");
             }
             All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
             Application.DoEvents();
@@ -147,6 +161,7 @@ internal static class Program
             Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
             Check(grid.Columns.Count == 29, theme + " 28-day range selector");
+            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 devices fit in the 28-day view");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " timeline fits without horizontal clipping");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-28d", 1);
         }
@@ -450,7 +465,7 @@ internal static class Program
     {
         if (form.WindowState == FormWindowState.Minimized) { form.WindowState = FormWindowState.Normal; form.Show(); }
         if (layout) { form.PerformLayout(); Application.DoEvents(); }
-        foreach (var grid in All(form).OfType<DataGridView>()) { grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells); grid.ClearSelection(); }
+        foreach (var grid in All(form).OfType<DataGridView>()) { if (grid.AutoSizeRowsMode != DataGridViewAutoSizeRowsMode.None) grid.AutoResizeRows(DataGridViewAutoSizeRowsMode.AllCells); grid.ClearSelection(); }
         using var bitmap = new Bitmap(form.Width, form.Height); form.DrawToBitmap(bitmap, new Rectangle(Point.Empty, form.Size)); bitmap.Save(Path.Combine(output, name + ".png"));
         captures.Add(new { name, width = form.Width, height = form.Height, desktopDpi = form.DeviceDpi, scale });
         Audit(form, name, scale);

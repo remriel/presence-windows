@@ -1,3 +1,11 @@
+# Presence 1.5.1
+
+- Open the device timeline maximized with a large restored size and an enabled maximize control.
+- Fit timeline rows and columns to the available window area so more devices are visible without scrollbars. A 20-device fictional preview fits on the development PC's 144-DPI display.
+- Keep full device names available in tooltips when compact rows are needed to fit the screen.
+
+Existing profiles and the 24-hour and daily timeline ranges are preserved.
+
 # Presence 1.5.0
 
 - Add a rolling 24-hour timeline with one color-coded hour per column, alongside the existing 7-, 14-, 21- and 28-day views.

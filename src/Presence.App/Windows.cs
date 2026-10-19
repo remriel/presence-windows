@@ -295,8 +295,13 @@ internal sealed class PresenceTimelineWindow : Form
     {
         app = context;
         var s = app.Engine.Data.Settings;
-        Ui.Configure(this, "Presence timeline", new Size(800, 540), new Size(720, 420), s);
+        Ui.Configure(this, "Presence timeline", new Size(1200, 780), new Size(720, 420), s);
+        StartPosition = FormStartPosition.CenterScreen;
+        MaximizeBox = true;
+        WindowState = FormWindowState.Maximized;
         var header = Ui.Header("Presence timeline", "Hourly and daily presence estimates for devices on the connected network.", s);
+        header.Padding = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0);
+        ranges.Padding = Padding.Empty;
         foreach (var (range, label) in new[] { ("24 hours", "24&h"), ("7 days", "7&d"), ("14 days", "14&d"), ("21 days", "21&d"), ("28 days", "28&d") })
         {
             var button = Ui.Button(label, () => ShowRange(range), s, range == selectedRange);
@@ -306,13 +311,33 @@ internal sealed class PresenceTimelineWindow : Form
         Ui.Add(header, ranges);
 
         legend = Ui.Label("Green shows time present; gray shows away or unrecorded time. Hover over a day for details.", s, true);
-        legend.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, Ui.Gap);
+        legend.Margin = Padding.Empty;
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel;
-        var footer = Ui.Stack(); Ui.Add(footer, legend); Ui.Add(footer, Ui.Actions(close));
+        close.Margin = Padding.Empty;
+        var footer = new TableLayoutPanel
+        {
+            Dock = DockStyle.Fill,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            ColumnCount = 2,
+            RowCount = 1,
+            Padding = new Padding(Ui.Page, Ui.Gap, Ui.Page, Ui.Gap),
+            Margin = Padding.Empty,
+            ColumnStyles = { new ColumnStyle(SizeType.Percent, 100), new ColumnStyle(SizeType.AutoSize) },
+            RowStyles = { new RowStyle(SizeType.AutoSize) }
+        };
+        footer.Controls.Add(legend, 0, 0);
+        footer.Controls.Add(close, 1, 0);
         CancelButton = close;
         ShowRange(selectedRange);
         Ui.Shell(this, header, body, footer);
         Ui.Theme(this, s);
+        Shown += (_, _) =>
+        {
+            if (grid is not { IsDisposed: false } table) return;
+            FitTimelineColumns(table);
+            FitTimelineRows(table);
+        };
     }
 
     private void ShowRange(string range)
@@ -376,11 +401,15 @@ internal sealed class PresenceTimelineWindow : Form
         var table = Ui.Grid(settings);
         grid = table;
         table.AccessibleName = "Hourly device presence for the last 24 hours. Each cell shows the share of that hour the device was present.";
-        table.ColumnHeadersHeight = 36;
+        table.ColumnHeadersHeight = 30;
         table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
         table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-        table.RowTemplate.Height = 34;
-        table.DefaultCellStyle.Padding = new Padding(2);
+        table.RowTemplate.Height = 20;
+        table.RowTemplate.MinimumHeight = 20;
+        table.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+        table.DefaultCellStyle.Padding = new Padding(2, 0, 2, 0);
+        table.DefaultCellStyle.Font = new Font(Ui.StandardFont.FontFamily, 9, Ui.StandardFont.Style);
+        table.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
         nameColumn.Width = 200;
         nameColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
@@ -420,17 +449,7 @@ internal sealed class PresenceTimelineWindow : Form
             }
         }
 
-        void FitColumns()
-        {
-            if (table.IsDisposed || table.Columns.Count == 0) return;
-            var nameWidth = Math.Clamp(table.ClientSize.Width / 4, 160, 240);
-            var available = Math.Max(0, table.ClientSize.Width - nameWidth - SystemInformation.VerticalScrollBarWidth - 4);
-            var cellWidth = Math.Max(16, available / 24);
-            table.Columns[0].Width = nameWidth;
-            for (var i = 1; i < table.Columns.Count; i++) table.Columns[i].Width = cellWidth;
-        }
-
-        table.SizeChanged += (_, _) => FitColumns();
+        table.SizeChanged += (_, _) => { FitTimelineColumns(table); FitTimelineRows(table); };
         table.CellPainting += (_, e) =>
         {
             if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
@@ -460,7 +479,8 @@ internal sealed class PresenceTimelineWindow : Form
             }
         };
         body.Controls.Add(table);
-        FitColumns();
+        FitTimelineColumns(table);
+        FitTimelineRows(table);
     }
 
     private void ShowGrid(int days, DateOnly first, IReadOnlyList<PresenceTimelineRow> rows, Settings settings)
@@ -468,11 +488,15 @@ internal sealed class PresenceTimelineWindow : Form
         var table = Ui.Grid(settings);
         grid = table;
         table.AccessibleName = "Daily device presence. Each day cell shows the share of the day the device was present.";
-        table.ColumnHeadersHeight = 36;
+        table.ColumnHeadersHeight = 30;
         table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
         table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
-        table.RowTemplate.Height = 34;
-        table.DefaultCellStyle.Padding = new Padding(2);
+        table.RowTemplate.Height = 20;
+        table.RowTemplate.MinimumHeight = 20;
+        table.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
+        table.DefaultCellStyle.Padding = new Padding(2, 0, 2, 0);
+        table.DefaultCellStyle.Font = new Font(Ui.StandardFont.FontFamily, 9, Ui.StandardFont.Style);
+        table.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
         nameColumn.Width = 200;
         nameColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
@@ -507,17 +531,7 @@ internal sealed class PresenceTimelineWindow : Form
             }
         }
 
-        void FitColumns()
-        {
-            if (table.IsDisposed || table.Columns.Count == 0) return;
-            var nameWidth = Math.Clamp(table.ClientSize.Width / 4, 160, 240);
-            var available = Math.Max(0, table.ClientSize.Width - nameWidth - SystemInformation.VerticalScrollBarWidth - 4);
-            var cellWidth = Math.Max(16, available / days);
-            table.Columns[0].Width = nameWidth;
-            for (var i = 1; i < table.Columns.Count; i++) table.Columns[i].Width = cellWidth;
-        }
-
-        table.SizeChanged += (_, _) => FitColumns();
+        table.SizeChanged += (_, _) => { FitTimelineColumns(table); FitTimelineRows(table); };
         table.CellPainting += (_, e) =>
         {
             if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
@@ -547,7 +561,28 @@ internal sealed class PresenceTimelineWindow : Form
             }
         };
         body.Controls.Add(table);
-        FitColumns();
+        FitTimelineColumns(table);
+        FitTimelineRows(table);
+    }
+
+    private static void FitTimelineColumns(DataGridView table)
+    {
+        if (table.IsDisposed || table.Columns.Count <= 1 || table.ClientSize.Width <= 0) return;
+        var nameWidth = Math.Clamp(table.ClientSize.Width / 4, 160, 240);
+        var available = Math.Max(0, table.ClientSize.Width - nameWidth - SystemInformation.VerticalScrollBarWidth - 4);
+        var cellWidth = Math.Max(16, available / (table.Columns.Count - 1));
+        table.Columns[0].Width = nameWidth;
+        for (var i = 1; i < table.Columns.Count; i++) table.Columns[i].Width = cellWidth;
+    }
+
+    private static void FitTimelineRows(DataGridView table)
+    {
+        if (table.IsDisposed || table.Rows.Count == 0 || table.ClientSize.Height <= 0) return;
+        var available = Math.Max(0, table.ClientSize.Height - table.ColumnHeadersHeight - 2);
+        var minimum = Math.Max(20, table.RowTemplate.MinimumHeight);
+        var maximum = Math.Max(minimum, (int)Math.Round(36 * table.DeviceDpi / 96f));
+        var height = Math.Clamp(available / table.Rows.Count, minimum, maximum);
+        foreach (DataGridViewRow row in table.Rows) row.Height = height;
     }
 
     private void OpenDevice(DataGridView table, int rowIndex)
