@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.4.0](https://github.com/remriel/presence-windows/releases/tag/v1.4.0) · Windows 10 x64 and later
+[Download Presence 1.5.0](https://github.com/remriel/presence-windows/releases/tag/v1.5.0) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -24,6 +24,8 @@ These screens use fictional preview devices.
 
 <img src="docs/images/presence-timeline.png" width="620" alt="Fictional per-device daily presence heatmap with 14-day range selected">
 
+<img src="docs/images/presence-timeline-24h.png" width="620" alt="Fictional per-device presence timeline with the rolling 24-hour hourly view selected">
+
 <img src="docs/images/presence-speed-test.png" width="620" alt="On-demand internet speed test showing download, upload, latency and jitter">
 
 ## Start
@@ -34,7 +36,7 @@ These screens use fictional preview devices.
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.4.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.5.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
@@ -70,7 +72,7 @@ No cloud account, Presence telemetry, web server, subscriptions, login, port sca
 
 Alerts are **custom floating icon popups above the taskbar**, with a bundled chime matching the Codex Usage Counter. They do not use Windows toast or balloon notifications, so disabled Windows notification banners do not suppress them. Popups stay above ordinary windows without taking keyboard focus; click one to open its device, or click × to dismiss. They close after ten seconds by default (3–60 seconds in Settings), pausing that countdown while hovered. Sound is enabled by default and can be disabled in Settings; normal Windows/app audio volume still applies. Quiet hours and the independent arrival/departure/unknown switches apply to real events. **Test alert** displays immediately even during quiet hours; it follows the saved sound setting. A bounded queue handles event bursts, with excess changes summarized while all history remains stored.
 
-Activity shows recorded events. The main window's **Timeline** opens a per-device daily presence heatmap for the current network, with 7-, 14-, 21- and 28-day ranges. Green cells estimate the share of each day present from arrival/departure history and saved state timestamps; gray includes away and unrecorded time. Hover for the recorded presence duration and coverage. This is an estimate, not a guarantee that a person or device was physically home. The graph uses existing local event history and does not extend its retention period. Settings → Devices includes known, absent and ignored devices. There is one process per user/profile; launching again opens the existing window. The tray process stays alive independently of the main window.
+Activity shows recorded events. The main window's **Timeline** opens a per-device presence heatmap for the current network. The **24h** view shows the last 24 hours in hourly cells, with exact local intervals and UTC offsets in tooltips; 7-, 14-, 21- and 28-day views show daily cells. Green cells estimate time present from arrival/departure history and saved state timestamps; gray includes away and unrecorded time. Hover for recorded presence duration and coverage. This is an estimate, not a guarantee that a person or device was physically home. The graph uses existing local event history and does not extend its retention period. Settings → Devices includes known, absent and ignored devices. There is one process per user/profile; launching again opens the existing window. The tray process stays alive independently of the main window.
 
 ## Path to improvements
 

@@ -120,6 +120,20 @@ internal static class Program
                 theme + " presence details are available per day");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-14d", 1);
 
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "24 hours").PerformClick();
+            Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+            Check(grid.Rows.Count == 3 && grid.Columns.Count == 25, theme + " 24-hour device and hour layout");
+            Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " hourly labels include exact local intervals and offsets");
+            Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).Any(cell => cell.ToolTipText.Contains("present")),
+                theme + " hourly presence details are available per device");
+            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 24-hour timeline fits without horizontal clipping");
+            CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-24h", 1);
+
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
+            Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+
             foreach (var (days, columns) in new[] { (7, 8), (21, 22) })
             {
                 All(form).OfType<Button>().Single(button => button.AccessibleName == days + " days").PerformClick();

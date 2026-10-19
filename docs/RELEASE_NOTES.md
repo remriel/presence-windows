@@ -1,3 +1,11 @@
+# Presence 1.5.0
+
+- Add a rolling 24-hour timeline with one color-coded hour per column, alongside the existing 7-, 14-, 21- and 28-day views.
+- Show exact local time intervals, UTC offsets, presence duration and recorded-state coverage in hourly tooltips, including across daylight-saving transitions.
+- Keep unknown time neutral and preserve the existing local-only history and retention behavior.
+
+Existing profiles are preserved without a reset. The hourly view estimates device presence from recorded transitions; it does not guarantee that a person or device was physically home.
+
 # Presence 1.4.0
 
 - Add a per-device daily presence timeline to the main window, with 7-, 14-, 21- and 28-day ranges.
