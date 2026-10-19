@@ -1,3 +1,11 @@
+# Presence 1.4.0
+
+- Add a per-device daily presence timeline to the main window, with 7-, 14-, 21- and 28-day ranges.
+- Estimate each day's presence from recorded arrival/departure transitions and saved state timestamps; use tooltips to inspect daily presence and recorded-state coverage.
+- Show away and unrecorded time in neutral gray, keep the graph local, and retain the existing event-history retention policy.
+
+Existing profiles are preserved without a reset. The timeline is an estimate based on recorded presence transitions, not a guarantee that a person or device was physically home.
+
 # Presence 1.3.0
 
 - Add Networks from the main window to remember/save the connected network and rename it later.
