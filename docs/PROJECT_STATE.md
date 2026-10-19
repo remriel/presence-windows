@@ -10,18 +10,13 @@ Implementation: `PresenceTimeline.BuildHourly` reconstructs exactly 24 one-hour 
 
 UI: the timeline range bar has a `24h` choice alongside 7/14/21/28 days. The hourly view displays one-hour cells, readable three-hour local-time ticks, and per-cell duration/coverage tooltips. Screenshot fixtures contain fictional devices only.
 
-Verification so far: core checks pass; local timeline preview passes 23 checks with zero layout findings; saved networks (11), visibility (16), reliability (16), broad UI (26 captures) and bulk/reset/pause (24) all pass with zero findings. The Windows x64 self-contained Release build completed with zero warnings/errors, local package version is 1.5.0.0, and its fictional packaged preview exited successfully. The local ZIP is 57,489,505 bytes, SHA-256 `fde8813adc00943d5f5e3bfd16059c9bf612c80475cc71fff5ec8075c17a0539`. The reviewed light/dark fictional hourly screenshot is in `docs/images/presence-timeline-24h.png` and task outputs. README, release notes, and version metadata are updated. GitHub CI/public release remain pending.
+Verification: PR #7 merged as `25e999d538cd5cfae9e7f289b4e2bd3e04bd65a9`; main-branch Windows CI run [39294576888](https://github.com/remriel/presence-windows/actions/runs/39294576888) passed all behavior, UI, and packaging steps. Tag `v1.5.0` is published at that commit. The official 57,489,466-byte ZIP matches both its checksum file and GitHub asset digest: `6035dcd934c33754b7f46a2603732edad66ddd8c0c9c949fe501b79e0a6c50e1`. Its EXE reports 1.5.0.0, and a packaged fictional preview exported successfully. Local regression suites also passed: core; timeline (23); saved networks (11); visibility (16); reliability (16); broad UI (26 captures); bulk/reset/pause (24). The self-contained local Release build completed with zero warnings/errors.
 
-PC update discovery: the user's PC has a running 1.4.0 instance and a second matching portable copy; the startup entry points to the running copy. Preserve the standard `%LOCALAPPDATA%\Presence\presence.db` profile. Machine-specific install paths, process identifiers, executable hashes, database sizes, and diagnostics are private workspace context and must not be committed to this public repository. Quit Presence normally, preserve the startup entry and profile, update both copies, then verify versions and SQLite integrity after restart.
+PC update: both portable copies were replaced from the verified public package, and their executable hashes match. The startup command still targets the active copy. The app restarted as version 1.5.0.0. The existing local profile passed SQLite integrity checks before and after; saved state and event history remained, with one additional event recorded during normal monitoring after restart. No schema change or reset was needed. Machine-specific paths, hashes, process identifiers, profile counts and diagnostics remain private workspace context and must not be committed to this public repository.
 
 ### RESUME HERE
 
-1. Finish remaining pre-release review; local regression, build, package preview, and screenshot are complete.
-2. Commit and push the feature branch, open a release PR, and wait for Windows CI.
-3. Merge using a `Release Presence 1.5.0 ...` commit message so `.github/workflows/build.yml` creates tag `v1.5.0` and uploads the ZIP/checksum.
-4. Download and verify the published package and SHA-256.
-5. Quit the running app normally, back up both application folders, replace the released package files in both portable copies, leave the data profile and startup command unchanged, then relaunch and verify.
-6. Update progress/state, root `WISDOM.MD`, and shared AI Brain project/session notes.
+The requested 24-hour timeline, 1.5.0 publication, and PC replacement are complete. No required steps remain. For optional future real-LAN acceptance, compare the hourly estimate against a known device reconnect and a sleeping-device interval; presence remains a network-response estimate, not proof that a person is home. Keep all device identifiers and real-device screenshots out of Git.
 
 ## Prior release context — Presence 1.4.0 (2026-10-18)
 
