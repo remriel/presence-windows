@@ -1,6 +1,20 @@
 # Presence project state
 
-## RESUME HERE — Presence 1.5.0 hourly timeline (2026-10-19)
+## RESUME HERE — Presence 1.5.1 larger timeline window (2026-10-19)
+
+Objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and update both portable copies on this PC while preserving the local profile.
+
+Baseline: Presence 1.5.0 is already published and installed. The working branch is `fix/timeline-window-space`, based on the post-release docs commit `a589044`. No persistence or timeline-calculation change is needed.
+
+Implementation: `PresenceTimelineWindow` opens maximized, can be maximized/restored, and has a larger restore size. Its timeline-only header/footer use less vertical space. The daily and hourly `DataGridView`s recalculate columns and row heights after first display and when resized; rows have a readable minimum and names remain available in tooltips. This avoids measuring the initial daily grid before the maximized layout is settled.
+
+Failed approaches: a larger fixed size still showed vertical scrollbars at 144 DPI, and compacting the toolbar alone did not fit the 20-device fixture. `Ui.Configure`'s initial size clamp did not guarantee a post-layout column fit. The final approach fills rows and columns against the visible grid area on first show and on resize.
+
+Verification: the native fictional timeline preview passed 39 checks with zero findings. Light/dark daily, hourly, 7-, 21- and 28-day ranges showed 20 rows without vertical scrolling; the ranges fit without horizontal scrolling. Six screenshots were captured at 1942×1056 and 144 DPI. Packaged build, Windows CI, publication, public package verification, and PC replacement are pending. No real-device data is used in preview images.
+
+Next steps: (1) build and inspect the 1.5.1 package; (2) push the branch and create a PR; (3) attach the PR, wait for Windows CI, then merge with the release-trigger title `Release Presence 1.5.1`; (4) verify the published ZIP and checksum and launch the packaged fictional preview; (5) back up both installed 1.5.0 folders, replace from the verified release, preserve startup/profile, and verify executable version/hash plus SQLite integrity; (6) finalize docs, `WISDOM.MD`, shared AI Brain handoff, and task outputs.
+
+## Completed release — Presence 1.5.0 hourly timeline (2026-10-19)
 
 Objective: add a rolling last-24-hours view to the device timeline, publish Presence 1.5.0, and update the copies on this PC without resetting the profile.
 
@@ -14,7 +28,7 @@ Verification: PR #7 merged as `25e999d538cd5cfae9e7f289b4e2bd3e04bd65a9`; main-b
 
 PC update: both portable copies were replaced from the verified public package, and their executable hashes match. The startup command still targets the active copy. The app restarted as version 1.5.0.0. The existing local profile passed SQLite integrity checks before and after; saved state and event history remained, with one additional event recorded during normal monitoring after restart. No schema change or reset was needed. Machine-specific paths, hashes, process identifiers, profile counts and diagnostics remain private workspace context and must not be committed to this public repository.
 
-### RESUME HERE
+### 1.5.0 delivery completion
 
 The requested 24-hour timeline, 1.5.0 publication, and PC replacement are complete. No required steps remain. For optional future real-LAN acceptance, compare the hourly estimate against a known device reconnect and a sleeping-device interval; presence remains a network-response estimate, not proof that a person is home. Keep all device identifiers and real-device screenshots out of Git.
 

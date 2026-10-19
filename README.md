@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.5.0](https://github.com/remriel/presence-windows/releases/tag/v1.5.0) · Windows 10 x64 and later
+[Download Presence 1.5.1](https://github.com/remriel/presence-windows/releases/tag/v1.5.1) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -22,9 +22,9 @@ These screens use fictional preview devices.
 
 <img src="docs/images/presence-activity.png" width="620" alt="Activity history with aligned timestamps, device names and event types">
 
-<img src="docs/images/presence-timeline.png" width="620" alt="Fictional per-device daily presence heatmap with 14-day range selected">
+<img src="docs/images/presence-timeline.png" width="800" alt="Maximized fictional daily presence timeline showing 20 devices without scrollbars">
 
-<img src="docs/images/presence-timeline-24h.png" width="620" alt="Fictional per-device presence timeline with the rolling 24-hour hourly view selected">
+<img src="docs/images/presence-timeline-24h.png" width="800" alt="Maximized fictional 24-hour presence timeline showing 20 devices without scrollbars">
 
 <img src="docs/images/presence-speed-test.png" width="620" alt="On-demand internet speed test showing download, upload, latency and jitter">
 
@@ -36,7 +36,7 @@ These screens use fictional preview devices.
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.5.0**. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.5.1**. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
