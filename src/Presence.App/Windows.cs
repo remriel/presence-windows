@@ -287,7 +287,8 @@ internal sealed class PresenceTimelineWindow : Form
     private readonly PresenceContext app;
     private readonly Panel body = new() { Dock = DockStyle.Fill, Padding = new Padding(Ui.Page, Ui.Space, Ui.Page, Ui.Space) };
     private readonly FlowLayoutPanel ranges = new() { AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, Dock = DockStyle.Top, WrapContents = true, Margin = Padding.Empty, Padding = new Padding(0, Ui.Space, 0, Ui.Space) };
-    private int selectedDays = 14;
+    private string selectedRange = "14 days";
+    private WrapLabel? legend;
     private DataGridView? grid;
 
     public PresenceTimelineWindow(PresenceContext context)
@@ -295,29 +296,33 @@ internal sealed class PresenceTimelineWindow : Form
         app = context;
         var s = app.Engine.Data.Settings;
         Ui.Configure(this, "Presence timeline", new Size(800, 540), new Size(720, 420), s);
-        var header = Ui.Header("Presence timeline", "Daily presence estimates for each device on the connected network.", s);
-        foreach (var days in new[] { 7, 14, 21, 28 })
+        var header = Ui.Header("Presence timeline", "Hourly and daily presence estimates for devices on the connected network.", s);
+        foreach (var (range, label) in new[] { ("24 hours", "24&h"), ("7 days", "7&d"), ("14 days", "14&d"), ("21 days", "21&d"), ("28 days", "28&d") })
         {
-            var button = Ui.Button(days + "&d", () => ShowRange(days), s, days == selectedDays);
-            button.AccessibleName = days + " days";
+            var button = Ui.Button(label, () => ShowRange(range), s, range == selectedRange);
+            button.AccessibleName = range;
             ranges.Controls.Add(button);
         }
         Ui.Add(header, ranges);
 
-        var legend = Ui.Label("Green shows time present; gray shows away or unrecorded time. Hover over a day for details.", s, true);
+        legend = Ui.Label("Green shows time present; gray shows away or unrecorded time. Hover over a day for details.", s, true);
         legend.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, Ui.Gap);
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel;
         var footer = Ui.Stack(); Ui.Add(footer, legend); Ui.Add(footer, Ui.Actions(close));
         CancelButton = close;
-        ShowRange(selectedDays);
+        ShowRange(selectedRange);
         Ui.Shell(this, header, body, footer);
         Ui.Theme(this, s);
     }
 
-    private void ShowRange(int days)
+    private void ShowRange(string range)
     {
-        selectedDays = days;
+        selectedRange = range;
         var s = app.Engine.Data.Settings;
+        if (legend is not null)
+            legend.Text = range == "24 hours"
+                ? "The last 24 hours run oldest to newest, one hour per cell. Green shows time present; gray shows away or unrecorded time. Hover for exact times and coverage."
+                : "Green shows time present; gray shows away or unrecorded time. Hover over a day for duration and coverage.";
         foreach (Control control in body.Controls.Cast<Control>().ToArray())
         {
             body.Controls.Remove(control);
@@ -338,20 +343,124 @@ internal sealed class PresenceTimelineWindow : Form
         }
         else
         {
-            var now = DateTimeOffset.Now;
-            var first = DateOnly.FromDateTime(now.LocalDateTime).AddDays(1 - days);
-            var from = PresenceTimeline.StartOfDay(first);
-            var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
-            var rows = PresenceTimeline.Build(devices, events, from, now);
-            ShowGrid(days, first, rows, s);
+            var now = DateTimeOffset.UtcNow;
+            if (range == "24 hours")
+            {
+                var from = now.AddHours(-24);
+                var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
+                var rows = PresenceTimeline.BuildHourly(devices, events, from, now);
+                ShowHourlyGrid(rows, s);
+            }
+            else
+            {
+                var days = int.Parse(range.Split(' ')[0]);
+                var today = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(now, TimeZoneInfo.Local).DateTime);
+                var first = today.AddDays(1 - days);
+                var from = PresenceTimeline.StartOfDay(first);
+                var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
+                var rows = PresenceTimeline.Build(devices, events, from, now);
+                ShowGrid(days, first, rows, s);
+            }
         }
 
         foreach (Button button in ranges.Controls)
         {
-            var active = button.AccessibleName == days + " days";
+            var active = button.AccessibleName == range;
             button.Tag = active ? "primary" : "button";
             Ui.Theme(button, s);
         }
+    }
+
+    private void ShowHourlyGrid(IReadOnlyList<PresenceHourlyTimelineRow> rows, Settings settings)
+    {
+        var table = Ui.Grid(settings);
+        grid = table;
+        table.AccessibleName = "Hourly device presence for the last 24 hours. Each cell shows the share of that hour the device was present.";
+        table.ColumnHeadersHeight = 36;
+        table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
+        table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
+        table.RowTemplate.Height = 34;
+        table.DefaultCellStyle.Padding = new Padding(2);
+        var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
+        nameColumn.Width = 200;
+        nameColumn.HeaderCell.Style.Alignment = DataGridViewContentAlignment.MiddleLeft;
+        nameColumn.HeaderCell.Style.Padding = new Padding(Ui.Gap, 0, 0, 0);
+        table.Columns.Add(nameColumn);
+
+        var zone = TimeZoneInfo.Local;
+        var hours = rows.Count == 0 ? Array.Empty<PresenceHourlyTimelineCell>() : rows[0].Hours.ToArray();
+        for (var i = 0; i < 24; i++)
+        {
+            var hour = hours[i];
+            var localStart = TimeZoneInfo.ConvertTime(hour.Start, zone);
+            var localEnd = TimeZoneInfo.ConvertTime(hour.End, zone);
+            var column = Ui.Column("Hour" + i, localStart.ToString("HH"), 20, DataGridViewAutoSizeColumnMode.None);
+            column.Width = 24;
+            column.HeaderCell.ToolTipText = $"{localStart:dddd, MMMM d HH:mm}–{localEnd:dddd, MMMM d HH:mm} local (UTC {localStart:zzz} to {localEnd:zzz})";
+            table.Columns.Add(column);
+        }
+
+        foreach (var row in rows)
+        {
+            var values = new object[25];
+            Array.Fill(values, "");
+            values[0] = row.Device.DisplayName;
+            var index = table.Rows.Add(values);
+            var gridRow = table.Rows[index];
+            gridRow.Tag = row.Device;
+            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + Ui.State(row.Device.State);
+            for (var i = 0; i < 24; i++)
+            {
+                var cell = gridRow.Cells[i + 1];
+                var hour = row.Hours[i];
+                var color = PresenceColor(hour.Fraction, settings);
+                cell.Style.BackColor = color;
+                cell.Style.SelectionBackColor = color;
+                cell.ToolTipText = HourTooltip(row.Device, hour);
+            }
+        }
+
+        void FitColumns()
+        {
+            if (table.IsDisposed || table.Columns.Count == 0) return;
+            var nameWidth = Math.Clamp(table.ClientSize.Width / 4, 160, 240);
+            var available = Math.Max(0, table.ClientSize.Width - nameWidth - SystemInformation.VerticalScrollBarWidth - 4);
+            var cellWidth = Math.Max(16, available / 24);
+            table.Columns[0].Width = nameWidth;
+            for (var i = 1; i < table.Columns.Count; i++) table.Columns[i].Width = cellWidth;
+        }
+
+        table.SizeChanged += (_, _) => FitColumns();
+        table.CellPainting += (_, e) =>
+        {
+            if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
+            e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
+            var hourIndex = e.ColumnIndex - 1;
+            if ((hourIndex + 1) % 3 == 0 || hourIndex == 23)
+            {
+                var firstHour = hourIndex - hourIndex % 3;
+                var firstBounds = table.GetCellDisplayRectangle(e.ColumnIndex - hourIndex % 3, -1, true);
+                var groupBounds = Rectangle.FromLTRB(firstBounds.Left, e.CellBounds.Top, e.CellBounds.Right, e.CellBounds.Bottom);
+                var localStart = TimeZoneInfo.ConvertTime(hours[firstHour].Start, zone);
+                var font = e.CellStyle?.Font ?? table.ColumnHeadersDefaultCellStyle.Font ?? Ui.StrongFont;
+                var color = e.CellStyle?.ForeColor ?? Ui.Muted(settings);
+                if (e.Graphics is { } graphics)
+                    TextRenderer.DrawText(graphics, localStart.ToString("HH"), font, groupBounds, color,
+                        TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
+            }
+            e.Handled = true;
+        };
+        table.CellDoubleClick += (_, e) => OpenDevice(table, e.RowIndex);
+        table.KeyDown += (_, e) =>
+        {
+            if (e.KeyCode == Keys.Enter && table.CurrentRow is { } row)
+            {
+                e.Handled = e.SuppressKeyPress = true;
+                OpenDevice(table, row.Index);
+            }
+        };
+        body.Controls.Add(table);
+        FitColumns();
     }
 
     private void ShowGrid(int days, DateOnly first, IReadOnlyList<PresenceTimelineRow> rows, Settings settings)
@@ -469,6 +578,16 @@ internal sealed class PresenceTimelineWindow : Form
     {
         if (day.Fraction is null) return $"{device.DisplayName} · {day.Date:dddd, MMMM d}: no recorded presence state.";
         return $"{device.DisplayName} · {day.Date:dddd, MMMM d}: present {day.Present.TotalHours:0.#}h of {day.Duration.TotalHours:0.#}h · state recorded for {day.Recorded.TotalHours:0.#}h.";
+    }
+
+    private static string HourTooltip(Device device, PresenceHourlyTimelineCell hour)
+    {
+        var zone = TimeZoneInfo.Local;
+        var localStart = TimeZoneInfo.ConvertTime(hour.Start, zone);
+        var localEnd = TimeZoneInfo.ConvertTime(hour.End, zone);
+        var interval = $"{localStart:dddd, MMMM d HH:mm}–{localEnd:dddd, MMMM d HH:mm} local (UTC {localStart:zzz} to {localEnd:zzz})";
+        if (hour.Fraction is null) return $"{device.DisplayName} · {interval}: no recorded presence state.";
+        return $"{device.DisplayName} · {interval}: present {hour.Present.TotalMinutes:0}m of {hour.Duration.TotalMinutes:0}m · state recorded for {hour.Recorded.TotalMinutes:0}m.";
     }
 }
 

@@ -1,14 +1,37 @@
 # Presence project state
 
-## RESUME HERE — Presence 1.4.0 release and installation (2026-10-18)
+## RESUME HERE — Presence 1.5.0 hourly timeline (2026-10-19)
 
-User-requested feature: per-device daily presence graph like the supplied heatmap reference. User also explicitly requested publishing the new version and updating this PC. Implementation is in progress on branch `remriel-device-presence-graph`; target version is 1.4.0. Do not call the release or local update complete until the GitHub release is published and the installed app is verified.
+Objective: add a rolling last-24-hours view to the device timeline, publish Presence 1.5.0, and update the copies on this PC without resetting the profile.
+
+Baseline: public `main` and tag `v1.4.0` were at `cf8cdfa` when work began. Current work is on `feature/timeline-24-hour`. The existing daily views and 14-day default remain intact.
+
+Implementation: `PresenceTimeline.BuildHourly` reconstructs exactly 24 one-hour elapsed-time bins from saved arrival/departure events and the current device state. Bins are calculated in UTC and rendered in local time. Each column tooltip shows the complete local interval and UTC offsets, so repeated or skipped clock labels around daylight-saving transitions remain distinguishable. No database/schema changes or retention changes are required. Unknown state stays neutral.
+
+UI: the timeline range bar has a `24h` choice alongside 7/14/21/28 days. The hourly view displays one-hour cells, readable three-hour local-time ticks, and per-cell duration/coverage tooltips. Screenshot fixtures contain fictional devices only.
+
+Verification so far: core checks pass; local timeline preview passes 23 checks with zero layout findings; saved networks (11), visibility (16), reliability (16), broad UI (26 captures) and bulk/reset/pause (24) all pass with zero findings. The Windows x64 self-contained Release build completed with zero warnings/errors, local package version is 1.5.0.0, and its fictional packaged preview exited successfully. The local ZIP is 57,489,505 bytes, SHA-256 `fde8813adc00943d5f5e3bfd16059c9bf612c80475cc71fff5ec8075c17a0539`. The reviewed light/dark fictional hourly screenshot is in `docs/images/presence-timeline-24h.png` and task outputs. README, release notes, and version metadata are updated. GitHub CI/public release remain pending.
+
+PC update discovery: the user's PC has a running 1.4.0 instance and a second matching portable copy; the startup entry points to the running copy. Preserve the standard `%LOCALAPPDATA%\Presence\presence.db` profile. Machine-specific install paths, process identifiers, executable hashes, database sizes, and diagnostics are private workspace context and must not be committed to this public repository. Quit Presence normally, preserve the startup entry and profile, update both copies, then verify versions and SQLite integrity after restart.
+
+### RESUME HERE
+
+1. Finish remaining pre-release review; local regression, build, package preview, and screenshot are complete.
+2. Commit and push the feature branch, open a release PR, and wait for Windows CI.
+3. Merge using a `Release Presence 1.5.0 ...` commit message so `.github/workflows/build.yml` creates tag `v1.5.0` and uploads the ZIP/checksum.
+4. Download and verify the published package and SHA-256.
+5. Quit the running app normally, back up both application folders, replace the released package files in both portable copies, leave the data profile and startup command unchanged, then relaunch and verify.
+6. Update progress/state, root `WISDOM.MD`, and shared AI Brain project/session notes.
+
+## Prior release context — Presence 1.4.0 (2026-10-18)
+
+Completed prior feature: per-device daily presence graph, published as Presence 1.4.0. Its 7/14/21/28-day ranges, 14-day default, existing event-history estimate, focused UI previews and screenshot remain the baseline for the 1.5.0 hourly extension below.
 
 Implementation: main-window Timeline action opens a local, current-network device heatmap with 7/14/21/28-day ranges. Daily color estimates present time from saved arrival/departure events plus last-seen/state-change timestamps; unknown/away time is neutral. Tooltips show duration and state coverage. Existing event retention is unchanged. No schema migration or reset is needed. Person reconciliation is silent at every production call site, so aggregate person transitions are not persisted as device-MAC events. Fictional preview screenshot at `docs/images/presence-timeline.png`.
 
 Verification so far: core timeline reconstruction/history checks pass; native fixture preview passes 15 timeline checks in light/dark themes, including all ranges, date tooltips, no horizontal clipping and empty state. Final local suites pass: timeline (15), saved networks (11), visibility (16), reliability (16), broad UI (26 captures, zero layout findings), bulk/reset/pause (24), and core. Self-contained x64 build and fictional packaged preview pass; final Release build has zero warnings/errors. GitHub release and PC update remain pending. Preserve `%LOCALAPPDATA%/Presence/presence.db`; never include it or real-device screenshots in Git.
 
-PC update context: the existing portable installation is under `%LOCALAPPDATA%/Programs/Presence`, with the live profile under `%LOCALAPPDATA%/Presence`. A Presence process currently runs from `%LOCALAPPDATA%/PresenceBuild/Visibility/.../Presence.exe`; the startup entry also targets that build path. Inspect/resolve it carefully before installing or changing startup, and preserve the profile. A separate `Presence.exe` process is not in the portable install folder at the last check.
+PC update context at the time of the 1.4.0 handoff (2026-10-18): inspection reported a portable installation under `%LOCALAPPDATA%/Programs/Presence`, live profile under `%LOCALAPPDATA%/Presence`, and a process/startup target under a build output. This is historical and was superseded by the direct 1.5.0 session inspection above, which found the active startup target and a second identical portable copy; the exact machine path remains private.
 
 ## Previous completed release — Presence 1.3.0
 

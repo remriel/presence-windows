@@ -137,6 +137,30 @@ var baselineAway = new Device
 var inferredTimeline = PresenceTimeline.Build([baselineAway], [], timelineStart, timelineEnd, TimeZoneInfo.Utc).Single();
 Expect(Math.Abs(inferredTimeline.Days[0].Fraction!.Value - .75) < .001 && inferredTimeline.Days[1].Fraction == 0,
     "Timeline uses saved last-seen and state-change timestamps when a quiet baseline emitted no events.");
+var hourlyStart = new DateTimeOffset(2026, 10, 3, 0, 0, 0, TimeSpan.Zero);
+var hourlyEnd = hourlyStart.AddHours(24);
+var hourlyDevice = new Device
+{
+    Mac = "02:00:00:00:00:31", Name = "Hourly timeline device", FirstSeen = hourlyStart.AddDays(-2),
+    State = PresenceState.Home, ChangedAt = hourlyStart.AddHours(20)
+};
+var hourlyEvents = new[]
+{
+    PresenceEvent.Create(hourlyStart.AddHours(8), "left", hourlyDevice.Name, hourlyDevice.Mac),
+    PresenceEvent.Create(hourlyStart.AddHours(20), "arrived", hourlyDevice.Name, hourlyDevice.Mac)
+};
+var hourlyTimeline = PresenceTimeline.BuildHourly([hourlyDevice], hourlyEvents, hourlyStart, hourlyEnd).Single();
+Expect(hourlyTimeline.Hours.Count == 24 && hourlyTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+    "The rolling 24-hour timeline contains 24 one-hour intervals.");
+Expect(hourlyTimeline.Hours.Take(8).All(hour => hour.Fraction == 1) &&
+       hourlyTimeline.Hours.Skip(8).Take(12).All(hour => hour.Fraction == 0) &&
+       hourlyTimeline.Hours.Skip(20).All(hour => hour.Fraction == 1),
+    "The hourly timeline reconstructs arrival and departure transitions into the correct hours.");
+var unknownHourlyTimeline = PresenceTimeline.BuildHourly(
+    [new Device { Mac = newcomer, FirstSeen = hourlyStart.AddDays(-1), State = PresenceState.Unknown }],
+    [], hourlyStart, hourlyEnd).Single();
+Expect(unknownHourlyTimeline.Hours.All(hour => hour.Fraction is null),
+    "The hourly timeline leaves hours without a recorded presence state unfilled.");
 using (var repository = new Repository(networkPath))
 {
     repository.Save(new Snapshot(), [.. timelineEvents]);
