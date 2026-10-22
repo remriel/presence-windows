@@ -12,6 +12,8 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
+        // CI must report UI callback failures instead of waiting on an unseen error dialog.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
         Application.SetHighDpiMode(args.Contains("--dpi96") ? HighDpiMode.DpiUnaware : HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
         if (args.Contains("--device-categories")) return DeviceCategoryChecks();

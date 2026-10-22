@@ -18,7 +18,9 @@ Progress: **80%** toward the expanded release/install objective — implementati
 
 Verification: core checks pass, including legacy JSON, SQLite reopen, override and hostname-enrichment behavior. Native category suite: 112 checks, zero findings, 10 fictional captures in Light/Dark at 144 DPI, default/minimum widths. All category text/fill and text/surface pairs meet 4.5:1 contrast. Existing suites pass: saved networks 11; timeline 39; visibility 16; reliability 16; bulk/reset/pause 24; broad native UI 26 captures, zero layout findings. Self-contained Windows x64 publish succeeds, file version 1.6.0.0, packaged fictional preview exits 0. No live profile was used.
 
-Blockers: none. Exact next steps: pass final PR CI, merge with the release trigger, verify main CI and official assets, back up/replace installed copies, verify restart/profile and finalize handoffs. No installation has occurred yet.
+Current blocker: PR Windows CI passed core/categories/networks/timeline/visibility/reliability but its broad UI smoke step stalled. Two stale runs were cancelled. Commit `d46162c` adds capture-name logging, a five-minute bound for that step, and a `--dpi96` local reproduction mode. The local 96-DPI/150% broad run passed all 26 captures with zero findings; awaiting diagnostic CI run 39705368991. Do not merge before resolving the CI stall.
+
+Exact next steps: inspect diagnostic CI capture progress/failure, resolve any native layout issue, pass final PR CI, merge with the release trigger, verify main CI and official assets, replace installed copies from the verified package and verify restart/profile. Both old program folders and a consistent online profile are backed up privately; make a fresh stopped-profile backup immediately before replacement. No installation has occurred yet.
 
 ## Previous objective — completed 1.5.1 release
 

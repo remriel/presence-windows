@@ -57,6 +57,13 @@ jobs:
           path: |
             ${{ steps.package.outputs.zip }}
             ${{ steps.package.outputs.zip }}.sha256
+      - name: Upload fictional UI diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Presence-fictional-UI-diagnostics
+          path: ${{ runner.temp }}/presence-*
+          if-no-files-found: ignore
       - name: Publish GitHub release
         if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release Presence ')
         shell: pwsh

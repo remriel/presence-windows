@@ -18,6 +18,10 @@ The user explicitly authorized publishing Presence 1.6.0 and updating the instal
 
 Next: pass final PR CI; merge with commit title `Release Presence 1.6.0` so main CI publishes the official ZIP/checksum; download/verify the official assets; inspect actual installation/startup/profile paths; make consistent SQLite and program backups; replace installed copies and restart the original startup target; confirm version/hash, integrity and preserved saved state. Then finalize docs/shared memory. Never infer current paths from prior handoffs. No live-device acceptance was performed; discovery behavior is unchanged. Physical display coverage is limited to the development PC's 144 DPI plus CI's native environment. Keep machine-specific install/profile diagnostics private and out of Git.
 
+### Active CI investigation
+
+PR runs 39698525268 and 39698699682 stalled in broad UI smoke after passing all preceding suites. Cancellation was requested; diagnostic commit `d46162c` logs each native capture and bounds that step to five minutes. Run 39705368991 tests it. Added `--dpi96` to the preview harness; local `--quick --dpi96` passed 26 captures/zero findings, so the stall has not reproduced locally. Do not merge or release until the CI cause is understood/resolved. Program/profile backups are already verified privately; the currently installed 1.5.1 app remains running.
+
 ## RESUME HERE — Presence 1.5.1 larger timeline window (complete, 2026-10-19)
 
 Objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and replace both portable copies on this PC while preserving the local profile. All requested work is complete.
