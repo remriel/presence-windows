@@ -126,6 +126,10 @@ internal static class Ui
         grid.Columns.Add(Column("When", "When", 135, DataGridViewAutoSizeColumnMode.AllCells));
         grid.Columns.Add(Column("Name", "Device / person", 150));
         grid.Columns.Add(Column("Event", "Event", 85, DataGridViewAutoSizeColumnMode.AllCells));
+        // AllCells width and wrapped, auto-sized row height must not depend on
+        // each other. Previous-date timestamps are wider than clock-only values.
+        grid.Columns["When"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        grid.Columns["Event"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         foreach (var e in events) { var i = grid.Rows.Add(Time(e.At), e.Name, e.Type == "new" ? "New device" : e.Type == "arrived" ? "Arrived" : "Left"); grid.Rows[i].Cells[0].ToolTipText = e.At.ToLocalTime().ToString("f"); grid.Rows[i].Cells[1].ToolTipText = e.Name; }
         if (fitHeight) FitRows(grid);
         return grid;
