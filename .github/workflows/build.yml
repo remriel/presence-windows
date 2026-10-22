@@ -18,6 +18,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Core behavior checks
         run: dotnet run --project tests/Presence.Tests/Presence.Tests.csproj -c Release
+      - name: Device category and theme regression checks
+        run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-categories" --device-categories
       - name: Saved network regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-networks" --saved-networks
       - name: Presence timeline regression checks

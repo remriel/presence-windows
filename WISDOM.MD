@@ -1,5 +1,11 @@
 # Wisdom
 
+## Device categories — 2026-10-21
+
+1. **Least confident:** Layout has been verified at the development display's 144 DPI and the default/minimum window widths. Very small screens and other physical DPI setups still need hands-on use. I would check another physical display before claiming universal fit.
+2. **Biggest missing point:** Category is independent of tracking behavior and primary-phone selection. Categorizing a laptop or phone does not change presence inference or notifications. I would keep these controls separate and their effect explicit.
+3. **Highest-impact assumption:** Category color belongs on category labels and timeline device names, while timeline heatmap cells keep showing recorded presence. If the user intended entire rows or a new heatmap meaning, I would extend the styling after confirming that meaning. One category per device is user-confirmed, not an assumption.
+
 ## Presence 1.5.0 — 2026-10-19
 
 1. **Least confident:** Hour-by-hour estimates can look more precise than the underlying LAN signals. Sleeping or isolated devices may not answer probes. I would compare the hourly graph with real reconnects and clearly treat it as recorded network evidence.

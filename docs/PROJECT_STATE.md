@@ -1,5 +1,23 @@
 # Presence project state
 
+## RESUME HERE — device categories implemented, GitHub delivery pending (2026-10-21)
+
+Current objective: categorize devices using checkboxes and themed colors. The user explicitly selected **one category per device**. Current branch `feature/device-categories` starts at verified clean public main `9d6f701` (1.5.1). No subagents.
+
+Design: keep physical category separate from `DeviceKind` (Unknown/Person/Known/Ignore), primary-phone status and presence state. Save an optional manual category in the existing snapshot JSON; existing profiles default to Automatic and continue hostname hints. Add Laptop separately from Desktop. A manual choice must survive hostname enrichment, normal tracking edits and restarts; unsuccessful saves must roll it back. Category text must accompany colors in both themes, including selected grid cells. Apply color to device labels/category cells, preserving the existing timeline presence scale.
+
+Relevant files: `Models.cs` and `DeviceIdentification.cs` in Core; `PresenceContext.SaveDevice` for transactional edits; `Windows.cs` for details/home/inventory/timeline; `Ui.cs` for theme; `tests/Presence.Tests` and `tools/Presence.UiPreview` for deterministic fictional checks. The existing native preview can create screenshots and run persistence/error injection without touching the live profile.
+
+Current implementation: `Device.Category` is an additive numeric enum in snapshot JSON (Automatic = 0, stable IDs); computed `EffectiveCategory` and `DeviceType` are excluded from serialization. New `DeviceCategories.cs` files contain Core labels and App palettes/checkbox controls. `SaveDevice` accepts an optional category, preserves existing callers and restores category on failure. The native selector uses standard checkboxes, exactly one selected, with unchecked manual choice returning to Automatic. It reflows from three to two columns below 540 logical pixels. Colored category text remains readable in both themes and on selected grid cells. Home reuses the existing right-hand cell to preserve minimum-width fit. Inventory adds a category column. Daily/hourly timelines color device names and expose category text in tooltips; their heatmap cells retain presence semantics.
+
+Verification: core plus all required native regressions pass locally. New category suite passes 112 checks with zero findings and 10 fictional captures in both themes, including minimum width, selection/cancel/reopen, failed-save rollback/retry, automatic fallback, tracking independence, and 4.5:1 text contrast. Existing suites pass (networks 11, timeline 39, visibility 16, reliability 16, bulk/reset/pause 24, broad UI 26 captures). Self-contained 1.6.0 Windows x64 publish succeeds; packaged fictional preview exits 0.
+
+Failed approach: three checkbox columns clipped “Network equipment” at minimum width. Reflow to two columns instead of shrinking text. The new native preview is in a partial `Program` file with its own shared button helper; the older bulk suite's Click helper is local and cannot be reused directly.
+
+The request authorizes the feature and GitHub synchronization. Deliver a tested portable milestone and PR; this session does not yet request a public production release or installing over the user's active copies. Colorful outlined checkbox choices fit the existing Presence theme. Source version is 1.6.0; README/release notes explicitly identify it as upcoming.
+
+Next: verify portable archive, push/open PR and check Windows CI, then finalize delivery docs/shared memory. No live-device acceptance was performed; discovery behavior is unchanged. Physical display coverage is limited to the development PC's 144 DPI plus CI's native environment. Do not include real devices, local diagnostics or machine-specific profile paths in this public repository.
+
 ## RESUME HERE — Presence 1.5.1 larger timeline window (complete, 2026-10-19)
 
 Objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and replace both portable copies on this PC while preserving the local profile. All requested work is complete.

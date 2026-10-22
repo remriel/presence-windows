@@ -57,7 +57,7 @@ internal sealed class MainWindow : Form
         pauseScanning.AccessibleName = app.ScanningPaused ? "Resume scanning" : "Pause scanning"; pauseHint.SetToolTip(pauseScanning, pauseScanning.AccessibleName);
         status.Text = app.ScanningPaused ? "Scanning paused" : app.Monitoring ? (app.IsScanning ? "Scanning your network…" : "Monitoring your network") : "Waiting for your network";
         network.Text = string.Join("\n", new[] { app.NetworkLabel, app.Status }.Where(x => x.Length > 0));
-        var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Hostname}:{d.Kind}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
+        var next = s.Theme + ":" + Ui.Dark(s) + ":" + app.NetworkScope + ":" + app.Monitoring + ":" + string.Join(";", app.Engine.Data.People.Select(p => $"{p.Id}:{p.Name}:{p.State}:{p.ChangedAt:O}")) + ":" + string.Join(";", app.Engine.Data.Devices.Select(d => $"{d.Mac}:{d.Network}:{d.Ip}:{d.DisplayName}:{d.Hostname}:{d.Kind}:{d.Category}:{d.State}:{d.PersonId}:{d.IsPrimary}:{d.ChangedAt:O}"));
         if (next == signature) return;
         signature = next; BackColor = Ui.Background(s); ForeColor = Ui.Text(s); Ui.Theme(root, s);
         var scroll = -body.AutoScrollPosition.Y;
@@ -120,6 +120,13 @@ internal sealed class MainWindow : Form
             var when = Ui.Column("When", "Changed", 118, DataGridViewAutoSizeColumnMode.None); when.Width = 118;
             grid.Columns.Add(state); grid.Columns.Add(Ui.Column("Name", "Device / person", 120)); grid.Columns.Add(when);
             foreach (var row in rows) { var i = selecting ? grid.Rows.Add(selected.Contains(row.Device.Mac), row.State, row.Name, row.When) : grid.Rows.Add(row.State, row.Name, row.When); grid.Rows[i].Tag = row.Device.Mac; grid.Rows[i].Cells[selecting ? 2 : 1].Style.Font = Ui.StrongFont; grid.Rows[i].Cells[selecting ? 2 : 1].ToolTipText = row.Name + (selecting ? " · " + row.Device.Ip + " · " + row.Device.Mac : " — open details"); }
+            for (var i = 0; i < rows.Count; i++)
+            {
+                var cell = grid.Rows[i].Cells["When"];
+                var caption = rows[i].Device.DeviceType;
+                cell.Value = rows[i].When == caption ? caption : caption + "\n" + rows[i].When;
+                CategoryAppearance.StyleCell(cell, rows[i].Device, s);
+            }
             void OpenOrSelect(int index) { var d = rows[index].Device; if (!selecting) { ShowDevice(d); return; } if (!selected.Add(d.Mac)) selected.Remove(d.Mac); grid.Rows[index].Cells[0].Value = selected.Contains(d.Mac); UpdateSelection(); }
             grid.CellClick += (_, e) => { if (e.RowIndex >= 0) OpenOrSelect(e.RowIndex); };
             grid.KeyDown += (_, e) => { if ((e.KeyCode == Keys.Enter || selecting && e.KeyCode == Keys.Space) && grid.CurrentRow is { } row) { e.Handled = e.SuppressKeyPress = true; OpenOrSelect(row.Index); } };
@@ -241,7 +248,10 @@ internal sealed class DeviceWindow : Form
         var name = new TextBox { Text = device.Name, PlaceholderText = device.DisplayName, MaxLength = 80 };
         var kind = new ThemeComboBox(); kind.Items.AddRange(["Unknown device", "Person / presence device", "Known device", "Ignore"]); kind.SelectedIndex = (int)device.Kind;
         Ui.Field(fields, "Device name", name, s); Ui.Field(fields, "Track as", kind, s); Ui.Add(identity, fields);
-        Ui.Add(identity, Ui.Label("Ignored devices appear under Ignored devices on this network and do not generate presence alerts. Choose another tracking type to stop ignoring a device.", s, true)); Ui.Add(body.Content, identity);
+        Ui.Add(identity, Ui.Label("Ignored devices stay listed on this network and do not send alerts.", s, true)); Ui.Add(body.Content, identity);
+        var category = Ui.Group("Device category", s);
+        Ui.Add(category, Ui.Label("Check one category, or use Automatic for a hostname hint.", s, true));
+        var categories = new CategoryPicker(device, s); Ui.Add(category, categories); Ui.Add(body.Content, category);
         var association = Ui.Group("Person association", s);
         Ui.Add(association, Ui.Label("Choose an existing person to link another device or a new private MAC, or enter a new person's name.", s, true));
         var person = new ComboBox { DropDownStyle = ComboBoxStyle.DropDown, Dock = DockStyle.Top, MaxLength = 80, Margin = new Padding(0, Ui.Space, 0, Ui.Gap), AccessibleName = "Assigned person" };
@@ -252,7 +262,7 @@ internal sealed class DeviceWindow : Form
         void EnabledState() { person.Enabled = kind.SelectedIndex != (int)DeviceKind.Ignore; primary.Enabled = person.Enabled && !string.IsNullOrWhiteSpace(person.Text); }
         kind.SelectedIndexChanged += (_, _) => EnabledState(); person.TextChanged += (_, _) => EnabledState(); EnabledState(); Ui.Add(body.Content, association);
         var details = Ui.Group("Network information", s); var values = Ui.Fields();
-        foreach (var field in new[] { ("MAC address", device.Mac + (Identity.IsPrivateMac(device.Mac) ? " (private)" : ""), true), ("IP address", device.Ip, true), ("Hostname", device.Hostname, true), ("Manufacturer", device.Vendor, false), ("Likely device type", device.DeviceType, false), ("First seen", device.FirstSeen.ToLocalTime().ToString("g"), false), ("Last seen", device.LastSeen.ToLocalTime().ToString("g"), false), ("Presence", Ui.State(device.State), false) }) Ui.Field(values, field.Item1, Ui.Value(field.Item2, field.Item1, s, field.Item3), s);
+        foreach (var field in new[] { ("MAC address", device.Mac + (Identity.IsPrivateMac(device.Mac) ? " (private)" : ""), true), ("IP address", device.Ip, true), ("Hostname", device.Hostname, true), ("Manufacturer", device.Vendor, false), ("Likely device type", DeviceIdentification.InferType(device.Hostname), false), ("First seen", device.FirstSeen.ToLocalTime().ToString("g"), false), ("Last seen", device.LastSeen.ToLocalTime().ToString("g"), false), ("Presence", Ui.State(device.State), false) }) Ui.Field(values, field.Item1, Ui.Value(field.Item2, field.Item1, s, field.Item3), s);
         Ui.Add(details, values); Ui.Add(details, Ui.Label("Right-click a value to copy it.", s, true)); Ui.Add(body.Content, details);
         var historySection = Ui.Group("Presence history", s); var history = app.Store.History(device.Mac, device.PersonId, 50);
         if (history.Count == 0) Ui.Add(historySection, Ui.Label("No events yet. The initial scan is a quiet baseline; future arrivals and departures appear here.", s, true));
@@ -262,7 +272,7 @@ internal sealed class DeviceWindow : Form
         var save = Ui.Button("&Save", () =>
         {
             if (kind.SelectedIndex == (int)DeviceKind.Person && string.IsNullOrWhiteSpace(person.Text)) { error.Text = "Enter or choose a person's name to use this as a presence device."; error.ForeColor = Ui.Negative(s); error.Visible = true; person.Focus(); return; }
-            try { app.SaveDevice(device, name.Text, (DeviceKind)kind.SelectedIndex, person.Text, primary.Checked); Close(); }
+            try { app.SaveDevice(device, name.Text, (DeviceKind)kind.SelectedIndex, person.Text, primary.Checked, categories.SelectedCategory); Close(); }
             catch (Exception ex) { error.Text = "Could not save this device. " + ex.Message; error.ForeColor = Ui.Negative(s); error.Visible = true; }
         }, s, true);
         var cancel = Ui.Button("&Cancel", Close, s); cancel.DialogResult = DialogResult.Cancel; Ui.Add(footer, Ui.Actions(save, cancel)); AcceptButton = save; CancelButton = cancel;
@@ -437,7 +447,8 @@ internal sealed class PresenceTimelineWindow : Form
             var index = table.Rows.Add(values);
             var gridRow = table.Rows[index];
             gridRow.Tag = row.Device;
-            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + Ui.State(row.Device.State);
+            CategoryAppearance.StyleCell(gridRow.Cells[0], row.Device, settings);
+            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + row.Device.DeviceType + " · " + Ui.State(row.Device.State);
             for (var i = 0; i < 24; i++)
             {
                 var cell = gridRow.Cells[i + 1];
@@ -519,7 +530,8 @@ internal sealed class PresenceTimelineWindow : Form
             var index = table.Rows.Add(values);
             var gridRow = table.Rows[index];
             gridRow.Tag = row.Device;
-            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + Ui.State(row.Device.State);
+            CategoryAppearance.StyleCell(gridRow.Cells[0], row.Device, settings);
+            gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + row.Device.DeviceType + " · " + Ui.State(row.Device.State);
             for (var i = 0; i < days; i++)
             {
                 var cell = gridRow.Cells[i + 1];
@@ -630,16 +642,22 @@ internal sealed class DevicesWindow : Form
 {
     public DevicesWindow(PresenceContext app)
     {
-        var s = app.Engine.Data.Settings; Ui.Configure(this, "All devices", new Size(760, 560), new Size(600, 400), s);
+        var s = app.Engine.Data.Settings; Ui.Configure(this, "All devices", new Size(900, 560), new Size(700, 400), s);
         var devices = app.Engine.Data.Devices.OrderBy(d => d.DisplayName).ToList();
         var grid = Ui.Grid(s); grid.AccessibleName = "All devices";
         grid.Columns.Add(Ui.Column("Device", "Device", 160)); grid.Columns.Add(Ui.Column("State", "Presence", 85, DataGridViewAutoSizeColumnMode.AllCells)); grid.Columns.Add(Ui.Column("Kind", "Tracking", 100, DataGridViewAutoSizeColumnMode.AllCells)); grid.Columns.Add(Ui.Column("IP", "IP address", 120, DataGridViewAutoSizeColumnMode.AllCells));
-        foreach (var device in devices) { var i = grid.Rows.Add(device.DisplayName, Ui.State(device.State), device.Kind == DeviceKind.Person ? "Person" : device.Kind.ToString(), device.Ip); grid.Rows[i].Cells[0].ToolTipText = device.DisplayName; }
-        void Open() { if (grid.CurrentRow is not { } row) return; using var dialog = new DeviceWindow(app, devices[row.Index]); dialog.ShowDialog(this); var d = devices[row.Index]; grid.Rows[row.Index].SetValues(d.DisplayName, Ui.State(d.State), d.Kind == DeviceKind.Person ? "Person" : d.Kind.ToString(), d.Ip); }
+        grid.Columns.Insert(1, Ui.Column("Category", "Category", 110, DataGridViewAutoSizeColumnMode.AllCells));
+        void UpdateRow(DataGridViewRow row, Device device)
+        {
+            row.SetValues(device.DisplayName, device.DeviceType, Ui.State(device.State), device.Kind == DeviceKind.Person ? "Person" : device.Kind.ToString(), device.Ip);
+            row.Cells[0].ToolTipText = device.DisplayName; CategoryAppearance.StyleCell(row.Cells["Category"], device, s);
+        }
+        foreach (var device in devices) { var i = grid.Rows.Add(); UpdateRow(grid.Rows[i], device); }
+        void Open() { if (grid.CurrentRow is not { } row) return; using var dialog = new DeviceWindow(app, devices[row.Index]); dialog.ShowDialog(this); UpdateRow(row, devices[row.Index]); }
         grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Open(); }; grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.Handled = e.SuppressKeyPress = true; Open(); } };
         var body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Ui.Page, Ui.Space, Ui.Page, Ui.Space) }; if (devices.Count == 0) { var empty = Ui.Label("No devices discovered yet. Connect to your local network and refresh Presence.", s, true); empty.AutoSize = false; body.Controls.Add(empty); } else body.Controls.Add(grid);
         var edit = Ui.Button("&Open device", Open, s, true); edit.Enabled = devices.Count > 0;
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel; CancelButton = close;
-        Ui.Shell(this, Ui.Header("All devices", "Select a device to edit its name, person association or tracking behavior.", s), body, Ui.Actions(edit, close));
+        Ui.Shell(this, Ui.Header("All devices", "Select a device to edit its category, name, person association or tracking behavior.", s), body, Ui.Actions(edit, close));
     }
 }

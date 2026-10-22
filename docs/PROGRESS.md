@@ -1,5 +1,25 @@
 # Presence progress
 
+## Current objective — device categories (2026-10-21)
+
+Add a saved category per device, checkbox selection, and category colors that follow the light/dark theme. The user confirmed one category per device. Work is on `feature/device-categories`, based on clean public main `9d6f701`.
+
+Progress: **85%** — implementation and all local regressions pass; the self-contained 1.6.0 milestone launches successfully. GitHub PR/CI and final handoff remain.
+
+- [x] Load instructions/shared memory; reconcile the clean checkout with GitHub main and inspect source/tests.
+- [x] Confirm one category per device with the user.
+- [x] Persist an optional manual category; preserve automatic hints for existing devices and save rollback.
+- [x] Add accessible category checkboxes and themed colors to details, home, inventory and timeline labels.
+- [x] Verify persistence, cancel/failure behavior, category switching, automatic fallback and light/dark layouts using fictional fixtures.
+- [ ] Build a portable Windows milestone, sync a reviewable GitHub PR and verify CI.
+- [ ] Finalize state/progress, shared memory and WISDOM; export deliverables.
+
+Verification: core checks pass, including legacy JSON, SQLite reopen, override and hostname-enrichment behavior. Native category suite: 112 checks, zero findings, 10 fictional captures in Light/Dark at 144 DPI, default/minimum widths. All category text/fill and text/surface pairs meet 4.5:1 contrast. Existing suites pass: saved networks 11; timeline 39; visibility 16; reliability 16; bulk/reset/pause 24; broad native UI 26 captures, zero layout findings. Self-contained Windows x64 publish succeeds, file version 1.6.0.0, packaged fictional preview exits 0. No live profile was used.
+
+Blockers: none. Exact next steps: verify portable archive, push feature branch/open PR, check Windows CI, finalize docs and exports. This is an upcoming build; the stable public release and installed copies remain at their prior version.
+
+## Previous objective — completed 1.5.1 release
+
 Current objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and replace both portable copies on this PC without resetting the profile.
 
 Progress: **100%** — the maximized, viewport-fitted timeline is published and installed; the existing profile is preserved.

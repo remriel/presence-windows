@@ -3,7 +3,7 @@ using System.Text.Json;
 using Presence.App;
 using Presence.Core;
 
-internal static class Program
+internal static partial class Program
 {
     private static string output = "";
     private static readonly List<object> captures = [];
@@ -14,6 +14,7 @@ internal static class Program
     {
         Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--device-categories")) return DeviceCategoryChecks();
         if (args.Contains("--timeline")) return TimelineChecks();
         if (args.Contains("--saved-networks")) return SavedNetworkChecks();
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();

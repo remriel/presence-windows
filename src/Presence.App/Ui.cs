@@ -144,6 +144,7 @@ internal static class Ui
         if (control is Button button) StyleButton(button, s);
         if (Equals(control.Tag, "primary-device")) { control.BackColor = Dark(s) ? Color.FromArgb(245, 155, 65) : Color.FromArgb(255, 202, 110); control.ForeColor = Color.FromArgb(65, 28, 8); }
         foreach (Control child in control.Controls) Theme(child, s);
+        if (control is CategoryChoice choice) choice.ApplyTheme(s);
     }
 }
 

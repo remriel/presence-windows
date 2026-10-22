@@ -1,3 +1,13 @@
+# Presence 1.6.0 (upcoming)
+
+- Categorize each device with one checkbox choice: Phone, Laptop, Desktop, Tablet, TV / streaming, Game console, Printer, Speaker, Smart home, Camera, Wearable, NAS / storage, Network equipment or Other.
+- Keep Automatic detection available; unchecking a manual category restores the latest hostname hint. Distinguish laptops from desktops in recognizable hostname hints.
+- Use labeled category colors in the home list and inventory, plus themed device-name colors and category tooltips in daily/hourly timelines. Presence heatmap colors retain their existing meaning.
+- Adapt category colors to light/dark/system appearance and reflow checkbox choices at narrow window sizes.
+- Preserve category choices across restarts, hostname enrichment and tracking changes. Cancel and failed saves preserve the previous state; failed saves remain retryable.
+
+Existing profiles retain their devices, settings, people and history without a reset or schema migration. Category, tracking behavior and primary-phone selection remain independent.
+
 # Presence 1.5.1
 
 - Open the device timeline maximized with a large restored size and an enabled maximize control.
