@@ -426,7 +426,9 @@ internal static partial class Program
         app.Engine.Data.People[0].Name = "Alexandra with a deliberately long display name";
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:05", Name = "Living-room streaming device with an unusually long descriptive name", Ip = "192.0.2.30", Network = "demo", Kind = DeviceKind.Known, State = PresenceState.Home, ChangedAt = DateTimeOffset.Now.AddDays(-2) });
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:06", Name = "Ignored test device", Ip = "192.0.2.40", Kind = DeviceKind.Ignore });
-        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(DateTimeOffset.Now.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
+        // Always cover both clock-only and previous-date timestamps, regardless of runner timezone.
+        var midnight = new DateTimeOffset(DateTime.Today.AddMinutes(15));
+        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(midnight.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
     }
     private static IEnumerable<Control> All(Control c) { yield return c; foreach (Control child in c.Controls) foreach (var descendant in All(child)) yield return descendant; }
     private static Size Scaled(Size s, float scale) => new((int)Math.Round(s.Width * scale), (int)Math.Round(s.Height * scale));
