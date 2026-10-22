@@ -12,7 +12,7 @@ internal static partial class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
+        Application.SetHighDpiMode(args.Contains("--dpi96") ? HighDpiMode.DpiUnaware : HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
         if (args.Contains("--device-categories")) return DeviceCategoryChecks();
         if (args.Contains("--timeline")) return TimelineChecks();
@@ -431,6 +431,7 @@ internal static partial class Program
     private static Padding Scaled(Padding p, float s) => new((int)(p.Left * s), (int)(p.Top * s), (int)(p.Right * s), (int)(p.Bottom * s));
     private static void Capture(Form form, string name, float scale, string size)
     {
+        Console.WriteLine("Rendering " + name);
         form.Show(); Application.DoEvents();
         if (size == "minimum") form.Size = form.MinimumSize;
         if (size == "large") form.Size = new Size(1000, 900);
