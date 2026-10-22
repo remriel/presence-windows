@@ -18,6 +18,7 @@ public sealed class Device
     public string Vendor { get; set; } = "";
     public string Network { get; set; } = "";
     public DeviceKind Kind { get; set; }
+    public DeviceCategory Category { get; set; }
     public string? PersonId { get; set; }
     public bool IsPrimary { get; set; }
     public DateTimeOffset FirstSeen { get; set; }
@@ -28,7 +29,9 @@ public sealed class Device
     public double MissingSeconds { get; set; }
     public bool Announced { get; set; }
     [System.Text.Json.Serialization.JsonIgnore]
-    public string DeviceType => DeviceIdentification.InferType(Hostname);
+    public DeviceCategory EffectiveCategory => Category != DeviceCategory.Automatic && Enum.IsDefined(Category) ? Category : DeviceIdentification.InferCategory(Hostname);
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string DeviceType => DeviceCategories.Label(EffectiveCategory);
     [System.Text.Json.Serialization.JsonIgnore]
     public string DisplayName => !string.IsNullOrWhiteSpace(Name) ? Name : !string.IsNullOrWhiteSpace(Hostname) ? Hostname : !string.IsNullOrWhiteSpace(Vendor) && Vendor != "Private MAC" ? Vendor + " device" : "Device " + (Mac.Length >= 5 ? Mac[^5..] : Mac);
 }

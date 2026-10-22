@@ -208,22 +208,24 @@ internal sealed class PresenceContext : ApplicationContext
         if (NetworkScope != "") UpdateNetworkLabel();
         Refresh();
     }
-    public void SaveDevice(Device device, string name, DeviceKind kind, string person, bool primary)
+    public void SaveDevice(Device device, string name, DeviceKind kind, string person, bool primary, DeviceCategory? category = null)
     {
         if (!Engine.Data.Devices.Contains(device)) throw new InvalidOperationException("This device is no longer saved. Close its details and refresh the device list.");
         if (kind == DeviceKind.Person && string.IsNullOrWhiteSpace(person)) throw new ArgumentException("Enter a person's name.");
-        var devices = Engine.Data.Devices.Select(d => (Device: d, d.Name, d.Kind, d.PersonId, d.IsPrimary)).ToList();
+        if (category is { } value && !Enum.IsDefined(value)) throw new ArgumentOutOfRangeException(nameof(category));
+        var devices = Engine.Data.Devices.Select(d => (Device: d, d.Name, d.Kind, d.PersonId, d.IsPrimary, d.Category)).ToList();
         var people = Engine.Data.People.Select(p => (Person: p, p.State, p.ChangedAt)).ToList();
         try
         {
             device.Name = name.Trim(); device.Kind = kind;
+            if (category is { } selectedCategory) device.Category = selectedCategory;
             if (kind != DeviceKind.Ignore && !string.IsNullOrWhiteSpace(person)) Engine.Assign(device, person, primary);
             else { device.PersonId = null; device.IsPrimary = false; }
             Engine.ReconcilePeople(DateTimeOffset.UtcNow); Flush(true);
         }
         catch
         {
-            foreach (var old in devices) { old.Device.Name = old.Name; old.Device.Kind = old.Kind; old.Device.PersonId = old.PersonId; old.Device.IsPrimary = old.IsPrimary; }
+            foreach (var old in devices) { old.Device.Name = old.Name; old.Device.Kind = old.Kind; old.Device.PersonId = old.PersonId; old.Device.IsPrimary = old.IsPrimary; old.Device.Category = old.Category; }
             Engine.Data.People.Clear();
             foreach (var old in people) { old.Person.State = old.State; old.Person.ChangedAt = old.ChangedAt; Engine.Data.People.Add(old.Person); }
             throw;

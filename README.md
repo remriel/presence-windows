@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.5.1](https://github.com/remriel/presence-windows/releases/tag/v1.5.1) · Windows 10 x64 and later
+[Download Presence 1.6.0](https://github.com/remriel/presence-windows/releases/tag/v1.6.0) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -19,6 +19,12 @@ These screens use fictional preview devices.
 <img src="docs/images/presence-devices.png" width="620" alt="Device inventory with aligned device, presence, type and IP columns">
 
 <img src="docs/images/presence-device-details.png" width="620" alt="Device details with identity, person association and readable network information">
+
+Saved device categories with colors in both themes:
+
+<img src="docs/images/presence-device-categories-dark.png" width="620" alt="Dark themed device category checkboxes with Laptop selected and one category allowed per device">
+
+<img src="docs/images/presence-device-categories.png" width="760" alt="Fictional device inventory with named, color coded categories including Phone, Laptop, Desktop, Tablet and Network equipment">
 
 <img src="docs/images/presence-activity.png" width="620" alt="Activity history with aligned timestamps, device names and event types">
 
@@ -36,7 +42,7 @@ These screens use fictional preview devices.
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.5.1**. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.6.0**. Device details provide category checkboxes, with colors that follow the selected theme. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
@@ -61,6 +67,14 @@ Private MAC changes cannot safely be matched automatically. Open the new device,
 The main window retains known and unidentified devices on the current network even when absent. After reconnect or restart, uncertain recognized devices appear under Checking presence until fresh replies or evaluated absence establish their state. Saved devices that stay absent become Away silently after the configured departure threshold. Unidentified devices show their actual presence state rather than disappearing.
 
 Presence also attempts background reverse DNS alongside mDNS to resolve device hostnames. Lookups use timeouts and retries, and their results must resolve back to the observed IP. Hostname lookup does not establish presence or trigger arrivals. Recognizable hostnames provide a **Likely device type** hint such as Phone, Printer or TV / streaming; ambiguous names remain Unknown. These hints do not change your saved tracking choices or custom device names. Some devices and routers do not publish resolvable hostnames.
+
+### Device categories
+
+Open a device from the home screen or **Settings > Devices**, check one **Device category**, then choose **Save**. The choices are Phone, Laptop, Desktop, Tablet, TV / streaming, Game console, Printer, Speaker, Smart home, Camera, Wearable, NAS / storage, Network equipment and Other. Checking another category replaces the previous choice. Uncheck the selected category, or check **Automatic**, to return to hostname detection. **Cancel** leaves the device unchanged.
+
+Category labels and colors appear on the home screen, in a dedicated inventory column, and on timeline device names (with category text in tooltips). Colors adapt to Light, Dark and System appearance; selected cells retain their category color. Timeline heatmap cells still show recorded presence. The category is independent of **Track as**, person associations and primary-phone status: choosing Phone does not mark a primary phone or alter notifications.
+
+Manual choices stay in the local profile across restarts and hostname updates. Existing devices start with Automatic; no database reset or schema migration is needed. Automatic detection distinguishes recognizable Laptop and Desktop hostnames. Unknown hostnames stay Unknown until categorized manually.
 
 The main window has a compact **Speed test** control in its bottom bar. It measures internet download/upload speed, median HTTPS latency and jitter to Cloudflare; download and upload each measure for at least 2.5 seconds (at least five seconds total), with a 35-second timeout. Cloudflare receives your public IP and test traffic and reports collecting measurement results for aggregate internet quality insights. Presence never sends device names, MAC addresses, person mappings or history, and does not save speed results.
 

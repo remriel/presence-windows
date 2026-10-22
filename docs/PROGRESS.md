@@ -1,5 +1,29 @@
 # Presence progress
 
+## Current objective — device categories (2026-10-21)
+
+Add a saved category per device, checkbox selection, and category colors that follow the light/dark theme. The user confirmed one category per device and explicitly authorized publishing 1.6.0 and updating this PC while preserving saved devices/history. Work is on `feature/device-categories`, based on clean public main `9d6f701`.
+
+Progress: **80%** toward the expanded release/install objective — implementation and all local regressions pass; PR #9 and a tested portable preview are ready. Release CI, public package verification, profile backup and PC update remain.
+
+- [x] Load instructions/shared memory; reconcile the clean checkout with GitHub main and inspect source/tests.
+- [x] Confirm one category per device with the user.
+- [x] Persist an optional manual category; preserve automatic hints for existing devices and save rollback.
+- [x] Add accessible category checkboxes and themed colors to details, home, inventory and timeline labels.
+- [x] Verify persistence, cancel/failure behavior, category switching, automatic fallback and light/dark layouts using fictional fixtures.
+- [ ] Build a portable Windows milestone, sync a reviewable GitHub PR and verify CI.
+- [ ] Publish the verified 1.6.0 release and verify its official ZIP/checksums.
+- [ ] Back up app/profile, update installed copies, restart and verify preserved saved state/startup.
+- [ ] Finalize state/progress, shared memory and WISDOM; export deliverables.
+
+Verification: core checks pass, including legacy JSON, SQLite reopen, override and hostname-enrichment behavior. Native category suite: 112 checks, zero findings, 10 fictional captures in Light/Dark at 144 DPI, default/minimum widths. All category text/fill and text/surface pairs meet 4.5:1 contrast. Existing suites pass: saved networks 11; timeline 39; visibility 16; reliability 16; bulk/reset/pause 24; broad native UI 26 captures, zero layout findings. Self-contained Windows x64 publish succeeds, file version 1.6.0.0, packaged fictional preview exits 0. No live profile was used.
+
+Current blocker: PR Windows CI passed core/categories/networks/timeline/visibility/reliability but its broad UI smoke step stalled. Two stale runs were cancelled. Commit `d46162c` adds capture-name logging, a five-minute bound for that step, and a `--dpi96` local reproduction mode. The local 96-DPI/150% broad run passed all 26 captures with zero findings; awaiting diagnostic CI run 39705368991. Do not merge before resolving the CI stall.
+
+Exact next steps: inspect diagnostic CI capture progress/failure, resolve any native layout issue, pass final PR CI, merge with the release trigger, verify main CI and official assets, replace installed copies from the verified package and verify restart/profile. Both old program folders and a consistent online profile are backed up privately; make a fresh stopped-profile backup immediately before replacement. No installation has occurred yet.
+
+## Previous objective — completed 1.5.1 release
+
 Current objective: make the timeline open large enough to show more devices without scrollbars, publish Presence 1.5.1, and replace both portable copies on this PC without resetting the profile.
 
 Progress: **100%** — the maximized, viewport-fitted timeline is published and installed; the existing profile is preserved.

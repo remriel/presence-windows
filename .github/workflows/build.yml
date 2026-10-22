@@ -18,6 +18,8 @@ jobs:
           dotnet-version: 10.0.x
       - name: Core behavior checks
         run: dotnet run --project tests/Presence.Tests/Presence.Tests.csproj -c Release
+      - name: Device category and theme regression checks
+        run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-categories" --device-categories
       - name: Saved network regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-networks" --saved-networks
       - name: Presence timeline regression checks
@@ -27,6 +29,7 @@ jobs:
       - name: Save rollback and bounded discovery regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-reliability" --reliability
       - name: Broad native UI smoke checks
+        timeout-minutes: 1
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-broad" --quick
       - name: Bulk selection, reset and pause regression checks
         run: dotnet run --project tools/Presence.UiPreview/Presence.UiPreview.csproj -c Release -- "${{ runner.temp }}/presence-bulk" --reset-bulk
@@ -54,6 +57,13 @@ jobs:
           path: |
             ${{ steps.package.outputs.zip }}
             ${{ steps.package.outputs.zip }}.sha256
+      - name: Upload fictional UI diagnostics on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Presence-fictional-UI-diagnostics
+          path: ${{ runner.temp }}/presence-*
+          if-no-files-found: ignore
       - name: Publish GitHub release
         if: github.event_name == 'push' && startsWith(github.event.head_commit.message, 'Release Presence ')
         shell: pwsh

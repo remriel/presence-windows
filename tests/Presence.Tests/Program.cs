@@ -89,6 +89,7 @@ Expect(clockData.Devices.Single().MissingSeconds == 0, "DNS metadata cannot mask
 Console.WriteLine("Restart absence and identity enrichment checks passed.");
 
 ReliabilityChecks.Run();
+DeviceCategoryChecks.Run();
 
 var networks = new List<SavedNetwork>();
 Expect(NetworkNames.Default("Café Wi-Fi", "Wi-Fi · subnet") == "Café Wi-Fi", "Use the actual SSID, including Unicode, by default.");

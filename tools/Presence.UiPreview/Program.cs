@@ -3,7 +3,7 @@ using System.Text.Json;
 using Presence.App;
 using Presence.Core;
 
-internal static class Program
+internal static partial class Program
 {
     private static string output = "";
     private static readonly List<object> captures = [];
@@ -12,8 +12,11 @@ internal static class Program
     [STAThread]
     private static int Main(string[] args)
     {
-        Application.SetHighDpiMode(HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
+        // CI must report UI callback failures instead of waiting on an unseen error dialog.
+        Application.SetUnhandledExceptionMode(UnhandledExceptionMode.ThrowException);
+        Application.SetHighDpiMode(args.Contains("--dpi96") ? HighDpiMode.DpiUnaware : HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
+        if (args.Contains("--device-categories")) return DeviceCategoryChecks();
         if (args.Contains("--timeline")) return TimelineChecks();
         if (args.Contains("--saved-networks")) return SavedNetworkChecks();
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
@@ -423,13 +426,16 @@ internal static class Program
         app.Engine.Data.People[0].Name = "Alexandra with a deliberately long display name";
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:05", Name = "Living-room streaming device with an unusually long descriptive name", Ip = "192.0.2.30", Network = "demo", Kind = DeviceKind.Known, State = PresenceState.Home, ChangedAt = DateTimeOffset.Now.AddDays(-2) });
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:06", Name = "Ignored test device", Ip = "192.0.2.40", Kind = DeviceKind.Ignore });
-        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(DateTimeOffset.Now.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
+        // Always cover both clock-only and previous-date timestamps, regardless of runner timezone.
+        var midnight = new DateTimeOffset(DateTime.Today.AddMinutes(15));
+        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(midnight.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
     }
     private static IEnumerable<Control> All(Control c) { yield return c; foreach (Control child in c.Controls) foreach (var descendant in All(child)) yield return descendant; }
     private static Size Scaled(Size s, float scale) => new((int)Math.Round(s.Width * scale), (int)Math.Round(s.Height * scale));
     private static Padding Scaled(Padding p, float s) => new((int)(p.Left * s), (int)(p.Top * s), (int)(p.Right * s), (int)(p.Bottom * s));
     private static void Capture(Form form, string name, float scale, string size)
     {
+        Console.WriteLine("Rendering " + name);
         form.Show(); Application.DoEvents();
         if (size == "minimum") form.Size = form.MinimumSize;
         if (size == "large") form.Size = new Size(1000, 900);
