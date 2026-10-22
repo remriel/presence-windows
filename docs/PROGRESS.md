@@ -1,26 +1,33 @@
 # Presence progress
 
-## Current objective — device categories (2026-10-21)
+## Current objective — Presence 1.6.0 device categories (complete, 2026-10-21)
 
-Add a saved category per device, checkbox selection, and category colors that follow the light/dark theme. The user confirmed one category per device and explicitly authorized publishing 1.6.0 and updating this PC while preserving saved devices/history. Work is on `feature/device-categories`, based on clean public main `9d6f701`.
+Progress: **100%** — category checkboxes and themed colors are published and installed. The user confirmed one category per device and explicitly authorized the release and PC update.
 
-Progress: **80%** toward the expanded release/install objective — implementation and all local regressions pass; PR #9 and a tested portable preview are ready. Release CI, public package verification, profile backup and PC update remain.
+- [x] Inspect instructions, shared memory, source, tests and clean GitHub baseline.
+- [x] Persist one manual category with Automatic fallback; retain existing profiles and save rollback.
+- [x] Add adaptive, accessible category checkboxes and themed colors to details/home/inventory/timeline.
+- [x] Pass core behavior and 112 category/theme checks; verify persistence, cancel, reopen, failed-save retry and tracking independence.
+- [x] Pass all required native regressions and stabilize history sizing for previous-date timestamps.
+- [x] Merge PR #9 and publish Presence 1.6.0 after Windows CI passed.
+- [x] Verify the official ZIP against its checksum and GitHub asset digest; launch the packaged fictional preview.
+- [x] Back up both program folders and consistent online/stopped SQLite profiles; update both installed copies and restart the original startup target.
+- [x] Verify one running 1.6.0 instance, matching installed executable hashes, unchanged startup, database integrity and preserved saved state/history.
+- [x] Finalize state/progress, shared memory, WISDOM and delivery exports.
 
-- [x] Load instructions/shared memory; reconcile the clean checkout with GitHub main and inspect source/tests.
-- [x] Confirm one category per device with the user.
-- [x] Persist an optional manual category; preserve automatic hints for existing devices and save rollback.
-- [x] Add accessible category checkboxes and themed colors to details, home, inventory and timeline labels.
-- [x] Verify persistence, cancel/failure behavior, category switching, automatic fallback and light/dark layouts using fictional fixtures.
-- [ ] Build a portable Windows milestone, sync a reviewable GitHub PR and verify CI.
-- [ ] Publish the verified 1.6.0 release and verify its official ZIP/checksums.
-- [ ] Back up app/profile, update installed copies, restart and verify preserved saved state/startup.
-- [ ] Finalize state/progress, shared memory and WISDOM; export deliverables.
+Release: https://github.com/remriel/presence-windows/releases/tag/v1.6.0
 
-Verification: core checks pass, including legacy JSON, SQLite reopen, override and hostname-enrichment behavior. Native category suite: 112 checks, zero findings, 10 fictional captures in Light/Dark at 144 DPI, default/minimum widths. All category text/fill and text/surface pairs meet 4.5:1 contrast. Existing suites pass: saved networks 11; timeline 39; visibility 16; reliability 16; bulk/reset/pause 24; broad native UI 26 captures, zero layout findings. Self-contained Windows x64 publish succeeds, file version 1.6.0.0, packaged fictional preview exits 0. No live profile was used.
+PR: https://github.com/remriel/presence-windows/pull/9
 
-Current blocker: PR Windows CI passed core/categories/networks/timeline/visibility/reliability but its broad UI smoke step stalled. Two stale runs were cancelled. Commit `d46162c` adds capture-name logging, a five-minute bound for that step, and a `--dpi96` local reproduction mode. The local 96-DPI/150% broad run passed all 26 captures with zero findings; awaiting diagnostic CI run 39705368991. Do not merge before resolving the CI stall.
+Release/tag target: `3e51dddbb759ba2bbef40659610c799ccc5cf0af`. PR CI [39706566156](https://github.com/remriel/presence-windows/actions/runs/39706566156) and main/release CI [39706867928](https://github.com/remriel/presence-windows/actions/runs/39706867928) succeeded. The official ZIP is 57,496,097 bytes; SHA-256 `14f734c327f466f012cf29569421570f85adcceb51b0011ad8129acd66bd1f7c`. EXE version: 1.6.0.0; packaged fictional preview exit 0.
 
-Exact next steps: inspect diagnostic CI capture progress/failure, resolve any native layout issue, pass final PR CI, merge with the release trigger, verify main CI and official assets, replace installed copies from the verified package and verify restart/profile. Both old program folders and a consistent online profile are backed up privately; make a fresh stopped-profile backup immediately before replacement. No installation has occurred yet.
+Verification: category suite 112 checks/zero findings/10 captures across both themes; networks 11, timeline 39, visibility 16, reliability 16, bulk/reset/pause 24; broad UI 26 captures/zero findings. Category text/fill and text/surface contrast is at least 4.5:1. Core checks include legacy snapshots, SQLite reopen, automatic fallback and discovery independence. A 96-DPI/150% local smoke also passed before the overnight-history fix; the final overnight fixture passed in both PR and release CI.
+
+CI discovery: broad UI originally stalled while scaling activity history. Previous-date timestamps were wider than clock-only values; automatic column width and wrapped row height depended on each other. Disable wrapping for the AllCells When/Event columns, keep device names wrapping, and always include overnight timestamps in fictional fixtures. CI now logs captures, throws UI exceptions instead of displaying unseen dialogs, uploads fictional diagnostics on failure and bounds broad smoke to one minute. No further broad local run was required after the complete final CI pass.
+
+PC verification: both installed executables match the official package, one active 1.6.0 instance runs from the original startup target, and startup configuration is unchanged. SQLite integrity, saved device configuration/categories/associations, people, saved networks, settings and in-retention event history are preserved. No reset or schema migration occurred. Machine-specific paths and profile baselines remain private and are not committed.
+
+Blockers: none. Required next steps: none. Optional future acceptance: use the category selector on additional physical displays and compare LAN inference with real reconnect/sleep behavior. Do not move the release tag for documentation-only changes.
 
 ## Previous objective — completed 1.5.1 release
 
