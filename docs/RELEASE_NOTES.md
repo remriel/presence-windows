@@ -1,4 +1,4 @@
-# Presence 1.6.0 (upcoming)
+# Presence 1.6.0
 
 - Categorize each device with one checkbox choice: Phone, Laptop, Desktop, Tablet, TV / streaming, Game console, Printer, Speaker, Smart home, Camera, Wearable, NAS / storage, Network equipment or Other.
 - Keep Automatic detection available; unchecking a manual category restores the latest hostname hint. Distinguish laptops from desktops in recognizable hostname hints.

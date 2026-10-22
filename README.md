@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.5.1](https://github.com/remriel/presence-windows/releases/tag/v1.5.1) · Windows 10 x64 and later
+[Download Presence 1.6.0](https://github.com/remriel/presence-windows/releases/tag/v1.6.0) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -20,7 +20,7 @@ These screens use fictional preview devices.
 
 <img src="docs/images/presence-device-details.png" width="620" alt="Device details with identity, person association and readable network information">
 
-Device categories in the upcoming 1.6.0 build:
+Saved device categories with colors in both themes:
 
 <img src="docs/images/presence-device-categories-dark.png" width="620" alt="Dark themed device category checkboxes with Laptop selected and one category allowed per device">
 
@@ -42,7 +42,7 @@ Device categories in the upcoming 1.6.0 build:
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.5.1**. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.6.0**. Device details provide category checkboxes, with colors that follow the selected theme. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
@@ -68,7 +68,7 @@ The main window retains known and unidentified devices on the current network ev
 
 Presence also attempts background reverse DNS alongside mDNS to resolve device hostnames. Lookups use timeouts and retries, and their results must resolve back to the observed IP. Hostname lookup does not establish presence or trigger arrivals. Recognizable hostnames provide a **Likely device type** hint such as Phone, Printer or TV / streaming; ambiguous names remain Unknown. These hints do not change your saved tracking choices or custom device names. Some devices and routers do not publish resolvable hostnames.
 
-### Device categories (upcoming 1.6.0)
+### Device categories
 
 Open a device from the home screen or **Settings > Devices**, check one **Device category**, then choose **Save**. The choices are Phone, Laptop, Desktop, Tablet, TV / streaming, Game console, Printer, Speaker, Smart home, Camera, Wearable, NAS / storage, Network equipment and Other. Checking another category replaces the previous choice. Uncheck the selected category, or check **Automatic**, to return to hostname detection. **Cancel** leaves the device unchanged.
 

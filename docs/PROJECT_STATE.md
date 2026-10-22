@@ -1,6 +1,6 @@
 # Presence project state
 
-## RESUME HERE — device categories implemented, GitHub delivery pending (2026-10-21)
+## RESUME HERE — device categories implemented, release/install authorized (2026-10-21)
 
 Current objective: categorize devices using checkboxes and themed colors. The user explicitly selected **one category per device**. Current branch `feature/device-categories` starts at verified clean public main `9d6f701` (1.5.1). No subagents.
 
@@ -14,9 +14,9 @@ Verification: core plus all required native regressions pass locally. New catego
 
 Failed approach: three checkbox columns clipped “Network equipment” at minimum width. Reflow to two columns instead of shrinking text. The new native preview is in a partial `Program` file with its own shared button helper; the older bulk suite's Click helper is local and cannot be reused directly.
 
-The request authorizes the feature and GitHub synchronization. Deliver a tested portable milestone and PR; this session does not yet request a public production release or installing over the user's active copies. Colorful outlined checkbox choices fit the existing Presence theme. Source version is 1.6.0; README/release notes explicitly identify it as upcoming.
+The user explicitly authorized publishing Presence 1.6.0 and updating the installed copies on this PC, preserving saved devices and history, after reviewing the tested PR/preview. PR #9 contains implementation commit `d889618`. Colorful outlined checkbox choices fit the existing Presence theme. Source version is 1.6.0; README/release notes are prepared for publication.
 
-Next: verify portable archive, push/open PR and check Windows CI, then finalize delivery docs/shared memory. No live-device acceptance was performed; discovery behavior is unchanged. Physical display coverage is limited to the development PC's 144 DPI plus CI's native environment. Do not include real devices, local diagnostics or machine-specific profile paths in this public repository.
+Next: pass final PR CI; merge with commit title `Release Presence 1.6.0` so main CI publishes the official ZIP/checksum; download/verify the official assets; inspect actual installation/startup/profile paths; make consistent SQLite and program backups; replace installed copies and restart the original startup target; confirm version/hash, integrity and preserved saved state. Then finalize docs/shared memory. Never infer current paths from prior handoffs. No live-device acceptance was performed; discovery behavior is unchanged. Physical display coverage is limited to the development PC's 144 DPI plus CI's native environment. Keep machine-specific install/profile diagnostics private and out of Git.
 
 ## RESUME HERE — Presence 1.5.1 larger timeline window (complete, 2026-10-19)
 
