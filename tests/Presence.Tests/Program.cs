@@ -35,6 +35,47 @@ var newEvents = engine.Apply([new Observation(mac, "192.168.1.20", "phone", "Pri
 Expect(newEvents.Count(e => e.Type == "new" && e.Mac == newcomer) == 1, "A newly discovered unknown device should emit one new-device event.");
 Expect(newEvents.All(e => !(e.Type == "arrived" && e.Mac == newcomer)), "First unknown detection must not duplicate the new-device alert.");
 
+// Automatic known classification applies on joining, never overrides saved choices,
+// and preserves the existing first-discovery notification preference.
+var autoSnapshot = new Snapshot();
+Expect(!autoSnapshot.Settings.AutoMarkJoiningDevicesKnown, "Auto-known is off for new and legacy profiles.");
+autoSnapshot.Settings.AutoMarkJoiningDevicesKnown = true;
+var autoEngine = new PresenceEngine(autoSnapshot);
+var baselineMac = "02:00:00:00:10:01";
+var joinMac = "02:00:00:00:10:02";
+var oldMac = "02:00:00:00:10:03";
+var ignoredMac = "02:00:00:00:10:04";
+var personMac = "02:00:00:00:10:05";
+var baselineObservation = new Observation(baselineMac, "192.0.2.1", "Baseline", "", "test");
+Expect(autoEngine.Apply([baselineObservation], scope, start, initialSweep: true).Count == 0 && autoSnapshot.Devices.Single().Kind == DeviceKind.Known,
+    "Auto-known applies during the quiet baseline without emitting an alert.");
+autoSnapshot.Devices.Add(new Device { Mac = oldMac, Kind = DeviceKind.Unknown, State = PresenceState.Away, Network = scope, Announced = true });
+autoSnapshot.Devices.Add(new Device { Mac = ignoredMac, Kind = DeviceKind.Ignore, State = PresenceState.Away, Network = scope, Announced = true });
+autoSnapshot.Devices.Add(new Device { Mac = personMac, Kind = DeviceKind.Person, PersonId = "person", State = PresenceState.Away, Network = scope, Announced = true });
+var joining = autoEngine.Apply([
+    new Observation(joinMac, "192.0.2.2", "New", "", "test"),
+    new Observation(oldMac, "192.0.2.3", "Returning", "", "test"),
+    new Observation(ignoredMac, "192.0.2.4", "Ignored", "", "test"),
+    new Observation(personMac, "192.0.2.5", "Assigned", "", "test")], scope, start.AddSeconds(5));
+Expect(autoSnapshot.Devices.Single(d => d.Mac == joinMac).Kind == DeviceKind.Known && autoSnapshot.Devices.Single(d => d.Mac == oldMac).Kind == DeviceKind.Known,
+    "New and returning unidentified devices become known on joining.");
+Expect(joining.Count(e => e.Mac == joinMac && e.Type == "new") == 1 && joining.All(e => e.Mac != joinMac || e.Type != "arrived"),
+    "Automatic classification preserves exactly one new-device event on first discovery.");
+Expect(autoSnapshot.Devices.Single(d => d.Mac == ignoredMac).Kind == DeviceKind.Ignore && joining.All(e => e.Mac != ignoredMac) &&
+       autoSnapshot.Devices.Single(d => d.Mac == personMac).Kind == DeviceKind.Person && autoSnapshot.Devices.Single(d => d.Mac == personMac).PersonId == "person",
+    "Ignored and person-assigned devices keep their classifications and notification behavior.");
+autoSnapshot.Settings.AutoMarkJoiningDevicesKnown = false;
+var laterMac = "02:00:00:00:10:06";
+autoEngine.Apply([new Observation(laterMac, "192.0.2.6", "Later", "", "test")], scope, start.AddSeconds(10));
+Expect(autoSnapshot.Devices.Single(d => d.Mac == laterMac).Kind == DeviceKind.Unknown, "Disabling auto-known restores unknown classification for new arrivals.");
+var legacyAuto = System.Text.Json.JsonSerializer.Deserialize<Snapshot>("{\"Settings\":{}}")!;
+Expect(!legacyAuto.Settings.AutoMarkJoiningDevicesKnown, "Existing snapshots default auto-known to off.");
+var autoPath = Path.Combine(Path.GetTempPath(), "PresenceAutoKnownTests", Guid.NewGuid().ToString("N"), "presence.db");
+autoSnapshot.Settings.AutoMarkJoiningDevicesKnown = true;
+using (var repository = new Repository(autoPath)) repository.Save(autoSnapshot);
+using (var repository = new Repository(autoPath)) Expect(repository.Load().Settings.AutoMarkJoiningDevicesKnown && repository.Load().Devices.Single(d => d.Mac == joinMac).Kind == DeviceKind.Known,
+    "The auto-known setting and classified device survive database reopen.");
+
 Console.WriteLine("Presence.Core checks passed.");
 
 var resetFolder = Path.Combine(Path.GetTempPath(), "PresenceResetTests", Guid.NewGuid().ToString("N"));
@@ -157,6 +198,23 @@ Expect(hourlyTimeline.Hours.Take(8).All(hour => hour.Fraction == 1) &&
        hourlyTimeline.Hours.Skip(8).Take(12).All(hour => hour.Fraction == 0) &&
        hourlyTimeline.Hours.Skip(20).All(hour => hour.Fraction == 1),
     "The hourly timeline reconstructs arrival and departure transitions into the correct hours.");
+var twelveHourTimeline = PresenceTimeline.BuildHourly([hourlyDevice], hourlyEvents, hourlyEnd.AddHours(-12), hourlyEnd).Single();
+Expect(twelveHourTimeline.Hours.Count == 12 && twelveHourTimeline.Hours[0].Start == hourlyEnd.AddHours(-12) &&
+       twelveHourTimeline.Hours[^1].End == hourlyEnd && twelveHourTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+    "The rolling 12-hour timeline covers exactly twelve contiguous elapsed hours.");
+Expect(twelveHourTimeline.Hours.Take(8).All(hour => hour.Fraction == 0) && twelveHourTimeline.Hours.Skip(8).All(hour => hour.Fraction == 1),
+    "The 12-hour timeline clips older transitions and retains the most recent presence.");
+var offsetEnd = DateTimeOffset.Parse("2026-11-01T04:00:00-08:00");
+var offsetTimeline = PresenceTimeline.BuildHourly([hourlyDevice], [], offsetEnd.AddHours(-12).ToOffset(TimeSpan.FromHours(-7)), offsetEnd).Single();
+Expect(offsetTimeline.Hours.Count == 12 && offsetTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+    "The 12-hour timeline uses elapsed UTC hours across a daylight-saving offset change.");
+foreach (var invalidHours in new[] { 0.0, -12, 11.5, 13, 25 })
+{
+    var rejected = false;
+    try { PresenceTimeline.BuildHourly([hourlyDevice], [], hourlyEnd.AddHours(-invalidHours), hourlyEnd); }
+    catch (ArgumentOutOfRangeException) { rejected = true; }
+    Expect(rejected, $"Unsupported hourly duration {invalidHours} is rejected.");
+}
 var unknownHourlyTimeline = PresenceTimeline.BuildHourly(
     [new Device { Mac = newcomer, FirstSeen = hourlyStart.AddDays(-1), State = PresenceState.Unknown }],
     [], hourlyStart, hourlyEnd).Single();

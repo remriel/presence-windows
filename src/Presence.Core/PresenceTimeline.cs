@@ -49,16 +49,17 @@ public static class PresenceTimeline
         DateTimeOffset from,
         DateTimeOffset through)
     {
-        if (through - from != TimeSpan.FromHours(24))
-            throw new ArgumentOutOfRangeException(nameof(from), "The hourly timeline must cover exactly 24 hours.");
+        var hourCount = (int)(through - from).TotalHours;
+        if (through - from != TimeSpan.FromHours(hourCount) || hourCount is not (12 or 24))
+            throw new ArgumentOutOfRangeException(nameof(from), "The hourly timeline must cover exactly 12 or 24 hours.");
 
         var first = from.ToUniversalTime();
-        var starts = Enumerable.Range(0, 24).Select(hour => first.AddHours(hour)).ToArray();
-        var ends = Enumerable.Range(1, 24).Select(hour => first.AddHours(hour)).ToArray();
+        var starts = Enumerable.Range(0, hourCount).Select(hour => first.AddHours(hour)).ToArray();
+        var ends = Enumerable.Range(1, hourCount).Select(hour => first.AddHours(hour)).ToArray();
         var estimates = Reconstruct(devices, events, first, through.ToUniversalTime(), starts, ends);
         return estimates.Select(estimate => new PresenceHourlyTimelineRow(
             estimate.Device,
-            Enumerable.Range(0, 24).Select(hour => new PresenceHourlyTimelineCell(
+            Enumerable.Range(0, hourCount).Select(hour => new PresenceHourlyTimelineCell(
                 starts[hour],
                 ends[hour],
                 TimeSpan.FromSeconds(estimate.Present[hour]),

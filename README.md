@@ -8,7 +8,7 @@
 
 **A Windows local-network monitoring app inspired by Fing, focused on who came and went.** Presence automatically watches your home network, shows arrivals and departures in the tray, and lets you connect devices with people. It is an independent project and is not affiliated with Fing.
 
-[Download Presence 1.6.0](https://github.com/remriel/presence-windows/releases/tag/v1.6.0) · Windows 10 x64 and later
+[Download Presence 1.7.0](https://github.com/remriel/presence-windows/releases/tag/v1.7.0) · Windows 10 x64 and later
 
 ## Screenshots
 
@@ -16,7 +16,7 @@ These screens use fictional preview devices.
 
 <img src="docs/images/presence-settings.png" width="620" alt="Grouped Presence settings with aligned fields, notification toggles and a fixed action bar">
 
-<img src="docs/images/presence-devices.png" width="620" alt="Device inventory with aligned device, presence, type and IP columns">
+<img src="docs/images/presence-devices.png" width="620" alt="Searchable device inventory with category, presence, tracking and IP columns">
 
 <img src="docs/images/presence-device-details.png" width="620" alt="Device details with identity, person association and readable network information">
 
@@ -30,6 +30,8 @@ Saved device categories with colors in both themes:
 
 <img src="docs/images/presence-timeline.png" width="800" alt="Maximized fictional daily presence timeline showing 20 devices without scrollbars">
 
+<img src="docs/images/presence-timeline-12h.png" width="800" alt="Fictional 12-hour presence timeline with one-hour intervals">
+
 <img src="docs/images/presence-timeline-24h.png" width="800" alt="Maximized fictional 24-hour presence timeline showing 20 devices without scrollbars">
 
 <img src="docs/images/presence-speed-test.png" width="620" alt="On-demand internet speed test showing download, upload, latency and jitter">
@@ -42,7 +44,7 @@ Saved device categories with colors in both themes:
 4. To exclude a device from notifications, open its details, set **Track as** to **Ignore**, and save. It remains listed under **Ignored devices** on the current network. Open it there and choose another tracking type to restore normal tracking.
 5. Close the window. Presence keeps running in the system tray. **Start quietly with Windows** is enabled by default; disable it in Settings if desired. Use **Quit Presence** in the tray menu to stop the background process.
 
-Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.6.0**. Device details provide category checkboxes, with colors that follow the selected theme. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
+Windows 10 x64 version 1809 or later is the minimum target. Current release: **1.7.0**. The refreshed light and dark interface provides direct access to a searchable device inventory. Device details provide category checkboxes, with colors that follow the selected theme. The timeline opens maximized and fits its rows and columns to the available space. The release is unsigned; signing requires an owner's signing certificate. Runtime data is under `%LOCALAPPDATA%\Presence\presence.db`. The portable binary does not carry your device data.
 
 ### Manage several devices, pause, or start fresh
 
@@ -57,6 +59,8 @@ The pause icon beside Settings cancels current scanning and stops further scans.
 ## How it works
 
 Presence chooses a connected physical Wi-Fi adapter first, or you can choose an adapter in Settings. It detects its local IPv4 subnet and gateway. Fresh ARP resolution supplies the principal signal, supplemented by ICMP and local mDNS replies. A cached ARP entry only supplies an address to probe; it is not counted as evidence of presence.
+
+Settings also offers **Automatically mark joining devices as known** (off by default). New or previously unidentified devices become known on their next join; ignored devices and person associations remain unchanged. New-device and arrival notification preferences still apply.
 
 The default interval is **3 seconds**. The main window's **Refresh** button starts an immediate scan; Settings permits intervals from 2 to 600 seconds. Every cycle re-probes known devices and current neighbor candidates on a separate priority path. Background ARP and ICMP discovery each rotate through at most 512 subnet addresses per batch, waiting the configured scan interval between batches; ICMP concurrency is capped at 32. Typical /24 and /23 home networks are covered in one pass; larger networks rotate through bounded chunks without delaying checks of known devices. Only the first successful scan is a silent baseline. The app supports physical IPv4 LANs from /16 through /30. It does not enumerate IPv6-only devices. It pauses departure inference when the gateway is unreachable or the computer suspends. There is no router-specific integration. One fresh discovery response is enough to track a device and infer arrival; no confirmation or second detection is required.
 
@@ -86,7 +90,7 @@ No cloud account, Presence telemetry, web server, subscriptions, login, port sca
 
 Alerts are **custom floating icon popups above the taskbar**, with a bundled chime matching the Codex Usage Counter. They do not use Windows toast or balloon notifications, so disabled Windows notification banners do not suppress them. Popups stay above ordinary windows without taking keyboard focus; click one to open its device, or click × to dismiss. They close after ten seconds by default (3–60 seconds in Settings), pausing that countdown while hovered. Sound is enabled by default and can be disabled in Settings; normal Windows/app audio volume still applies. Quiet hours and the independent arrival/departure/unknown switches apply to real events. **Test alert** displays immediately even during quiet hours; it follows the saved sound setting. A bounded queue handles event bursts, with excess changes summarized while all history remains stored.
 
-Activity shows recorded events. The main window's **Timeline** opens a per-device presence heatmap for the current network. The **24h** view shows the last 24 hours in hourly cells, with exact local intervals and UTC offsets in tooltips; 7-, 14-, 21- and 28-day views show daily cells. Green cells estimate time present from arrival/departure history and saved state timestamps; gray includes away and unrecorded time. Hover for recorded presence duration and coverage. This is an estimate, not a guarantee that a person or device was physically home. The graph uses existing local event history and does not extend its retention period. Settings → Devices includes known, absent and ignored devices. There is one process per user/profile; launching again opens the existing window. The tray process stays alive independently of the main window.
+Activity shows recorded events. The main window's **Timeline** opens a per-device presence heatmap for the current network. The **12h** and **24h** views show the last 12 or 24 hours in hourly cells, with exact local intervals and UTC offsets in tooltips; 7-, 14-, 21- and 28-day views show daily cells. Green cells estimate time present from arrival/departure history and saved state timestamps; gray includes away and unrecorded time. Hover for recorded presence duration and coverage. This is an estimate, not a guarantee that a person or device was physically home. The graph uses existing local event history and does not extend its retention period. Settings → Devices includes known, absent and ignored devices. There is one process per user/profile; launching again opens the existing window. The tray process stays alive independently of the main window.
 
 ## Path to improvements
 
