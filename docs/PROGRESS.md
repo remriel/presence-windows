@@ -2,20 +2,24 @@
 
 ## Current objective — 12-hour timeline, app UI and automatic known option, 2026-10-29
 
-Progress: **75%** — implementation and local checks pass; GitHub CI and publication remain.
+Progress: **100%** — implementation, publication, install, profile preservation checks, and handoffs are complete.
 
 - [x] Inspect shared memory, project instructions, source, tests and clean repository baseline.
 - [x] Add a rolling 12-hour timeline with one-hour cells and exact local/UTC tooltips.
 - [x] Refresh shared light/dark UI, show direct device navigation, and add searchable inventory.
 - [x] Add opt-in automatic known classification for new or returning unidentified devices; preserve ignored/person choices and notification semantics.
 - [x] Pass core tests, 28 interface checks, timeline 51, category 112, saved networks 11, device visibility 16, reliability 16, bulk 24 and 26-screen broad smoke; zero findings.
-- [ ] Push PR and pass GitHub Windows CI; merge with the release commit title.
-- [ ] Wait for main CI to publish 1.7.0; download and verify release ZIP and checksum.
-- [ ] Finalize repository state, shared-memory pointer, wisdom and exported handoffs.
+- [x] Merge PR #10 after Windows CI passes; publish 1.7.0 after main/release CI passes.
+- [x] Download the official ZIP; verify its SHA-256 against both the checksum asset and GitHub digest.
+- [x] Back up the installed program/profile, replace the requested `C:\Presence` install, and restart the tray app.
+- [x] Confirm installed executable identity, running process, startup entry, SQLite integrity, retained saved state and pre-update event IDs.
+- [x] Record and preserve current live settings; export project handoffs and update shared memory.
 
-Blockers: none. Existing unidentified devices are converted on their next join, not immediately; existing ignored or person-assigned choices remain. No changes requested to installed app or live profile.
+Blockers: none. The live profile has the new auto-known setting enabled. Existing unidentified devices convert on a later join; ignored and person-assigned choices remain. Three other settings differ from the pre-update backup; the source is undetermined, so the current live settings were kept.
 
-Next steps: refresh fictional README screenshots, verify diff, submit release PR, check CI and official package.
+Next steps: none required. Optional acceptance: confirm LAN reconnect/sleep behavior and additional physical display/DPI combinations.
+
+Release: [v1.7.0](https://github.com/remriel/presence-windows/releases/tag/v1.7.0). PR: [#10](https://github.com/remriel/presence-windows/pull/10). Release commit: `a93b2f543900d1894983c6d3267574f7ff820242`. PR CI [40970814478](https://github.com/remriel/presence-windows/actions/runs/40970814478); release CI [40971271791](https://github.com/remriel/presence-windows/actions/runs/40971271791). ZIP SHA-256: `060d1100cb4674c8ddf69f7f450dad150f428ca5adcb53e48a5049474a310dce`.
 
 ## Previous progress
 

@@ -1,12 +1,24 @@
 # Presence project state
 
-## RESUME HERE — Presence 1.7.0 in progress, 2026-10-29
+## RESUME HERE — Presence 1.7.0 complete, 2026-10-29
 
-User requested a 12-hour timeline, app-wide UI improvements, an option to automatically mark joining devices known, and publication. No installation requested. No subagents.
+The requested 12-hour timeline, whole-app UI refresh, automatic-known setting, GitHub release, and replacement at `C:\Presence` are complete. PR [#10](https://github.com/remriel/presence-windows/pull/10) merged as `a93b2f543900d1894983c6d3267574f7ff820242`; PR CI [40970814478](https://github.com/remriel/presence-windows/actions/runs/40970814478) and main/release CI [40971271791](https://github.com/remriel/presence-windows/actions/runs/40971271791) passed. [Presence 1.7.0](https://github.com/remriel/presence-windows/releases/tag/v1.7.0) is published. The official 57,491,269-byte ZIP SHA-256 is `060d1100cb4674c8ddf69f7f450dad150f428ca5adcb53e48a5049474a310dce`, matching GitHub's asset digest and checksum asset.
 
-`PresenceTimeline.BuildHourly` accepts exactly 12 or 24 elapsed UTC hours and computes local labels/offset tooltips; default 14-day range/storage remain unchanged. Timeline dynamically fits labels/columns and avoids rebuilding the selected range. UI uses shared light/dark palette, surface groups, direct Devices access, buffered grids and searchable inventory. `Settings.AutoMarkJoiningDevicesKnown` defaults off; `PresenceEngine.Apply` classifies unknown devices on a fresh arrival after deciding event type. That preserves the existing new-device notification preference and baseline silence. Previously unidentified devices convert on their next join. Known/person/ignored choices stay intact; disabling restores old behavior. No schema change.
+Implementation and rationale:
 
-Local verification passed: core behavior including auto-known persistence, first/new/return events, legacy defaults and 12-hour bounds; interface 28 checks/12 fictional captures; timeline 51; categories 112; saved networks 11; visibility 16; reliability 16; bulk 24; broad UI 26 captures. Zero findings. Need PR CI, main release CI, and downloaded package/digest verification. Existing workflow publishes only main commits starting `Release Presence `; do not release prior to passing checks. SDK is under LOCALAPPDATA/PresenceBuild/dotnet because host initially had runtime only. Never commit device data or real-device screenshots.
+- `PresenceTimeline.BuildHourly` builds exactly 12 or 24 elapsed UTC hours and formats local labels with offset-aware tooltips. The daily range and 14-day default are unchanged; this is a network-derived presence estimate, not proof of human presence.
+- `Settings.AutoMarkJoiningDevicesKnown` is opt-in and defaults false for legacy profiles. `PresenceEngine.Apply` handles unknown devices at arrival after event semantics are chosen, retaining existing notification behavior. Existing unidentified devices convert on a subsequent join; Ignore/person choices remain explicit. No schema migration is needed.
+- `Ui.cs`/`Windows.cs` share the refreshed light/dark surfaces, buffered grids, direct inventory navigation and inventory search. The timeline keeps its 12-hour and daily ranges, with adaptive labels and cell sizing.
+- Key implementation files: `src/Presence.Core/PresenceTimeline.cs`, `src/Presence.Core/PresenceEngine.cs`, `src/Presence.Core/Models.cs`, `src/Presence.App/Ui.cs`, `src/Presence.App/Windows.cs`; focused coverage is in `tests/Presence.Tests/Program.cs` and `tools/Presence.UiPreview/InterfaceChecks.cs`.
+
+Verification and installation:
+
+- Local suites passed: core; interface 28 checks/12 fictional captures; timeline 51; categories 112; saved networks 11; visibility 16; reliability 16; bulk 24; broad UI 26 captures. Zero findings. PR and release workflows passed.
+- The official ZIP and checksum were downloaded; the ZIP digest matches GitHub's release digest. The installed executable is version 1.7.0.0, matches the staged release binary (SHA-256 `2FC4CAE6B21B8BD5955931E04C521B07832156306CB621AA0EA72F324A40B9D1`), and one tray process runs from the requested install. Startup configuration remains intact.
+- A private program/profile rollback backup remains in the task workspace. The live SQLite profile passes `integrity_check`; saved device/network/person state and all pre-update event IDs remain. Stable settings and device configuration compare equal apart from four observed settings fields.
+- The live profile currently has `AutoMarkJoiningDevicesKnown=true`. Compared with the pre-update backup, `ScanIntervalSeconds`, `DepartureGraceSeconds`, and `RetentionDays` also differ. The app was running while these values appeared; their source is undetermined. Current values were preserved without reset or overwrite. Do not reapply old settings or restore the profile unless explicitly asked.
+
+No required steps remain. Physical reconnect/sleep behavior and other display/DPI combinations remain outside this verification. Keep real device identifiers, profile counts, and machine-specific backup details out of the public repository.
 
 ## Previous state
 

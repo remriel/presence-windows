@@ -2,9 +2,9 @@
 
 ## 12-hour timeline and interface refresh — 2026-10-29
 
-1. **Least confident:** The refreshed interface was checked with fictional data at this display’s DPI, but not yet through day-to-day use across all display sizes. I would also confirm CI, gather hands-on feedback and test additional scaling setups.
-2. **Biggest missing point:** Automatically marking devices known affects future joins. Existing unidentified devices already online keep their status until they next join; ignored and assigned devices keep their choices. I would use the existing bulk selection if immediate changes to saved devices are desired.
-3. **Highest-impact assumption:** “All devices known when joining” means automatically classifying new and returning unidentified devices, while preserving explicit Ignore and person assignments. If a different scope is intended, I would adjust the option deliberately and make its effects clear before changing saved choices.
+1. **Least confident:** The live profile's scan interval, departure grace and retention settings differed from the pre-update backup while Presence was running, and the source of those changes is unclear. I would compare immediately before and after app restart and ask before restoring any earlier values; preserving the live state was the safest choice.
+2. **Biggest missing point:** The auto-known option affects devices as they join, not unidentified devices already online. Ignore and person assignments stay explicit. I would keep that scope clear in the setting and only bulk-convert existing devices if the user asks.
+3. **Highest-impact assumption:** “12-hour chart” means a rolling 12 elapsed hours, and “make all devices known automatically when joining” means unknown devices become known on discovery/next join while explicit Ignore/person choices remain. A calendar-day chart or retroactive reclassification would change the behavior, so I would make the selection and scope explicit if requested.
 
 
 ## Device categories — 2026-10-21
