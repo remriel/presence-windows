@@ -11,17 +11,26 @@ internal static class Ui
     public static readonly Font HeadingFont = new("Segoe UI", 11, FontStyle.Bold);
     public static readonly Font TitleFont = new("Segoe UI", 16, FontStyle.Bold);
     public static readonly Font TechnicalFont = new("Consolas", 10);
+    public static readonly Font CompactFont = new("Segoe UI", 9);
+    private static long themeCheckedAt = long.MinValue;
+    private static bool systemDark;
     public static bool Dark(Settings s)
     {
         if (s.Theme != "System") return s.Theme == "Dark";
+        var now = Environment.TickCount64;
+        if (themeCheckedAt != long.MinValue && now - themeCheckedAt < 1000) return systemDark;
+        themeCheckedAt = now;
         using var key = Registry.CurrentUser.OpenSubKey(@"Software\Microsoft\Windows\CurrentVersion\Themes\Personalize");
-        return key?.GetValue("AppsUseLightTheme") is int value && value == 0;
+        systemDark = key?.GetValue("AppsUseLightTheme") is int value && value == 0;
+        return systemDark;
     }
-    public static Color Background(Settings s) => Dark(s) ? Color.FromArgb(30, 33, 39) : Color.FromArgb(247, 248, 250);
-    public static Color Surface(Settings s) => Dark(s) ? Color.FromArgb(41, 45, 53) : Color.White;
-    public static Color Text(Settings s) => Dark(s) ? Color.FromArgb(242, 244, 247) : Color.FromArgb(31, 37, 45);
-    public static Color Muted(Settings s) => Dark(s) ? Color.FromArgb(188, 197, 209) : Color.FromArgb(83, 96, 112);
-    public static Color Border(Settings s) => Dark(s) ? Color.FromArgb(68, 77, 89) : Color.FromArgb(211, 218, 227);
+    public static Color Background(Settings s) => Dark(s) ? Color.FromArgb(25, 29, 37) : Color.FromArgb(244, 243, 239);
+    public static Color Surface(Settings s) => Dark(s) ? Color.FromArgb(37, 43, 53) : Color.White;
+    public static Color Text(Settings s) => Dark(s) ? Color.FromArgb(239, 242, 248) : Color.FromArgb(32, 37, 45);
+    public static Color Muted(Settings s) => Dark(s) ? Color.FromArgb(188, 197, 209) : Color.FromArgb(89, 99, 113);
+    public static Color Border(Settings s) => Dark(s) ? Color.FromArgb(82, 93, 111) : Color.FromArgb(197, 203, 211);
+    public static Color Accent(Settings s) => Dark(s) ? Color.FromArgb(169, 188, 255) : Color.FromArgb(37, 76, 222);
+    public static Color Selection(Settings s) => Dark(s) ? Color.FromArgb(51, 65, 96) : Color.FromArgb(232, 237, 255);
     public static Color Positive(Settings s) => Dark(s) ? Color.FromArgb(123, 221, 188) : Color.FromArgb(15, 111, 86);
     public static Color Negative(Settings s) => Dark(s) ? Color.FromArgb(255, 170, 162) : Color.FromArgb(173, 38, 31);
     public static string Time(DateTimeOffset? at) => at is null ? "Not yet seen" : at.Value.LocalDateTime.Date == DateTime.Now.Date ? at.Value.ToLocalTime().ToString("t") : at.Value.ToLocalTime().ToString("MMM d") + ", " + at.Value.ToLocalTime().ToString("t");
@@ -50,14 +59,15 @@ internal static class Ui
     public static WrapLabel Label(string text, Settings s, bool muted = false) => new() { Text = text, ForeColor = muted ? Muted(s) : Text(s), Tag = muted ? "muted" : "text" };
     public static TableLayoutPanel Header(string title, string detail, Settings s)
     {
-        var panel = Stack(); panel.Padding = new Padding(Page, Section, Page, Space);
+        var panel = Stack(); panel.Padding = new Padding(Page, Section, Page, Space); panel.Tag = "header"; panel.BackColor = Surface(s);
         var heading = Label(title, s); heading.Font = TitleFont; heading.Margin = new Padding(0, 0, 0, Gap); Add(panel, heading);
         if (detail.Length > 0) Add(panel, Label(detail, s, true));
         return panel;
     }
     public static TableLayoutPanel Group(string title, Settings s)
     {
-        var group = Stack(); group.Margin = new Padding(0, 0, 0, Section);
+        var group = Stack(); group.Margin = new Padding(0, 0, 0, Space);
+        group.Padding = new Padding(Space); group.Tag = "surface"; group.BackColor = Surface(s);
         var label = Label(title, s); label.Font = HeadingFont; label.Margin = new Padding(0, 0, 0, Space); Add(group, label);
         return group;
     }
@@ -69,19 +79,25 @@ internal static class Ui
         header.Dock = DockStyle.Fill; body.Dock = DockStyle.Fill; footer.Dock = DockStyle.Fill;
         header.Margin = body.Margin = footer.Margin = Padding.Empty;
         root.Controls.Add(header, 0, 0); root.Controls.Add(body, 0, 1); root.Controls.Add(footer, 0, 2);
+        header.Tag = "header"; footer.Tag = "surface";
+        footer.BackColor = header.BackColor;
         form.Controls.Add(root); form.ResumeLayout(true); return root;
     }
     public static Button Button(string text, Action action, Settings s, bool primary = false)
     {
-        var button = new Button { Text = text, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, MinimumSize = new Size(96, 36), Padding = new Padding(Space, Small, Space, Small), Margin = new Padding(0, 0, Gap, 0), Font = StandardFont, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false, Tag = primary ? "primary" : "button", AccessibleName = text.Replace("&", "") };
-        button.FlatAppearance.BorderSize = 1; StyleButton(button, s); button.Click += (_, _) => action(); return button;
+        var button = new PresenceButton { Text = text, AutoSize = true, AutoSizeMode = AutoSizeMode.GrowAndShrink, MinimumSize = new Size(96, 38), Padding = new Padding(Space, Small, Space, Small), Margin = new Padding(0, 0, Gap, 0), Font = StrongFont, Cursor = Cursors.Hand, FlatStyle = FlatStyle.Flat, UseVisualStyleBackColor = false, Tag = primary ? "primary" : "button", AccessibleName = text.Replace("&", "") };
+        button.FlatAppearance.BorderSize = 1; StyleButton(button, s);
+        button.EnabledChanged += (_, _) => StyleButton(button, button.CurrentTheme ?? s); button.Click += (_, _) => action(); return button;
     }
     private static void StyleButton(Button b, Settings s)
     {
+        if (b is PresenceButton themed) themed.CurrentTheme = s;
         var primary = Equals(b.Tag, "primary");
-        b.BackColor = primary ? (Dark(s) ? Color.FromArgb(123, 221, 188) : Color.FromArgb(15, 111, 86)) : Surface(s);
-        b.ForeColor = primary ? (Dark(s) ? Color.FromArgb(20, 35, 30) : Color.White) : Text(s);
-        b.FlatAppearance.BorderColor = primary ? b.BackColor : Border(s);
+        b.BackColor = primary && b.Enabled ? Accent(s) : Surface(s);
+        b.ForeColor = !b.Enabled ? Muted(s) : primary ? (Dark(s) ? Background(s) : Color.White) : Text(s);
+        b.FlatAppearance.BorderColor = primary && b.Enabled ? Accent(s) : Border(s);
+        b.FlatAppearance.MouseOverBackColor = primary ? ControlPaint.Light(Accent(s), .12f) : Selection(s);
+        b.FlatAppearance.MouseDownBackColor = primary ? ControlPaint.Dark(Accent(s), .08f) : Selection(s);
     }
     public static FlowLayoutPanel Actions(params Control[] buttons)
     {
@@ -114,7 +130,7 @@ internal static class Ui
     public static DataGridView Grid(Settings s)
     {
         var grid = new PresenceGrid { Dock = DockStyle.Fill, ReadOnly = true, AllowUserToAddRows = false, AllowUserToDeleteRows = false, AllowUserToResizeRows = false, RowHeadersVisible = false, AutoGenerateColumns = false, MultiSelect = false, SelectionMode = DataGridViewSelectionMode.FullRowSelect, AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells, BorderStyle = BorderStyle.None, CellBorderStyle = DataGridViewCellBorderStyle.SingleHorizontal, ColumnHeadersBorderStyle = DataGridViewHeaderBorderStyle.Single, EnableHeadersVisualStyles = false, BackgroundColor = Background(s), GridColor = Border(s), Margin = Padding.Empty, RowTemplate = { MinimumHeight = 34 } };
-        grid.DefaultCellStyle = new DataGridViewCellStyle { BackColor = Surface(s), ForeColor = Text(s), SelectionBackColor = Dark(s) ? Color.FromArgb(53, 76, 86) : Color.FromArgb(221, 239, 232), SelectionForeColor = Text(s), Padding = new Padding(Gap, Small, Gap, Small), WrapMode = DataGridViewTriState.True, Font = StandardFont };
+        grid.DefaultCellStyle = new DataGridViewCellStyle { BackColor = Surface(s), ForeColor = Text(s), SelectionBackColor = Selection(s), SelectionForeColor = Text(s), Padding = new Padding(Gap, Small, Gap, Small), WrapMode = DataGridViewTriState.True, Font = StandardFont };
         grid.ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle { BackColor = Background(s), ForeColor = Muted(s), Padding = new Padding(Gap, Gap, Gap, Gap), Font = StrongFont, WrapMode = DataGridViewTriState.False, SelectionBackColor = Background(s), SelectionForeColor = Text(s) };
         grid.ColumnHeadersHeightSizeMode = DataGridViewColumnHeadersHeightSizeMode.AutoSize;
         return grid;
@@ -128,8 +144,8 @@ internal static class Ui
         grid.Columns.Add(Column("Event", "Event", 85, DataGridViewAutoSizeColumnMode.AllCells));
         // AllCells width and wrapped, auto-sized row height must not depend on
         // each other. Previous-date timestamps are wider than clock-only values.
-        grid.Columns["When"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
-        grid.Columns["Event"].DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        grid.Columns["When"]!.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
+        grid.Columns["Event"]!.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         foreach (var e in events) { var i = grid.Rows.Add(Time(e.At), e.Name, e.Type == "new" ? "New device" : e.Type == "arrived" ? "Arrived" : "Left"); grid.Rows[i].Cells[0].ToolTipText = e.At.ToLocalTime().ToString("f"); grid.Rows[i].Cells[1].ToolTipText = e.Name; }
         if (fitHeight) FitRows(grid);
         return grid;
@@ -143,13 +159,18 @@ internal static class Ui
     public static void Theme(Control control, Settings s)
     {
         if (control is DataGridView) return;
-        control.BackColor = control is Label ? Color.Transparent : control is TextBox or ComboBox or NumericUpDown ? Surface(s) : Background(s);
+        control.BackColor = control is Label ? Color.Transparent : control is TextBox or ComboBox or NumericUpDown || Equals(control.Tag, "surface") || Equals(control.Tag, "header") ? Surface(s) : control.Parent?.BackColor ?? Background(s);
         control.ForeColor = Equals(control.Tag, "muted") ? Muted(s) : Equals(control.Tag, "error") ? Negative(s) : Text(s);
         if (control is Button button) StyleButton(button, s);
         if (Equals(control.Tag, "primary-device")) { control.BackColor = Dark(s) ? Color.FromArgb(245, 155, 65) : Color.FromArgb(255, 202, 110); control.ForeColor = Color.FromArgb(65, 28, 8); }
         foreach (Control child in control.Controls) Theme(child, s);
         if (control is CategoryChoice choice) choice.ApplyTheme(s);
     }
+}
+
+internal sealed class PresenceButton : Button
+{
+    internal Settings? CurrentTheme;
 }
 
 internal sealed class WrapLabel : Label
@@ -199,6 +220,7 @@ internal sealed class ThemeComboBox : ComboBox
 
 internal sealed class PresenceGrid : DataGridView
 {
+    public PresenceGrid() { DoubleBuffered = true; }
     private int appliedDpi = 96;
     protected override void OnHandleCreated(EventArgs e) { base.OnHandleCreated(e); ScaleColumns(); }
     protected override void OnDpiChangedAfterParent(EventArgs e) { base.OnDpiChangedAfterParent(e); ScaleColumns(); }

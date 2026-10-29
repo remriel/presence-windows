@@ -1,3 +1,11 @@
+# Presence 1.7.0
+
+- Optionally mark newly joining unidentified devices as known automatically; saved ignored and person-assigned choices are preserved.
+- Refresh the app’s light/dark appearance, bring Devices to the main window, and add searchable device inventory.
+- Add a rolling **12h** chart to the timeline alongside 24h and the daily ranges.
+- Show twelve one-hour cells per device, with local intervals, UTC offsets, presence duration and recorded coverage in tooltips.
+- Preserve existing profiles, device categories, history, and the default 14-day view without a reset or migration.
+
 # Presence 1.6.0
 
 - Categorize each device with one checkbox choice: Phone, Laptop, Desktop, Tablet, TV / streaming, Game console, Printer, Speaker, Smart home, Camera, Wearable, NAS / storage, Network equipment or Other.

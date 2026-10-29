@@ -1,5 +1,24 @@
 # Presence progress
 
+## Current objective — 12-hour timeline, app UI and automatic known option, 2026-10-29
+
+Progress: **75%** — implementation and local checks pass; GitHub CI and publication remain.
+
+- [x] Inspect shared memory, project instructions, source, tests and clean repository baseline.
+- [x] Add a rolling 12-hour timeline with one-hour cells and exact local/UTC tooltips.
+- [x] Refresh shared light/dark UI, show direct device navigation, and add searchable inventory.
+- [x] Add opt-in automatic known classification for new or returning unidentified devices; preserve ignored/person choices and notification semantics.
+- [x] Pass core tests, 28 interface checks, timeline 51, category 112, saved networks 11, device visibility 16, reliability 16, bulk 24 and 26-screen broad smoke; zero findings.
+- [ ] Push PR and pass GitHub Windows CI; merge with the release commit title.
+- [ ] Wait for main CI to publish 1.7.0; download and verify release ZIP and checksum.
+- [ ] Finalize repository state, shared-memory pointer, wisdom and exported handoffs.
+
+Blockers: none. Existing unidentified devices are converted on their next join, not immediately; existing ignored or person-assigned choices remain. No changes requested to installed app or live profile.
+
+Next steps: refresh fictional README screenshots, verify diff, submit release PR, check CI and official package.
+
+## Previous progress
+
 ## Current objective — Presence 1.6.0 device categories (complete, 2026-10-21)
 
 Progress: **100%** — category checkboxes and themed colors are published and installed. The user confirmed one category per device and explicitly authorized the release and PC update.

@@ -27,7 +27,7 @@ internal sealed class MainWindow : Form
         app = context; var s = app.Engine.Data.Settings;
         Ui.Configure(this, "Presence", new Size(640, 760), new Size(500, 480), s);
         Text = "Presence"; MinimizeBox = MaximizeBox = true; StartPosition = FormStartPosition.CenterScreen;
-        var header = Ui.Stack(); header.Padding = new Padding(Ui.Page, Ui.Section, Ui.Page, Ui.Space);
+        var header = Ui.Stack(); header.Tag = "header"; header.BackColor = Ui.Surface(s); header.Padding = new Padding(Ui.Page, Ui.Section, Ui.Page, Ui.Space);
         var heading = new TableLayoutPanel { AutoSize = true, Dock = DockStyle.Top, ColumnCount = 3, Margin = new Padding(0, 0, 0, Ui.Space) };
         heading.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); heading.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize)); heading.ColumnStyles.Add(new ColumnStyle(SizeType.AutoSize));
         var title = Ui.Label("Presence", s); title.Font = Ui.TitleFont;
@@ -35,16 +35,15 @@ internal sealed class MainWindow : Form
         heading.Controls.Add(title, 0, 0); heading.Controls.Add(pauseScanning, 1, 0); heading.Controls.Add(Ui.Button("&Settings", ShowSettings, s), 2, 0); Ui.Add(header, heading);
         status = Ui.Label("Finding your network…", s); status.Font = Ui.StrongFont; status.Margin = new Padding(0, 0, 0, Ui.Small); Ui.Add(header, status);
         network = Ui.Label("", s, true); Ui.Add(header, network);
-        Ui.Add(header, Ui.Button("&Networks", () => { using var dialog = new NetworksWindow(app); dialog.ShowDialog(this); }, s));
         selectDevices = Ui.Button("Select &devices", () => { selecting = !selecting; selected.Clear(); signature = ""; Render(); }, s);
         ignoreSelected = Ui.Button("&Ignore selected", () => SetSelected(DeviceKind.Ignore), s);
         knownSelected = Ui.Button("Set &known", () => SetSelected(DeviceKind.Known), s);
         selectionCount = Ui.Label("", s, true);
-        var selectionActions = Ui.Actions(selectDevices, ignoreSelected, knownSelected); selectionActions.Padding = new Padding(0, Ui.Gap, 0, Ui.Gap);
+        var selectionActions = Ui.Actions(Ui.Button("&Networks", () => { using var dialog = new NetworksWindow(app); dialog.ShowDialog(this); }, s), selectDevices, ignoreSelected, knownSelected); selectionActions.Padding = new Padding(0, Ui.Gap, 0, Ui.Gap);
         Ui.Add(header, selectionActions); Ui.Add(header, selectionCount);
         var footer = Ui.Stack();
         var hint = Ui.Label("Monitoring continues in the tray when you close this window.", s, true); hint.Margin = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0); Ui.Add(footer, hint);
-        Ui.Add(footer, Ui.Actions(Ui.Button("&Refresh", async () => await app.Scan(true), s, true), Ui.Button("Speed &test", OpenSpeedTest, s), Ui.Button("&Timeline", ShowTimeline, s), Ui.Button("&Activity", ShowActivity, s)));
+        Ui.Add(footer, Ui.Actions(Ui.Button("&Refresh", async () => await app.Scan(true), s, true), Ui.Button("&Devices", () => { using var dialog = new DevicesWindow(app); dialog.ShowDialog(this); }, s), Ui.Button("&Timeline", ShowTimeline, s), Ui.Button("&Activity", ShowActivity, s), Ui.Button("Speed &test", OpenSpeedTest, s)));
         root = Ui.Shell(this, header, body, footer);
         FormClosing += (_, e) => { if (!AllowClose && e.CloseReason == CloseReason.UserClosing) { e.Cancel = true; Hide(); } };
         app.Changed += Render; VisibleChanged += (_, _) => { if (Visible) Render(); }; Render();
@@ -191,7 +190,9 @@ internal sealed class SettingsWindow : Form
         var monitoring = Ui.Group("Monitoring", s); var fields = Ui.Fields();
         Ui.Field(fields, "Scan interval", Ui.Number(s.ScanIntervalSeconds, 2, 600, "seconds", s, out var scan), s);
         Ui.Field(fields, "Departure grace", Ui.Number(s.DepartureGraceSeconds, 10, 3600, "seconds", s, out var left), s); Ui.Add(monitoring, fields);
-        Ui.Add(monitoring, Ui.Label("A device is marked away after this grace period without a fresh response. Sleeping phones may briefly stop responding.", s, true)); Ui.Add(body.Content, monitoring);
+        Ui.Add(monitoring, Ui.Label("A device is marked away after this grace period without a fresh response. Sleeping phones may briefly stop responding.", s, true));
+        var autoKnown = Ui.Check("Automatically mark joining devices as known", s.AutoMarkJoiningDevicesKnown, s); Ui.Add(monitoring, autoKnown);
+        Ui.Add(monitoring, Ui.Label("New and unidentified devices become known when they join. Ignored and assigned devices keep their choices; notification settings still apply.", s, true)); Ui.Add(body.Content, monitoring);
         var notifications = Ui.Group("Notifications", s);
         var arrive = Ui.Check("Notify when devices arrive", s.Arrivals, s); var depart = Ui.Check("Notify when devices leave", s.Departures, s); var unknown = Ui.Check("Notify about new devices", s.UnknownDevices, s); var sound = Ui.Check("Play an alert sound", s.AlertSound, s);
         foreach (var checkbox in new[] { arrive, depart, unknown, sound }) Ui.Add(notifications, checkbox);
@@ -226,7 +227,7 @@ internal sealed class SettingsWindow : Form
         {
             try
             {
-                var updated = s.Copy(); updated.ScanIntervalSeconds = (int)scan.Value; updated.DepartureGraceSeconds = (int)left.Value; updated.Arrivals = arrive.Checked; updated.Departures = depart.Checked; updated.UnknownDevices = unknown.Checked; updated.AlertSound = sound.Checked; updated.PopupSeconds = (int)duration.Value; updated.QuietHours = quiet.Checked; updated.QuietStart = (int)start.Value; updated.QuietEnd = (int)end.Value; updated.StartWithWindows = startup.Checked; updated.Theme = appearance.SelectedItem?.ToString() ?? "System"; updated.InterfaceId = network.SelectedIndex <= 0 ? "" : adapterIds[network.SelectedIndex]; updated.RetentionDays = (int)retention.Value; app.SaveSettings(updated); Close();
+                var updated = s.Copy(); updated.ScanIntervalSeconds = (int)scan.Value; updated.DepartureGraceSeconds = (int)left.Value; updated.Arrivals = arrive.Checked; updated.Departures = depart.Checked; updated.UnknownDevices = unknown.Checked; updated.AutoMarkJoiningDevicesKnown = autoKnown.Checked; updated.AlertSound = sound.Checked; updated.PopupSeconds = (int)duration.Value; updated.QuietHours = quiet.Checked; updated.QuietStart = (int)start.Value; updated.QuietEnd = (int)end.Value; updated.StartWithWindows = startup.Checked; updated.Theme = appearance.SelectedItem?.ToString() ?? "System"; updated.InterfaceId = network.SelectedIndex <= 0 ? "" : adapterIds[network.SelectedIndex]; updated.RetentionDays = (int)retention.Value; app.SaveSettings(updated); Close();
             }
             catch (Exception ex) { error.Text = "Could not save settings. " + ex.Message; error.ForeColor = Ui.Negative(s); error.Visible = true; }
         }, s, true);
@@ -312,10 +313,11 @@ internal sealed class PresenceTimelineWindow : Form
         var header = Ui.Header("Presence timeline", "Hourly and daily presence estimates for devices on the connected network.", s);
         header.Padding = new Padding(Ui.Page, Ui.Gap, Ui.Page, 0);
         ranges.Padding = Padding.Empty;
-        foreach (var (range, label) in new[] { ("24 hours", "24&h"), ("7 days", "7&d"), ("14 days", "14&d"), ("21 days", "21&d"), ("28 days", "28&d") })
+        foreach (var (range, label) in new[] { ("12 hours", "&12h"), ("24 hours", "24&h"), ("7 days", "7&d"), ("14 days", "14&d"), ("21 days", "21&d"), ("28 days", "28&d") })
         {
             var button = Ui.Button(label, () => ShowRange(range), s, range == selectedRange);
             button.AccessibleName = range;
+            button.MinimumSize = new Size(60, 36);
             ranges.Controls.Add(button);
         }
         Ui.Add(header, ranges);
@@ -352,11 +354,13 @@ internal sealed class PresenceTimelineWindow : Form
 
     private void ShowRange(string range)
     {
+        if (selectedRange == range && grid is { IsDisposed: false }) return;
+        body.SuspendLayout();
         selectedRange = range;
         var s = app.Engine.Data.Settings;
         if (legend is not null)
-            legend.Text = range == "24 hours"
-                ? "The last 24 hours run oldest to newest, one hour per cell. Green shows time present; gray shows away or unrecorded time. Hover for exact times and coverage."
+            legend.Text = range is "12 hours" or "24 hours"
+                ? $"The last {range} run oldest to newest, one hour per cell. Green shows time present; gray shows away or unrecorded time. Hover for exact times and coverage."
                 : "Green shows time present; gray shows away or unrecorded time. Hover over a day for duration and coverage.";
         foreach (Control control in body.Controls.Cast<Control>().ToArray())
         {
@@ -379,9 +383,9 @@ internal sealed class PresenceTimelineWindow : Form
         else
         {
             var now = DateTimeOffset.UtcNow;
-            if (range == "24 hours")
+            if (range is "12 hours" or "24 hours")
             {
-                var from = now.AddHours(-24);
+                var from = now.AddHours(-int.Parse(range.Split(' ')[0]));
                 var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
                 var rows = PresenceTimeline.BuildHourly(devices, events, from, now);
                 ShowHourlyGrid(rows, s);
@@ -404,13 +408,15 @@ internal sealed class PresenceTimelineWindow : Form
             button.Tag = active ? "primary" : "button";
             Ui.Theme(button, s);
         }
+        body.ResumeLayout(true);
     }
 
     private void ShowHourlyGrid(IReadOnlyList<PresenceHourlyTimelineRow> rows, Settings settings)
     {
         var table = Ui.Grid(settings);
         grid = table;
-        table.AccessibleName = "Hourly device presence for the last 24 hours. Each cell shows the share of that hour the device was present.";
+        var hourCount = rows[0].Hours.Count;
+        table.AccessibleName = $"Hourly device presence for the last {hourCount} hours. Each cell shows the share of that hour the device was present.";
         table.ColumnHeadersHeight = 30;
         table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
         table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -418,7 +424,7 @@ internal sealed class PresenceTimelineWindow : Form
         table.RowTemplate.MinimumHeight = 20;
         table.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
         table.DefaultCellStyle.Padding = new Padding(2, 0, 2, 0);
-        table.DefaultCellStyle.Font = new Font(Ui.StandardFont.FontFamily, 9, Ui.StandardFont.Style);
+        table.DefaultCellStyle.Font = Ui.CompactFont;
         table.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
         nameColumn.Width = 200;
@@ -428,7 +434,7 @@ internal sealed class PresenceTimelineWindow : Form
 
         var zone = TimeZoneInfo.Local;
         var hours = rows.Count == 0 ? Array.Empty<PresenceHourlyTimelineCell>() : rows[0].Hours.ToArray();
-        for (var i = 0; i < 24; i++)
+        for (var i = 0; i < hourCount; i++)
         {
             var hour = hours[i];
             var localStart = TimeZoneInfo.ConvertTime(hour.Start, zone);
@@ -441,7 +447,7 @@ internal sealed class PresenceTimelineWindow : Form
 
         foreach (var row in rows)
         {
-            var values = new object[25];
+            var values = new object[hourCount + 1];
             Array.Fill(values, "");
             values[0] = row.Device.DisplayName;
             var index = table.Rows.Add(values);
@@ -449,7 +455,7 @@ internal sealed class PresenceTimelineWindow : Form
             gridRow.Tag = row.Device;
             CategoryAppearance.StyleCell(gridRow.Cells[0], row.Device, settings);
             gridRow.Cells[0].ToolTipText = row.Device.DisplayName + " · " + row.Device.DeviceType + " · " + Ui.State(row.Device.State);
-            for (var i = 0; i < 24; i++)
+            for (var i = 0; i < hourCount; i++)
             {
                 var cell = gridRow.Cells[i + 1];
                 var hour = row.Hours[i];
@@ -466,16 +472,17 @@ internal sealed class PresenceTimelineWindow : Form
             if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
             e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
             var hourIndex = e.ColumnIndex - 1;
-            if ((hourIndex + 1) % 3 == 0 || hourIndex == 23)
+            var tickSize = table.Columns[e.ColumnIndex].Width >= TextRenderer.MeasureText("00:00", Ui.StrongFont).Width + Ui.Gap ? 1 : 3;
+            if ((hourIndex + 1) % tickSize == 0 || hourIndex == hourCount - 1)
             {
-                var firstHour = hourIndex - hourIndex % 3;
-                var firstBounds = table.GetCellDisplayRectangle(e.ColumnIndex - hourIndex % 3, -1, true);
+                var firstHour = hourIndex - hourIndex % tickSize;
+                var firstBounds = table.GetCellDisplayRectangle(e.ColumnIndex - hourIndex % tickSize, -1, true);
                 var groupBounds = Rectangle.FromLTRB(firstBounds.Left, e.CellBounds.Top, e.CellBounds.Right, e.CellBounds.Bottom);
                 var localStart = TimeZoneInfo.ConvertTime(hours[firstHour].Start, zone);
                 var font = e.CellStyle?.Font ?? table.ColumnHeadersDefaultCellStyle.Font ?? Ui.StrongFont;
                 var color = e.CellStyle?.ForeColor ?? Ui.Muted(settings);
                 if (e.Graphics is { } graphics)
-                    TextRenderer.DrawText(graphics, localStart.ToString("HH"), font, groupBounds, color,
+                    TextRenderer.DrawText(graphics, localStart.ToString(tickSize == 1 ? "HH:mm" : "HH"), font, groupBounds, color,
                         TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.NoPrefix | TextFormatFlags.SingleLine);
             }
             e.Handled = true;
@@ -506,7 +513,7 @@ internal sealed class PresenceTimelineWindow : Form
         table.RowTemplate.MinimumHeight = 20;
         table.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.None;
         table.DefaultCellStyle.Padding = new Padding(2, 0, 2, 0);
-        table.DefaultCellStyle.Font = new Font(Ui.StandardFont.FontFamily, 9, Ui.StandardFont.Style);
+        table.DefaultCellStyle.Font = Ui.CompactFont;
         table.DefaultCellStyle.WrapMode = DataGridViewTriState.False;
         var nameColumn = Ui.Column("Device", "Device", 160, DataGridViewAutoSizeColumnMode.None);
         nameColumn.Width = 200;
@@ -652,12 +659,45 @@ internal sealed class DevicesWindow : Form
             row.SetValues(device.DisplayName, device.DeviceType, Ui.State(device.State), device.Kind == DeviceKind.Person ? "Person" : device.Kind.ToString(), device.Ip);
             row.Cells[0].ToolTipText = device.DisplayName; CategoryAppearance.StyleCell(row.Cells["Category"], device, s);
         }
-        foreach (var device in devices) { var i = grid.Rows.Add(); UpdateRow(grid.Rows[i], device); }
-        void Open() { if (grid.CurrentRow is not { } row) return; using var dialog = new DeviceWindow(app, devices[row.Index]); dialog.ShowDialog(this); UpdateRow(row, devices[row.Index]); }
+        foreach (var device in devices) { var i = grid.Rows.Add(); grid.Rows[i].Tag = device; UpdateRow(grid.Rows[i], device); }
+        Action? reapplyFilter = null;
+        void Open() { if (grid.CurrentRow is not { } row) return; if (row.Tag is not Device device) return; using var dialog = new DeviceWindow(app, device); dialog.ShowDialog(this); UpdateRow(row, device); reapplyFilter?.Invoke(); }
         grid.CellDoubleClick += (_, e) => { if (e.RowIndex >= 0) Open(); }; grid.KeyDown += (_, e) => { if (e.KeyCode == Keys.Enter) { e.Handled = e.SuppressKeyPress = true; Open(); } };
         var body = new Panel { Dock = DockStyle.Fill, Padding = new Padding(Ui.Page, Ui.Space, Ui.Page, Ui.Space) }; if (devices.Count == 0) { var empty = Ui.Label("No devices discovered yet. Connect to your local network and refresh Presence.", s, true); empty.AutoSize = false; body.Controls.Add(empty); } else body.Controls.Add(grid);
         var edit = Ui.Button("&Open device", Open, s, true); edit.Enabled = devices.Count > 0;
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel; CancelButton = close;
-        Ui.Shell(this, Ui.Header("All devices", "Select a device to edit its category, name, person association or tracking behavior.", s), body, Ui.Actions(edit, close));
+        var header = Ui.Header("All devices", "Find a device, then open it to manage its details and tracking.", s);
+        var search = new TextBox { PlaceholderText = "Search name, category, IP or MAC address", Dock = DockStyle.Top, AccessibleName = "Search devices", Margin = new Padding(0, Ui.Space, 0, Ui.Gap), BackColor = Ui.Surface(s), ForeColor = Ui.Text(s) };
+        var count = Ui.Label($"{devices.Count} devices", s, true);
+        var searchLabel = Ui.Label("Search devices  ·  Ctrl+F", s, true); searchLabel.Margin = new Padding(0, Ui.Space, 0, 0);
+        Ui.Add(header, searchLabel); Ui.Add(header, search); Ui.Add(header, count);
+        var filterTimer = new System.Windows.Forms.Timer { Interval = 150 };
+        void Filter()
+        {
+            filterTimer.Stop();
+            var query = search.Text.Trim();
+            grid.SuspendLayout();
+            grid.CurrentCell = null;
+            foreach (DataGridViewRow row in grid.Rows)
+            {
+                var device = (Device)row.Tag!;
+                row.Visible = query.Length == 0 || new[] { device.DisplayName, device.DeviceType, device.Ip, device.Mac, Ui.State(device.State), device.Kind.ToString() }
+                    .Any(value => value.Contains(query, StringComparison.CurrentCultureIgnoreCase));
+            }
+            var visible = grid.Rows.Cast<DataGridViewRow>().Where(row => row.Visible).ToList();
+            edit.Enabled = visible.Count > 0;
+            if (visible.Count > 0) grid.CurrentCell = visible[0].Cells[0];
+            count.Text = query.Length == 0 ? $"{devices.Count} devices" : visible.Count == 0 ? "No matching devices. Try another name or address." : $"{visible.Count} of {devices.Count} devices";
+            grid.ResumeLayout(true);
+        }
+        reapplyFilter = Filter;
+        filterTimer.Tick += (_, _) => Filter();
+        search.TextChanged += (_, _) => { filterTimer.Stop(); filterTimer.Start(); };
+        search.KeyDown += (_, e) => { if (e.KeyCode == Keys.Escape && search.Text.Length > 0) { search.Clear(); Filter(); e.Handled = e.SuppressKeyPress = true; } };
+        KeyPreview = true;
+        KeyDown += (_, e) => { if (e.Control && e.KeyCode == Keys.F) { search.Focus(); search.SelectAll(); e.Handled = e.SuppressKeyPress = true; } };
+        Disposed += (_, _) => filterTimer.Dispose();
+        Ui.Shell(this, header, body, Ui.Actions(edit, close));
+        Ui.Theme(this, s);
     }
 }

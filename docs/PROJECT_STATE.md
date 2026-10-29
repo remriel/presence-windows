@@ -1,5 +1,15 @@
 # Presence project state
 
+## RESUME HERE — Presence 1.7.0 in progress, 2026-10-29
+
+User requested a 12-hour timeline, app-wide UI improvements, an option to automatically mark joining devices known, and publication. No installation requested. No subagents.
+
+`PresenceTimeline.BuildHourly` accepts exactly 12 or 24 elapsed UTC hours and computes local labels/offset tooltips; default 14-day range/storage remain unchanged. Timeline dynamically fits labels/columns and avoids rebuilding the selected range. UI uses shared light/dark palette, surface groups, direct Devices access, buffered grids and searchable inventory. `Settings.AutoMarkJoiningDevicesKnown` defaults off; `PresenceEngine.Apply` classifies unknown devices on a fresh arrival after deciding event type. That preserves the existing new-device notification preference and baseline silence. Previously unidentified devices convert on their next join. Known/person/ignored choices stay intact; disabling restores old behavior. No schema change.
+
+Local verification passed: core behavior including auto-known persistence, first/new/return events, legacy defaults and 12-hour bounds; interface 28 checks/12 fictional captures; timeline 51; categories 112; saved networks 11; visibility 16; reliability 16; bulk 24; broad UI 26 captures. Zero findings. Need PR CI, main release CI, and downloaded package/digest verification. Existing workflow publishes only main commits starting `Release Presence `; do not release prior to passing checks. SDK is under LOCALAPPDATA/PresenceBuild/dotnet because host initially had runtime only. Never commit device data or real-device screenshots.
+
+## Previous state
+
 ## RESUME HERE — Presence 1.6.0 published and installed (complete, 2026-10-21)
 
 User objective: category checkboxes for Phone, Laptop, etc., with colors following the theme. The user explicitly confirmed **one category per device**, then authorized publication and updating this PC while preserving saved devices/history. No subagents were used. All requested work is complete.

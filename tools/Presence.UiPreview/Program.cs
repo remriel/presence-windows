@@ -17,6 +17,7 @@ internal static partial class Program
         Application.SetHighDpiMode(args.Contains("--dpi96") ? HighDpiMode.DpiUnaware : HighDpiMode.PerMonitorV2); Application.EnableVisualStyles(); Application.SetCompatibleTextRenderingDefault(false);
         output = Path.GetFullPath(args.FirstOrDefault() ?? "ui-preview"); Directory.CreateDirectory(output);
         if (args.Contains("--device-categories")) return DeviceCategoryChecks();
+        if (args.Contains("--interface")) return InterfaceChecks();
         if (args.Contains("--timeline")) return TimelineChecks();
         if (args.Contains("--saved-networks")) return SavedNetworkChecks();
         if (args.Contains("--reset-bulk")) return ResetBulkChecks();
@@ -148,6 +149,17 @@ internal static partial class Program
             All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
             Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
+
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "12 hours").PerformClick();
+            Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+            Check(grid.Rows.Count == 20 && grid.Columns.Count == 13, theme + " 12-hour device and hour layout");
+            Check(grid.AccessibleName!.Contains("12 hours"), theme + " 12-hour accessible description");
+            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 rows fit in 12-hour view");
+            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 12-hour view fits horizontally");
+            Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " 12-hour exact local intervals");
+            Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains("last 12 hours")), theme + " 12-hour legend");
+            CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-12h", 1);
 
             foreach (var (days, columns) in new[] { (7, 8), (21, 22) })
             {
@@ -424,11 +436,13 @@ internal static partial class Program
     {
         var d = app.Engine.Data.Devices[0]; d.Name = "Alexandra's work phone with a very long device name"; d.Hostname = "alexandra-phone-with-an-unusually-long-hostname.home.example"; d.Vendor = "Example Incorporated — Communications and Wireless Devices";
         app.Engine.Data.People[0].Name = "Alexandra with a deliberately long display name";
+        app.Engine.Data.People[1].Name = "Jordan"; app.Engine.Data.Devices[1].Name = "Jordan's fictional phone";
+        app.Engine.Data.People[2].Name = "Casey"; app.Engine.Data.Devices[2].Name = "Casey's fictional phone";
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:05", Name = "Living-room streaming device with an unusually long descriptive name", Ip = "192.0.2.30", Network = "demo", Kind = DeviceKind.Known, State = PresenceState.Home, ChangedAt = DateTimeOffset.Now.AddDays(-2) });
         app.Engine.Data.Devices.Add(new Device { Mac = "02:00:00:00:00:06", Name = "Ignored test device", Ip = "192.0.2.40", Kind = DeviceKind.Ignore });
         // Always cover both clock-only and previous-date timestamps, regardless of runner timezone.
         var midnight = new DateTimeOffset(DateTime.Today.AddMinutes(15));
-        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(midnight.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Weston's phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
+        var events = Enumerable.Range(0, 12).Select(i => PresenceEvent.Create(midnight.AddMinutes(-i * 33), i % 3 == 0 ? "arrived" : i % 3 == 1 ? "left" : "new", i % 2 == 0 ? d.DisplayName : "Jordan's fictional phone", d.Mac, d.PersonId)); app.Store.Save(app.Engine.Data, events);
     }
     private static IEnumerable<Control> All(Control c) { yield return c; foreach (Control child in c.Controls) foreach (var descendant in All(child)) yield return descendant; }
     private static Size Scaled(Size s, float scale) => new((int)Math.Round(s.Width * scale), (int)Math.Round(s.Height * scale));

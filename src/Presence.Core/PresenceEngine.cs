@@ -87,6 +87,10 @@ public sealed class PresenceEngine(Snapshot snapshot)
                 }
                 if (arrived && !silent && d.Kind != DeviceKind.Ignore && !(firstConfirmation && baselineDevices.Contains(mac)) && !(firstConfirmation && d.Kind == DeviceKind.Unknown))
                     events.Add(PresenceEvent.Create(now, "arrived", EventName(d), mac, d.PersonId));
+                // Classify after choosing the notification, so new-device alerts still follow
+                // their own preference. Existing known, associated and ignored choices stay intact.
+                if (arrived && d.Kind == DeviceKind.Unknown && Data.Settings.AutoMarkJoiningDevicesKnown)
+                    d.Kind = DeviceKind.Known;
             }
         }
         var evaluated = evaluatedMacs is null ? null : evaluatedMacs.ToHashSet(StringComparer.OrdinalIgnoreCase);

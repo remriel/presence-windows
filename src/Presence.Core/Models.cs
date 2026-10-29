@@ -50,6 +50,7 @@ public sealed class Settings
     public bool Arrivals { get; set; } = true;
     public bool Departures { get; set; } = true;
     public bool UnknownDevices { get; set; } = true;
+    public bool AutoMarkJoiningDevicesKnown { get; set; }
     public bool AlertSound { get; set; } = true;
     public int PopupSeconds { get; set; } = 10;
     public bool QuietHours { get; set; }
