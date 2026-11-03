@@ -2,18 +2,20 @@
 
 ## Current objective — shorter timeline ranges, 2026-11-03
 
-Progress: **50%** — implementation and focused checks complete; GitHub and PC delivery remain.
+Progress: **100%** — requested timeline views are merged and installed; PR Windows checks and profile-preservation checks passed.
 
 - [x] Read user instructions, shared memory, repository instructions and handoffs; inspect GitHub, source, tests and the installed app.
 - [x] Add rolling 6h / 30-minute, 3h / 15-minute and 1h / 5-minute timeline views while preserving existing ranges.
 - [x] Verify interval reconstruction, boundary behavior, accessibility and light/dark native layouts; show a fictional screenshot.
-- [ ] Build a self-contained Windows package and synchronize the reviewed changes with GitHub.
-- [ ] Back up the installed program and SQLite profile, update this computer, restart the tray app, and verify the preserved profile and startup entry.
-- [ ] Complete project handoffs, wisdom and shared-memory pointer.
+- [x] Build a self-contained Windows executable and synchronize the reviewed changes with GitHub.
+- [x] Back up the installed program and SQLite profile, update this computer, restart the tray app, and verify the preserved profile and startup entry.
+- [x] Complete project handoffs, wisdom and shared-memory pointer.
 
-Current state: core checks pass; native timeline preview passes 107 checks/16 captures at 144 DPI and 105 checks/16 captures in simulated 96-DPI mode, with no findings. A small-window device-name clipping issue was repaired and visually inspected. The self-contained package must be rebuilt after that fix. No profile changes have been made. Blockers: none confirmed.
+Current state: core checks pass; fictional timeline preview passes 107 checks/16 captures at 144 DPI and 105 checks/16 captures in simulated 96-DPI mode, with no findings. Full [PR Windows CI](https://github.com/remriel/presence-windows/actions/runs/41677879466) passed and [PR #11](https://github.com/remriel/presence-windows/pull/11) merged. Local version 1.8.0 is running from the existing startup target and matches the built executable. Database integrity, settings, networks, saved device/person configuration and existing event IDs passed comparisons to both pre-update and stopped backups.
 
-Next steps: commit and open a PR; pass Windows CI and synchronize GitHub; obtain the tested package; perform the backed-up PC update; verify startup, profile and new timeline; finalize handoffs.
+Blockers: none for the requested work. Windows UI automation returned `GetCursorPos: Access is denied`, so installed live UI interaction was not verified; fictional native previews and packaged preview passed. Process-level stopping could discard a few seconds of unflushed scan observations. Main CI was in progress at handoff; the already-passed PR CI tested the same implementation. No public 1.8.0 release was requested or created.
+
+Next steps: no required work remains. Optionally check the main CI result, inspect the new ranges in the live app, and publish a public 1.8.0 release if the user requests one.
 
 ## Current objective — 12-hour timeline, app UI and automatic known option, 2026-10-29
 
