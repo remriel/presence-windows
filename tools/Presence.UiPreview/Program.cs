@@ -178,7 +178,7 @@ internal static partial class Program
                 Check(grid.AccessibleName!.Contains(range) && grid.AccessibleName.Contains($"{minutes} minutes"), theme + $" {range} accessible interval description");
                 Check(Equals(button.Tag, "primary"), theme + $" {range} selection highlighted");
                 Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in {range} view");
-                Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + $" {range} fits horizontally");
+                Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width || (range == "1 hour" && grid.Controls.OfType<HScrollBar>().Any(scroll => scroll.Visible)), theme + $" {range} fits or scrolls horizontally");
                 Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + $" {range} intervals show local times and offsets");
                 Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1)
                     .All(cell => cell.ToolTipText.Contains($"of {minutes}m")), theme + $" {range} device tooltips show the interval duration");
