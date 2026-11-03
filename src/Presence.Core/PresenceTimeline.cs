@@ -7,13 +7,13 @@ public sealed record PresenceTimelineCell(DateOnly Date, TimeSpan Present, TimeS
 
 public sealed record PresenceTimelineRow(Device Device, IReadOnlyList<PresenceTimelineCell> Days);
 
-public sealed record PresenceHourlyTimelineCell(DateTimeOffset Start, DateTimeOffset End, TimeSpan Present, TimeSpan Recorded)
+public sealed record PresenceIntervalTimelineCell(DateTimeOffset Start, DateTimeOffset End, TimeSpan Present, TimeSpan Recorded)
 {
     public TimeSpan Duration => End - Start;
     public double? Fraction => Recorded == TimeSpan.Zero ? null : Math.Clamp(Present.TotalSeconds / Duration.TotalSeconds, 0, 1);
 }
 
-public sealed record PresenceHourlyTimelineRow(Device Device, IReadOnlyList<PresenceHourlyTimelineCell> Hours);
+public sealed record PresenceIntervalTimelineRow(Device Device, IReadOnlyList<PresenceIntervalTimelineCell> Cells);
 
 public static class PresenceTimeline
 {
@@ -43,7 +43,7 @@ public static class PresenceTimeline
                 ends[i] - starts[i])).ToArray())).ToList();
     }
 
-    public static List<PresenceHourlyTimelineRow> BuildHourly(
+    public static List<PresenceIntervalTimelineRow> BuildHourly(
         IEnumerable<Device> devices,
         IEnumerable<PresenceEvent> events,
         DateTimeOffset from,
@@ -53,17 +53,33 @@ public static class PresenceTimeline
         if (through - from != TimeSpan.FromHours(hourCount) || hourCount is not (12 or 24))
             throw new ArgumentOutOfRangeException(nameof(from), "The hourly timeline must cover exactly 12 or 24 hours.");
 
+        return BuildIntervals(devices, events, from, through, TimeSpan.FromHours(1));
+    }
+
+    public static List<PresenceIntervalTimelineRow> BuildIntervals(
+        IEnumerable<Device> devices,
+        IEnumerable<PresenceEvent> events,
+        DateTimeOffset from,
+        DateTimeOffset through,
+        TimeSpan interval)
+    {
+        var duration = through - from;
+        if (interval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(interval));
+        if (duration <= TimeSpan.Zero || duration.Ticks % interval.Ticks != 0 || duration.Ticks / interval.Ticks > 288)
+            throw new ArgumentOutOfRangeException(nameof(from), "The timeline must contain between 1 and 288 complete intervals.");
+
+        var count = (int)(duration.Ticks / interval.Ticks);
         var first = from.ToUniversalTime();
-        var starts = Enumerable.Range(0, hourCount).Select(hour => first.AddHours(hour)).ToArray();
-        var ends = Enumerable.Range(1, hourCount).Select(hour => first.AddHours(hour)).ToArray();
+        var starts = Enumerable.Range(0, count).Select(i => first.AddTicks(interval.Ticks * i)).ToArray();
+        var ends = Enumerable.Range(1, count).Select(i => first.AddTicks(interval.Ticks * i)).ToArray();
         var estimates = Reconstruct(devices, events, first, through.ToUniversalTime(), starts, ends);
-        return estimates.Select(estimate => new PresenceHourlyTimelineRow(
+        return estimates.Select(estimate => new PresenceIntervalTimelineRow(
             estimate.Device,
-            Enumerable.Range(0, hourCount).Select(hour => new PresenceHourlyTimelineCell(
-                starts[hour],
-                ends[hour],
-                TimeSpan.FromSeconds(estimate.Present[hour]),
-                TimeSpan.FromSeconds(estimate.Recorded[hour]))).ToArray())).ToList();
+            Enumerable.Range(0, count).Select(i => new PresenceIntervalTimelineCell(
+                starts[i],
+                ends[i],
+                TimeSpan.FromSeconds(estimate.Present[i]),
+                TimeSpan.FromSeconds(estimate.Recorded[i]))).ToArray())).ToList();
     }
 
     private static List<Estimate> Reconstruct(

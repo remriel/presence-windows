@@ -1,5 +1,11 @@
 # Wisdom
 
+## Short timeline ranges — 2026-11-03 (in progress)
+
+1. **Least confident:** Visual results on displays and scaling settings beyond the native 144-DPI display and simulated 96-DPI preview. I would check additional physical display configurations if reported clipping appears.
+2. **Biggest missing point:** Smaller time cells do not add new presence measurements; they subdivide estimates reconstructed from the same recorded arrivals, departures and saved state. I would compare a real device's reconnect with the timeline if actual network timing is important.
+3. **Highest-impact assumption:** The requested durations refer to rolling intervals ending at the time the timeline is rendered. If calendar-aligned or continuously refreshing ranges were intended, I would adjust their time boundaries or refresh behavior.
+
 ## 12-hour timeline and interface refresh — 2026-10-29
 
 1. **Least confident:** The live profile's scan interval, departure grace and retention settings differed from the pre-update backup while Presence was running, and the source of those changes is unclear. I would compare immediately before and after app restart and ask before restoring any earlier values; preserving the live state was the safest choice.

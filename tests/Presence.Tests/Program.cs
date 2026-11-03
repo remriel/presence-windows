@@ -192,21 +192,21 @@ var hourlyEvents = new[]
     PresenceEvent.Create(hourlyStart.AddHours(20), "arrived", hourlyDevice.Name, hourlyDevice.Mac)
 };
 var hourlyTimeline = PresenceTimeline.BuildHourly([hourlyDevice], hourlyEvents, hourlyStart, hourlyEnd).Single();
-Expect(hourlyTimeline.Hours.Count == 24 && hourlyTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+Expect(hourlyTimeline.Cells.Count == 24 && hourlyTimeline.Cells.All(hour => hour.Duration == TimeSpan.FromHours(1)),
     "The rolling 24-hour timeline contains 24 one-hour intervals.");
-Expect(hourlyTimeline.Hours.Take(8).All(hour => hour.Fraction == 1) &&
-       hourlyTimeline.Hours.Skip(8).Take(12).All(hour => hour.Fraction == 0) &&
-       hourlyTimeline.Hours.Skip(20).All(hour => hour.Fraction == 1),
+Expect(hourlyTimeline.Cells.Take(8).All(hour => hour.Fraction == 1) &&
+       hourlyTimeline.Cells.Skip(8).Take(12).All(hour => hour.Fraction == 0) &&
+       hourlyTimeline.Cells.Skip(20).All(hour => hour.Fraction == 1),
     "The hourly timeline reconstructs arrival and departure transitions into the correct hours.");
 var twelveHourTimeline = PresenceTimeline.BuildHourly([hourlyDevice], hourlyEvents, hourlyEnd.AddHours(-12), hourlyEnd).Single();
-Expect(twelveHourTimeline.Hours.Count == 12 && twelveHourTimeline.Hours[0].Start == hourlyEnd.AddHours(-12) &&
-       twelveHourTimeline.Hours[^1].End == hourlyEnd && twelveHourTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+Expect(twelveHourTimeline.Cells.Count == 12 && twelveHourTimeline.Cells[0].Start == hourlyEnd.AddHours(-12) &&
+       twelveHourTimeline.Cells[^1].End == hourlyEnd && twelveHourTimeline.Cells.All(hour => hour.Duration == TimeSpan.FromHours(1)),
     "The rolling 12-hour timeline covers exactly twelve contiguous elapsed hours.");
-Expect(twelveHourTimeline.Hours.Take(8).All(hour => hour.Fraction == 0) && twelveHourTimeline.Hours.Skip(8).All(hour => hour.Fraction == 1),
+Expect(twelveHourTimeline.Cells.Take(8).All(hour => hour.Fraction == 0) && twelveHourTimeline.Cells.Skip(8).All(hour => hour.Fraction == 1),
     "The 12-hour timeline clips older transitions and retains the most recent presence.");
 var offsetEnd = DateTimeOffset.Parse("2026-11-01T04:00:00-08:00");
 var offsetTimeline = PresenceTimeline.BuildHourly([hourlyDevice], [], offsetEnd.AddHours(-12).ToOffset(TimeSpan.FromHours(-7)), offsetEnd).Single();
-Expect(offsetTimeline.Hours.Count == 12 && offsetTimeline.Hours.All(hour => hour.Duration == TimeSpan.FromHours(1)),
+Expect(offsetTimeline.Cells.Count == 12 && offsetTimeline.Cells.All(hour => hour.Duration == TimeSpan.FromHours(1)),
     "The 12-hour timeline uses elapsed UTC hours across a daylight-saving offset change.");
 foreach (var invalidHours in new[] { 0.0, -12, 11.5, 13, 25 })
 {
@@ -218,8 +218,51 @@ foreach (var invalidHours in new[] { 0.0, -12, 11.5, 13, 25 })
 var unknownHourlyTimeline = PresenceTimeline.BuildHourly(
     [new Device { Mac = newcomer, FirstSeen = hourlyStart.AddDays(-1), State = PresenceState.Unknown }],
     [], hourlyStart, hourlyEnd).Single();
-Expect(unknownHourlyTimeline.Hours.All(hour => hour.Fraction is null),
+Expect(unknownHourlyTimeline.Cells.All(hour => hour.Fraction is null),
     "The hourly timeline leaves hours without a recorded presence state unfilled.");
+
+foreach (var (hours, minutes) in new[] { (6, 30), (3, 15), (1, 5) })
+{
+    var end = DateTimeOffset.Parse("2026-11-01T03:40:27-08:00");
+    var shortStart = end.AddHours(-hours).ToOffset(TimeSpan.FromHours(-7));
+    var interval = TimeSpan.FromMinutes(minutes);
+    var device = new Device
+    {
+        Mac = "02:00:00:00:00:32", Name = "Short timeline fixture", FirstSeen = shortStart.AddDays(-1),
+        State = PresenceState.Home, ChangedAt = shortStart.Add(interval * 2)
+    };
+    var events = new[]
+    {
+        PresenceEvent.Create(shortStart.Add(interval / 2), "arrived", device.Name, device.Mac),
+        PresenceEvent.Create(shortStart.Add(interval * 1.5), "left", device.Name, device.Mac),
+        PresenceEvent.Create(shortStart.Add(interval * 2), "arrived", device.Name, device.Mac)
+    };
+    var cells = PresenceTimeline.BuildIntervals([device], events, shortStart, end, interval).Single().Cells;
+    Expect(cells.Count == 12 && cells[0].Start == shortStart && cells[^1].End == end &&
+           cells.All(cell => cell.Duration == interval) &&
+           cells.Zip(cells.Skip(1)).All(pair => pair.First.End == pair.Second.Start),
+        $"The {hours}-hour timeline has twelve contiguous {minutes}-minute elapsed intervals across offset changes.");
+    Expect(Math.Abs(cells[0].Fraction!.Value - .5) < .00001 && Math.Abs(cells[1].Fraction!.Value - .5) < .00001 &&
+           cells.Skip(2).All(cell => cell.Fraction == 1) && cells.All(cell => cell.Recorded == interval),
+        $"The {hours}-hour timeline splits arrivals and departures at interval boundaries correctly.");
+    var unknown = PresenceTimeline.BuildIntervals(
+        [new Device { Mac = newcomer, FirstSeen = shortStart.AddDays(-1), State = PresenceState.Unknown }],
+        [], shortStart, end, interval).Single().Cells;
+    Expect(unknown.All(cell => cell.Fraction is null && cell.Recorded == TimeSpan.Zero),
+        $"The {hours}-hour timeline leaves unrecorded intervals neutral.");
+}
+foreach (var (duration, interval) in new[]
+{
+    (TimeSpan.Zero, TimeSpan.FromMinutes(5)), (TimeSpan.FromHours(1), TimeSpan.Zero),
+    (TimeSpan.FromHours(1), TimeSpan.FromMinutes(-5)), (TimeSpan.FromHours(1), TimeSpan.FromMinutes(7)),
+    (TimeSpan.FromHours(25), TimeSpan.FromMinutes(5))
+})
+{
+    var rejected = false;
+    try { PresenceTimeline.BuildIntervals([hourlyDevice], [], hourlyEnd - duration, hourlyEnd, interval); }
+    catch (ArgumentOutOfRangeException) { rejected = true; }
+    Expect(rejected, $"Invalid interval timeline {duration} / {interval} is rejected.");
+}
 using (var repository = new Repository(networkPath))
 {
     repository.Save(new Snapshot(), [.. timelineEvents]);
