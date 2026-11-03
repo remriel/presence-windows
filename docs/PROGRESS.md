@@ -1,3 +1,13 @@
+# Current objective — 1.9.0 timeline update
+
+Progress: 40% — implementation started; tests, release and local installation remain.
+
+- [x] Inspect project and previous handoff.
+- [ ] Verify requested intervals and UI.
+- [ ] Publish on GitHub and install on this computer.
+
+Next: run tests and address layout issues.
+
 # Presence progress
 
 ## Current objective — shorter timeline ranges, 2026-11-03

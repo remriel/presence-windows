@@ -251,6 +251,12 @@ foreach (var (hours, minutes) in new[] { (6, 30), (3, 15), (1, 5) })
     Expect(unknown.All(cell => cell.Fraction is null && cell.Recorded == TimeSpan.Zero),
         $"The {hours}-hour timeline leaves unrecorded intervals neutral.");
 }
+foreach (var (hours, minutes, expected) in new[] { (1, 1, 60), (2, 5, 24), (4, 30, 8) })
+{
+    var cells = PresenceTimeline.BuildIntervals([hourlyDevice], [], hourlyEnd.AddHours(-hours), hourlyEnd, TimeSpan.FromMinutes(minutes)).Single().Cells;
+    Expect(cells.Count == expected && cells.All(cell => cell.Duration == TimeSpan.FromMinutes(minutes)) && cells[0].Start == hourlyEnd.AddHours(-hours) && cells[^1].End == hourlyEnd,
+        $"The {hours}-hour timeline uses {expected} contiguous {minutes}-minute intervals.");
+}
 foreach (var (duration, interval) in new[]
 {
     (TimeSpan.Zero, TimeSpan.FromMinutes(5)), (TimeSpan.FromHours(1), TimeSpan.Zero),

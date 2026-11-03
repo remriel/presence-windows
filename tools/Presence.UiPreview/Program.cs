@@ -168,13 +168,13 @@ internal static partial class Program
 
             foreach (var (range, minutes, filename) in new[]
             {
-                ("6 hours", 30, "6h"), ("3 hours", 15, "3h"), ("1 hour", 5, "1h")
+                ("6 hours", 30, "6h"), ("4 hours", 30, "4h"), ("3 hours", 15, "3h"), ("2 hours", 5, "2h"), ("1 hour", 1, "1h")
             })
             {
                 var button = All(form).OfType<Button>().Single(item => item.AccessibleName == range);
                 button.PerformClick(); Application.DoEvents();
                 grid = All(form).OfType<DataGridView>().Single();
-                Check(grid.Rows.Count == 20 && grid.Columns.Count == 13, theme + $" {range} has twelve interval cells");
+                Check(grid.Rows.Count == 20 && grid.Columns.Count == (range == "1 hour" ? 61 : range == "2 hours" ? 25 : range == "4 hours" ? 9 : 13), theme + $" {range} has the expected interval cells");
                 Check(grid.AccessibleName!.Contains(range) && grid.AccessibleName.Contains($"{minutes} minutes"), theme + $" {range} accessible interval description");
                 Check(Equals(button.Tag, "primary"), theme + $" {range} selection highlighted");
                 Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in {range} view");
@@ -209,10 +209,10 @@ internal static partial class Program
             form.WindowState = FormWindowState.Normal;
             form.Size = form.MinimumSize;
             Application.DoEvents();
-            var rangeButtons = All(form).OfType<Button>().Where(button => button.AccessibleName is "1 hour" or "3 hours" or "6 hours" or "12 hours" or "24 hours" or "7 days" or "14 days" or "21 days" or "28 days").ToArray();
-            Check(rangeButtons.Length == 9 && rangeButtons.All(button => button.Visible && button.Right <= button.Parent!.ClientSize.Width + 3), theme + " all range controls are visible at minimum size");
+            var rangeButtons = All(form).OfType<Button>().Where(button => button.AccessibleName is "1 hour" or "2 hours" or "3 hours" or "4 hours" or "6 hours" or "12 hours" or "24 hours" or "7 days" or "14 days" or "21 days" or "28 days").ToArray();
+            Check(rangeButtons.Length == 11 && rangeButtons.All(button => button.Visible && button.Right <= button.Parent!.ClientSize.Width + 3), theme + " all range controls are visible at minimum size");
             grid = All(form).OfType<DataGridView>().Single();
-            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 1-hour view fits horizontally at minimum size");
+            Check(grid.ScrollBars != ScrollBars.None, theme + " 1-hour view can scroll at minimum size");
             Check(grid.Rows.Cast<DataGridViewRow>().All(row => row.Height >= TextRenderer.MeasureText("Ag", grid.DefaultCellStyle.Font ?? grid.Font).Height + 4), theme + " timeline row text fits at minimum size");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-1h-minimum", 1);
         }

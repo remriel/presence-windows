@@ -297,7 +297,7 @@ internal sealed class PresenceTimelineWindow : Form
 {
     private static readonly (string Range, string Label, int Hours, int Minutes)[] RollingRanges =
     [
-        ("1 hour", "&1h", 1, 5), ("3 hours", "&3h", 3, 15), ("6 hours", "&6h", 6, 30),
+        ("1 hour", "&1h", 1, 1), ("2 hours", "&2h", 2, 5), ("3 hours", "&3h", 3, 15), ("4 hours", "&4h", 4, 30), ("6 hours", "&6h", 6, 30),
         ("12 hours", "1&2h", 12, 60), ("24 hours", "24&h", 24, 60)
     ];
     private readonly PresenceContext app;
@@ -447,7 +447,7 @@ internal sealed class PresenceTimelineWindow : Form
             var interval = cells[i];
             var localStart = TimeZoneInfo.ConvertTime(interval.Start, zone);
             var localEnd = TimeZoneInfo.ConvertTime(interval.End, zone);
-            var column = Ui.Column("Interval" + i, localStart.ToString("HH:mm"), 20, DataGridViewAutoSizeColumnMode.None);
+            var column = Ui.Column("Interval" + i, localStart.ToString("HH:mm"), 10, DataGridViewAutoSizeColumnMode.None);
             column.Width = 24;
             column.HeaderCell.ToolTipText = $"{localStart:dddd, MMMM d HH:mm:ss}–{localEnd:dddd, MMMM d HH:mm:ss} local (UTC {localStart:zzz} to {localEnd:zzz})";
             table.Columns.Add(column);

@@ -1,3 +1,8 @@
+# Presence 1.9.0
+
+- Add 1-minute cells to the 1h timeline, 2h with 5-minute cells, and 4h with 30-minute cells.
+- Keep 3h at 15 minutes and 6h at 30 minutes.
+
 # Presence 1.8.0
 
 - Add rolling **1h**, **3h** and **6h** timeline views with 5-, 15- and 30-minute cells, respectively.
