@@ -1,5 +1,13 @@
 # Presence project state
 
+## RESUME HERE — short timeline ranges in progress, 2026-11-03
+
+The user requests 6-hour, 3-hour and 1-hour timeline views with 30-, 15- and 5-minute cells respectively, and an update to the app on this computer. The existing 12h/24h views use one-hour elapsed UTC bins; daily views use local calendar days. Keep their existing behavior, current profile, event retention and startup configuration. No subagents; no real device data or screenshots in Git.
+
+The clean GitHub baseline was `main` after the 1.7.0 handoff. Work is on `feature/timeline-short-ranges`. `PresenceTimeline.BuildIntervals` constructs contiguous UTC elapsed intervals, retaining the prior 12h/24h behavior, and `PresenceTimelineWindow` supplies the three new presets and accessible legends. No schema or retention changes. Tooltips include local times and UTC offsets. Short intervals remain estimates based on recorded events, not new network observations.
+
+Small-window testing uncovered clipped device-name text in the pre-existing compact rows: default DataGridView painting reserves more vertical space than the compact grid provides. The timeline now paints those name cells with centered, ellipsized text and respects a DPI-aware minimum row height, retaining the 20-row fit on the reference display. Smaller windows can scroll. Focused core and native tests pass in native 144-DPI and simulated 96-DPI modes. The installed active tray executable is still 1.7.0; GitHub synchronization, final packaging and PC update remain. See `docs/PROGRESS.md` for the next steps; the older completed 1.7.0 handoff below is historical.
+
 ## RESUME HERE — Presence 1.7.0 complete, 2026-10-29
 
 The requested 12-hour timeline, whole-app UI refresh, automatic-known setting, GitHub release, and replacement at `C:\Presence` are complete. PR [#10](https://github.com/remriel/presence-windows/pull/10) merged as `a93b2f543900d1894983c6d3267574f7ff820242`; PR CI [40970814478](https://github.com/remriel/presence-windows/actions/runs/40970814478) and main/release CI [40971271791](https://github.com/remriel/presence-windows/actions/runs/40971271791) passed. [Presence 1.7.0](https://github.com/remriel/presence-windows/releases/tag/v1.7.0) is published. The official 57,491,269-byte ZIP SHA-256 is `060d1100cb4674c8ddf69f7f450dad150f428ca5adcb53e48a5049474a310dce`, matching GitHub's asset digest and checksum asset.

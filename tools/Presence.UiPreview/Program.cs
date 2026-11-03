@@ -94,6 +94,9 @@ internal static partial class Program
     private static int TimelineChecks()
     {
         void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        bool FitsOrScrolls(DataGridView table) => table.DisplayedRowCount(false) == table.Rows.Count ||
+            (table.DisplayedRowCount(false) > 0 && table.Rows.GetRowsHeight(DataGridViewElementStates.Visible) > table.ClientSize.Height - table.ColumnHeadersHeight - 2 &&
+             table.Controls.OfType<VScrollBar>().Any(scroll => scroll.Visible));
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "TimelinePreview", Guid.NewGuid().ToString("N"));
         using var app = new PresenceContext(folder, true, true);
         app.Engine.Data.Devices.Clear();
@@ -128,7 +131,9 @@ internal static partial class Program
             form.Show(); Application.DoEvents();
             var grid = All(form).OfType<DataGridView>().Single();
             Check(grid.Rows.Count == 20 && grid.Columns.Count == 15, theme + " 14-day device and date layout");
-            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 devices fit without a vertical scrollbar");
+            Check(FitsOrScrolls(grid), theme + " daily rows fit or have a vertical scrollbar");
+            if (form.DeviceDpi == 144 && form.Width >= 1900 && form.Height >= 1000)
+                Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 devices fit on the 144-DPI reference display");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " default 14-day timeline fits without a horizontal scrollbar");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Length > 0), theme + " date tooltips");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells[1].ToolTipText.Contains("present"),
@@ -139,7 +144,7 @@ internal static partial class Program
             Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
             Check(grid.Rows.Count == 20 && grid.Columns.Count == 25, theme + " 24-hour device and hour layout");
-            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 hourly rows fit without a vertical scrollbar");
+            Check(FitsOrScrolls(grid), theme + " hourly rows fit or have a vertical scrollbar");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " hourly labels include exact local intervals and offsets");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).Any(cell => cell.ToolTipText.Contains("present")),
                 theme + " hourly presence details are available per device");
@@ -155,11 +160,31 @@ internal static partial class Program
             grid = All(form).OfType<DataGridView>().Single();
             Check(grid.Rows.Count == 20 && grid.Columns.Count == 13, theme + " 12-hour device and hour layout");
             Check(grid.AccessibleName!.Contains("12 hours"), theme + " 12-hour accessible description");
-            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 rows fit in 12-hour view");
+            Check(FitsOrScrolls(grid), theme + " rows fit or can be scrolled in 12-hour view");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 12-hour view fits horizontally");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " 12-hour exact local intervals");
             Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains("last 12 hours")), theme + " 12-hour legend");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-12h", 1);
+
+            foreach (var (range, minutes, filename) in new[]
+            {
+                ("6 hours", 30, "6h"), ("3 hours", 15, "3h"), ("1 hour", 5, "1h")
+            })
+            {
+                var button = All(form).OfType<Button>().Single(item => item.AccessibleName == range);
+                button.PerformClick(); Application.DoEvents();
+                grid = All(form).OfType<DataGridView>().Single();
+                Check(grid.Rows.Count == 20 && grid.Columns.Count == 13, theme + $" {range} has twelve interval cells");
+                Check(grid.AccessibleName!.Contains(range) && grid.AccessibleName.Contains($"{minutes} minutes"), theme + $" {range} accessible interval description");
+                Check(Equals(button.Tag, "primary"), theme + $" {range} selection highlighted");
+                Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in {range} view");
+                Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + $" {range} fits horizontally");
+                Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + $" {range} intervals show local times and offsets");
+                Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1)
+                    .All(cell => cell.ToolTipText.Contains($"of {minutes}m")), theme + $" {range} device tooltips show the interval duration");
+                Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains($"{minutes} minutes per cell")), theme + $" {range} legend");
+                CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-" + filename, 1);
+            }
 
             foreach (var (days, columns) in new[] { (7, 8), (21, 22) })
             {
@@ -167,7 +192,7 @@ internal static partial class Program
                 Application.DoEvents();
                 grid = All(form).OfType<DataGridView>().Single();
                 Check(grid.Columns.Count == columns, theme + $" {days}-day range selector");
-                Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + $" all 20 devices fit in the {days}-day view");
+                Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in the {days}-day view");
                 Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + $" {days}-day view fits without a horizontal scrollbar");
             }
             All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
@@ -176,9 +201,20 @@ internal static partial class Program
             Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
             Check(grid.Columns.Count == 29, theme + " 28-day range selector");
-            Check(grid.DisplayedRowCount(false) == grid.Rows.Count, theme + " all 20 devices fit in the 28-day view");
+            Check(FitsOrScrolls(grid), theme + " rows fit or can be scrolled in the 28-day view");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " timeline fits without horizontal clipping");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-28d", 1);
+
+            All(form).OfType<Button>().Single(button => button.AccessibleName == "1 hour").PerformClick();
+            form.WindowState = FormWindowState.Normal;
+            form.Size = form.MinimumSize;
+            Application.DoEvents();
+            var rangeButtons = All(form).OfType<Button>().Where(button => button.AccessibleName is "1 hour" or "3 hours" or "6 hours" or "12 hours" or "24 hours" or "7 days" or "14 days" or "21 days" or "28 days").ToArray();
+            Check(rangeButtons.Length == 9 && rangeButtons.All(button => button.Visible && button.Right <= button.Parent!.ClientSize.Width + 3), theme + " all range controls are visible at minimum size");
+            grid = All(form).OfType<DataGridView>().Single();
+            Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 1-hour view fits horizontally at minimum size");
+            Check(grid.Rows.Cast<DataGridViewRow>().All(row => row.Height >= TextRenderer.MeasureText("Ag", grid.DefaultCellStyle.Font ?? grid.Font).Height + 4), theme + " timeline row text fits at minimum size");
+            CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-1h-minimum", 1);
         }
 
         app.Engine.Data.Devices.Clear();

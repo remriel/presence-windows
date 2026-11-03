@@ -1,3 +1,9 @@
+# Presence 1.8.0
+
+- Add rolling **1h**, **3h** and **6h** timeline views with 5-, 15- and 30-minute cells, respectively.
+- Show local time and UTC offsets in interval tooltips while preserving the existing 12h, 24h and daily ranges.
+- Keep saved devices, history, settings and the default 14-day view without a reset or database migration.
+
 # Presence 1.7.0
 
 - Optionally mark newly joining unidentified devices as known automatically; saved ignored and person-assigned choices are preserved.
