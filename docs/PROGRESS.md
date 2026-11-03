@@ -1,12 +1,12 @@
 # Current objective — 1.9.0 timeline update
 
-Progress: 90% — implementation and local installation verified; GitHub release workflow running.
+Progress: 100% — implemented, installed and published; GitHub release workflow passed.
 
 - [x] Inspect project and previous handoff.
 - [x] Verify requested intervals and UI.
-- [ ] Confirm GitHub release workflow and assets; local 1.9.0 is installed and running.
+- [x] Publish GitHub release v1.9.0; local 1.9.0 is installed and running.
 
-Next: confirm GitHub Actions run 41717778315 and v1.9.0 release.
+Next: optional live UI acceptance. Release workflow 41718088957 passed; https://github.com/remriel/presence-windows/releases/tag/v1.9.0
 
 # Presence progress
 

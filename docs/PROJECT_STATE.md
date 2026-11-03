@@ -1,6 +1,6 @@
 # RESUME HERE — Presence 1.9.0
 
-Requested timeline ranges: 1h/1m, 2h/5m, 3h/15m, 4h/30m, 6h/30m. Implemented in Windows.cs. Core and 139 fictional native UI checks passed. Local self-contained 1.9.0 installed and running; profile and program backups made, SQLite integrity, settings, networks and event IDs preserved. Process-level restart may lose a few seconds of buffered observations. Release workflow run 41717778315 was running at handoff; verify GitHub v1.9.0 release and its assets.
+Requested timeline ranges: 1h/1m, 2h/5m, 3h/15m, 4h/30m, 6h/30m. Implemented in Windows.cs. Core and 139 fictional native UI checks passed. Local self-contained 1.9.0 installed and running; profile and program backups made, SQLite integrity, settings, networks and event IDs preserved. Process-level restart may lose a few seconds of buffered observations. Release workflow 41718088957 passed and https://github.com/remriel/presence-windows/releases/tag/v1.9.0 is published. The earlier run 41717778315 failed a compact-screen assertion and was superseded by the corrected test.
 
 # Presence project state
 
