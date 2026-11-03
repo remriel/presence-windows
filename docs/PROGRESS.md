@@ -1,12 +1,12 @@
 # Current objective — 1.9.0 timeline update
 
-Progress: 40% — implementation started; tests, release and local installation remain.
+Progress: 90% — implementation and local installation verified; GitHub release workflow running.
 
 - [x] Inspect project and previous handoff.
-- [ ] Verify requested intervals and UI.
-- [ ] Publish on GitHub and install on this computer.
+- [x] Verify requested intervals and UI.
+- [ ] Confirm GitHub release workflow and assets; local 1.9.0 is installed and running.
 
-Next: run tests and address layout issues.
+Next: confirm GitHub Actions run 41717778315 and v1.9.0 release.
 
 # Presence progress
 

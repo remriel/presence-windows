@@ -1,3 +1,9 @@
+# Wisdom — Presence 1.9.0
+
+1. Least confident: Live UI interaction was not verified; inspect the installed timeline when Windows UI control is available.
+2. Biggest missing point: Minute cells do not increase the frequency of underlying presence measurements; compare against a real reconnect if needed.
+3. Highest-impact assumption: Ranges are rolling snapshots; add automatic refresh if continuous updates are intended.
+
 # Wisdom
 
 ## Short timeline ranges — 2026-11-03
