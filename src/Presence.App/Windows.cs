@@ -214,10 +214,10 @@ internal sealed class SettingsWindow : Form
         var storage = Ui.Group("Local history", s); var retentionFields = Ui.Fields(); Ui.Field(retentionFields, "Keep event history", Ui.Number(s.RetentionDays, 7, 365, "days", s, out var retention), s); Ui.Add(storage, retentionFields);
         Ui.Add(storage, Ui.Label("Device names, person associations and presence history stay on this computer. Device presence is an estimate of whether someone is home; sleeping phones and private MAC changes can affect it.", s, true)); Ui.Add(body.Content, storage);
         var reset = Ui.Group("Reset Presence", s);
-        Ui.Add(reset, Ui.Label("Restore all settings to defaults and permanently erase saved devices, names, people, assignments and local history. Devices on your network will be discovered again.", s, true));
+        Ui.Add(reset, Ui.Label("Restore all settings to defaults and permanently erase saved networks, devices, names, people, assignments and local history. Devices on your network will be discovered again.", s, true));
         Ui.Add(reset, Ui.Button("&Reset everything", () =>
         {
-            var confirmed = confirmReset?.Invoke(this) ?? (MessageBox.Show(this, "Reset everything to defaults?\n\nThis permanently erases all saved devices, names, people, assignments, event history and observations. Settings return to defaults, including starting with Windows. Devices will be discovered again with a quiet first scan.\n\nThis cannot be undone.", "Reset Presence", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes);
+            var confirmed = confirmReset?.Invoke(this) ?? (MessageBox.Show(this, "Reset everything to defaults?\n\nThis permanently erases saved networks, devices, names, people, assignments, event history and observations. Settings return to defaults, including starting with Windows. Devices will be discovered again with a quiet first scan.\n\nThis cannot be undone.", "Reset Presence", MessageBoxButtons.YesNo, MessageBoxIcon.Warning, MessageBoxDefaultButton.Button2) == DialogResult.Yes);
             if (!confirmed) return;
             try { app.ResetEverything(); Close(); }
             catch (Exception ex) { MessageBox.Show(this, "Could not reset Presence. " + ex.Message, "Presence", MessageBoxButtons.OK, MessageBoxIcon.Error); }
@@ -261,7 +261,12 @@ internal sealed class DeviceWindow : Form
         primary.Font = new Font(Ui.StandardFont.FontFamily, Ui.StandardFont.Size * 1.2f, FontStyle.Bold); primary.MinimumSize = new Size(0, 36);
         primary.Padding = new Padding(Ui.Gap); primary.UseVisualStyleBackColor = false; Ui.Add(association, primary);
         void EnabledState() { person.Enabled = kind.SelectedIndex != (int)DeviceKind.Ignore; primary.Enabled = person.Enabled && !string.IsNullOrWhiteSpace(person.Text); }
-        kind.SelectedIndexChanged += (_, _) => EnabledState(); person.TextChanged += (_, _) => EnabledState(); EnabledState(); Ui.Add(body.Content, association);
+        kind.SelectedIndexChanged += (_, _) =>
+        {
+            if (kind.SelectedIndex != (int)DeviceKind.Person) { person.Text = ""; primary.Checked = false; }
+            EnabledState();
+        };
+        person.TextChanged += (_, _) => EnabledState(); EnabledState(); Ui.Add(body.Content, association);
         var details = Ui.Group("Network information", s); var values = Ui.Fields();
         foreach (var field in new[] { ("MAC address", device.Mac + (Identity.IsPrivateMac(device.Mac) ? " (private)" : ""), true), ("IP address", device.Ip, true), ("Hostname", device.Hostname, true), ("Manufacturer", device.Vendor, false), ("Likely device type", DeviceIdentification.InferType(device.Hostname), false), ("First seen", device.FirstSeen.ToLocalTime().ToString("g"), false), ("Last seen", device.LastSeen.ToLocalTime().ToString("g"), false), ("Presence", Ui.State(device.State), false) }) Ui.Field(values, field.Item1, Ui.Value(field.Item2, field.Item1, s, field.Item3), s);
         Ui.Add(details, values); Ui.Add(details, Ui.Label("Right-click a value to copy it.", s, true)); Ui.Add(body.Content, details);

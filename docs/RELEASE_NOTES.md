@@ -1,3 +1,9 @@
+# Unreleased fixes
+
+- Reset everything now clears saved network names from both the database and live app state, so later saves cannot restore them.
+- Preserve commas and escaped quotes in manufacturer names from the bundled IEEE OUI table.
+- Choosing Known, Unknown or Ignore in device details clears a previous person association in the editor; entering a person again remains an explicit way to assign one.
+
 # Presence 1.9.0
 
 - Add 1-minute cells to the 1h timeline, 2h with 5-minute cells, and 4h with 30-minute cells.

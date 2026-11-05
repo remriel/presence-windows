@@ -285,6 +285,11 @@ internal static partial class Program
     private static int ReliabilityChecks()
     {
         void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        var vendors = new VendorLookup();
+        Check(vendors.Find("28:6F:B9:00:00:01") == "Nokia Shanghai Bell Co., Ltd.",
+            "Quoted vendor names retain commas from the bundled OUI table");
+        Check(vendors.Find("38:8A:21:00:00:01") == "UAB \"Teltonika Telematics\"",
+            "Quoted vendor names retain escaped quotes from the bundled OUI table");
         var folder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PresenceBuild", "ReliabilityPreview", Guid.NewGuid().ToString("N"));
         using var app = new PresenceContext(folder, true, true);
         var main = GetMain(app); main.Show(); Application.DoEvents();
@@ -331,6 +336,16 @@ internal static partial class Program
         main.Show(); Application.DoEvents();
         Check((string)signatureField.GetValue(main)! != signature, "Showing window renders current inventory");
         CaptureExisting(main, "reliability-main", 1);
+        using (var details = new DeviceWindow(app, first))
+        {
+            details.Show(); Application.DoEvents();
+            All(details).OfType<ThemeComboBox>().Single(c => c.AccessibleName == "Track as").SelectedIndex = (int)DeviceKind.Known;
+            Check(All(details).OfType<ComboBox>().Single(c => c.AccessibleName == "Assigned person").Text == "",
+                "Choosing Known clears the old person association in the editor");
+            All(details).OfType<Button>().Single(b => b.AccessibleName == "Save").PerformClick();
+            Check(first.Kind == DeviceKind.Known && first.PersonId is null && !first.IsPrimary,
+                "Saving Known removes the previous person association");
+        }
         var lan = new Lan("fixture", "Fictional LAN", 1, System.Net.IPAddress.Parse("192.0.2.2"), 24, System.Net.IPAddress.Parse("192.0.2.1"), first.Mac);
         var small = new SubnetSweep(lan).Next();
         Check(small.Count == 252 && small.All(ip => lan.Contains(ip) && !ip.Equals(lan.Address) && !ip.Equals(lan.Gateway)), "Small subnet covers all eligible hosts and excludes infrastructure");
@@ -455,6 +470,8 @@ internal static partial class Program
         }
         Click(main, "Pause scanning"); Check(app.ScanningPaused, "pause icon sets manual pause"); CaptureExisting(main, "paused", 1.5f);
         Click(main, "Resume scanning"); Check(!app.ScanningPaused && app.Engine.Baselining, "resume resets quiet baseline");
+        app.SaveNetwork("demo", "Fictional home");
+        Check(app.Store.Load().Networks.Count == 1, "saved network exists before full reset");
         app.Store.Save(app.Engine.Data, [PresenceEvent.Create(DateTimeOffset.UtcNow, "new", "Fictional", first.Mac)], [new Observation(first.Mac, "192.0.2.10", "Fictional", "", "test")]);
         Click(main, "Select devices"); Select(main, first.Mac); SetContext(app, "Monitoring", false); app.Refresh();
         Check(!All(main).OfType<Button>().Single(b => b.AccessibleName == "Ignore selected").Enabled, "network disconnect clears selection");
@@ -462,6 +479,9 @@ internal static partial class Program
         using (var settings = new SettingsWindow(app, _ => true)) { settings.Show(); Click(settings, "Reset everything"); Check(settings.IsDisposed, "confirmed reset closes settings"); }
         Check(app.Engine.Data.Devices.Count == 0 && app.Engine.Data.People.Count == 0 && !app.ScanningPaused && app.Engine.Data.Settings.ScanIntervalSeconds == 3 && app.Engine.Data.Settings.Theme == "System", "full reset clears runtime and restores defaults");
         Check(app.Store.Load().Devices.Count == 0 && app.Store.History().Count == 0, "full reset persists empty profile and history");
+        Check(app.Engine.Data.Networks.Count == 0 && app.Store.Load().Networks.Count == 0, "full reset clears saved networks in memory and database");
+        app.Save();
+        Check(app.Store.Load().Networks.Count == 0, "next save does not restore reset network names");
         CaptureExisting(main, "reset-complete", 1.5f); main.AllowClose = true; main.Close();
         File.WriteAllText(Path.Combine(output, "verification.json"), JsonSerializer.Serialize(new { checks, failures, captures }, new JsonSerializerOptions { WriteIndented = true }));
         Console.WriteLine($"{checks.Count} behavior checks passed; {failures.Count} findings; {captures.Count} captures."); foreach (var failure in failures) Console.WriteLine(failure);

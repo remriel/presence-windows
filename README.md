@@ -54,7 +54,7 @@ The pause icon beside Settings cancels current scanning and stops further scans.
 
 **Use as this person's primary phone** is unchecked for newly assigned devices. Its text is 20% larger, bold, and highlighted in warm orange/yellow. Saved primary phones remain checked.
 
-**Settings > Reset everything** restores all settings and erases saved devices, names, people, associations, events and observations after confirmation. This cannot be undone. Defaults include starting with Windows, automatic adapter choice, a three-second interval and a 30-second departure grace. Devices on the network are rediscovered with a quiet baseline. Installing a new version does not reset your data; reset runs only when confirmed inside Settings.
+**Settings > Reset everything** restores all settings and erases saved networks, devices, names, people, associations, events and observations after confirmation. This cannot be undone. Defaults include starting with Windows, automatic adapter choice, a three-second interval and a 30-second departure grace. Devices on the network are rediscovered with a quiet baseline. Installing a new version does not reset your data; reset runs only when confirmed inside Settings.
 
 ## How it works
 
