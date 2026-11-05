@@ -389,10 +389,29 @@ internal sealed class VendorLookup
         if (!File.Exists(path)) return;
         foreach (var line in File.ReadLines(path).Skip(1))
         {
-            var fields = line.Split(',', 4); if (fields.Length < 3) continue;
-            var prefix = fields[1].Trim('"'); var vendor = fields[2].Trim('"');
-            if (prefix.Length == 6 && prefix.All(Uri.IsHexDigit)) entries[prefix.ToUpperInvariant()] = vendor;
+            var fields = line.Split(',', 3); if (fields.Length < 3) continue;
+            var prefix = fields[1].Trim(); var vendor = ReadVendor(fields[2]);
+            if (prefix.Length == 6 && prefix.All(Uri.IsHexDigit) && vendor.Length > 0)
+                entries[prefix.ToUpperInvariant()] = vendor;
         }
+    }
+    private static string ReadVendor(string fieldAndAddress)
+    {
+        var field = fieldAndAddress.AsSpan().TrimStart();
+        if (field.IsEmpty) return "";
+        if (field[0] != '"')
+        {
+            var end = field.IndexOf(',');
+            return (end < 0 ? field : field[..end]).ToString().Trim();
+        }
+        var value = new StringBuilder();
+        for (var i = 1; i < field.Length; i++)
+        {
+            if (field[i] != '"') { value.Append(field[i]); continue; }
+            if (i + 1 < field.Length && field[i + 1] == '"') { value.Append('"'); i++; continue; }
+            return i + 1 == field.Length || field[i + 1] == ',' ? value.ToString().Trim() : "";
+        }
+        return "";
     }
     public string Find(string mac)
     {

@@ -254,11 +254,12 @@ internal sealed class PresenceContext : ApplicationContext
         catch { ApplyStartup(oldStartup); throw; }
         epoch++; scanCancellation?.Cancel(); discovery.Reset(); reconnect.Stop(); refreshQueued = false;
         pendingEvents.Clear(); pendingObservations.Clear(); alerts.Clear();
-        Engine.Data.Devices.Clear(); Engine.Data.People.Clear(); Engine.Data.Settings = defaults.Settings;
+        Engine.Data.Networks.Clear(); Engine.Data.Devices.Clear(); Engine.Data.People.Clear(); Engine.Data.Settings = defaults.Settings;
         Engine.ResetNetwork(); adapterId = defaults.Settings.InterfaceId; lastSaved = DateTimeOffset.UtcNow;
         ScanningPaused = false;
         timer.Interval = defaults.Settings.ScanIntervalSeconds * 1000;
-        Monitoring = false; NetworkLabel = ""; Status = "Reset complete · learning your network again…";
+        Monitoring = false; NetworkLabel = ""; DefaultNetworkName = ""; networkDescription = "";
+        Status = "Reset complete · learning your network again…";
         Refresh(); if (!demo && !suspended) reconnect.Start();
     }
     public void ApplyStartup(bool enabled)

@@ -1,3 +1,14 @@
+# RESUME HERE — bug audit, 2026-11-04
+
+The current request is to fix bugs in the Presence Windows GitHub app. The clean `main` checkout began at `6ef717a`; GitHub showed no open issues. Three confirmed defects are fixed, and core checks, 353 native behavior checks, 26 broad fictional captures, warning-free builds and self-contained Windows x64 publish pass. GitHub CI and synchronization remain. No subagents or real-device data were used.
+
+- `PresenceContext.ResetEverything` now clears saved networks in live memory as well as the transactionally reset database, including cached network display names. Previously the next save restored deleted network names. Regression coverage verifies both immediate reset and a subsequent save.
+- `VendorLookup` reads the quoted third CSV field, preserving embedded commas and doubled quotes. The former comma split truncated real names in the bundled IEEE table. Tests use the bundled Nokia and Teltonika entries.
+- `DeviceWindow` clears the editor's person name and primary-phone flag when a non-person tracking type is chosen. Previously the old person text silently overrode Known on Save. Entering a person again still assigns one; Cancel does not mutate the saved device.
+- No schema, discovery-policy or version changes. Release notes have an Unreleased fixes section. This request targets GitHub source; no public release or installed-app replacement is currently part of delivery.
+
+Verification limits: the audit covers inspected code and deterministic/native fictional fixtures, not every possible bug. Physical LAN reconnect/sleep timing, alert sound and the user's installed profile were not exercised. The next step is the packaged fictional preview, then push/CI/merge and final handoffs. Earlier release/install records below are historical.
+
 # RESUME HERE — Presence 1.9.0
 
 Requested timeline ranges: 1h/1m, 2h/5m, 3h/15m, 4h/30m, 6h/30m. Implemented in Windows.cs. Core and 139 fictional native UI checks passed. Local self-contained 1.9.0 installed and running; profile and program backups made, SQLite integrity, settings, networks and event IDs preserved. Process-level restart may lose a few seconds of buffered observations. Release workflow 41718088957 passed and https://github.com/remriel/presence-windows/releases/tag/v1.9.0 is published. The earlier run 41717778315 failed a compact-screen assertion and was superseded by the corrected test.

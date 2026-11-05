@@ -1,3 +1,22 @@
+# Current objective — bug audit and fixes, 2026-11-04
+
+Progress: **85%** — three reproduced bugs fixed; complete local verification and packaged preview pass. GitHub CI and synchronization remain.
+
+- [x] Read repository instructions, project handoffs and relevant shared memory; inspect clean `main` and GitHub issues.
+- [x] Run the existing core and native UI suites and establish a build baseline.
+- [x] Reproduce and fix reset persistence, quoted vendor lookup, and device tracking reassignment bugs.
+- [x] Run the complete local verification suite, self-contained Windows publish and diff review.
+- [ ] Pass GitHub Windows CI and merge the fixes.
+- [ ] Update project state, progress and wisdom with final results and remaining limits.
+
+Current state: core checks and the warning-free native build/publish pass. All **353 native behavior checks** pass: interface 28, categories 112, saved networks 11, timeline 139, visibility 16, reliability 20 and reset/bulk 27. The broad native smoke produced 26 fictional captures with zero layout findings. Focused checks reproduced the reset, vendor-comma and tracking-assignment failures before their fixes. The task-local .NET 10 SDK is outside the repository. No real device data has been read or committed.
+
+Blockers: none for code verification. Physical LAN and installed-app behavior remain manual acceptance limits.
+
+Packaged verification: the self-contained Windows x64 executable exported its fictional preview and exited successfully.
+
+Ordered next steps: (1) push the branch and pass Windows CI, (2) merge and record the exact GitHub result, (3) export handoffs and update the shared-memory pointer.
+
 # Current objective — 1.9.0 timeline update
 
 Progress: 100% — implemented, installed and published; GitHub release workflow passed.
