@@ -1,7 +1,7 @@
 # Wisdom — bug audit, 2026-11-04
 
 1. **Least confident:** Physical LAN reconnect/sleep behavior and the installed app were not exercised. I would next compare real reconnect timing with observed events; automated fixtures cannot establish that every bug is gone.
-2. **Biggest missing point:** Merged GitHub source does not automatically update the installed 1.9.0 executable. I would publish and install a versioned package when an app update is requested.
+2. **Biggest missing point:** The merged GitHub source does not automatically update the installed 1.9.0 executable. I would publish and install a versioned package when an app update is requested.
 3. **Highest-impact assumption:** The request targets the GitHub repository. If the intended result is an updated running app, I would additionally back up its profile, install a verified build and check preserved settings/history.
 
 # Wisdom — Presence 1.9.0

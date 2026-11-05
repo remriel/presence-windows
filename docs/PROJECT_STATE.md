@@ -1,13 +1,13 @@
 # RESUME HERE — bug audit, 2026-11-04
 
-The current request is to fix bugs in the Presence Windows GitHub app. The clean `main` checkout began at `6ef717a`; GitHub showed no open issues. Three confirmed defects are fixed, and core checks, 353 native behavior checks, 26 broad fictional captures, warning-free builds and self-contained Windows x64 publish pass. GitHub CI and synchronization remain. No subagents or real-device data were used.
+The current request to fix bugs in the Presence Windows GitHub app is complete. PR [#12](https://github.com/remriel/presence-windows/pull/12) merged to `main` as `fdb691d140c0c34b01f74c7345bde924201f797c`; PR Windows CI [41977894334](https://github.com/remriel/presence-windows/actions/runs/41977894334) passed. The clean `main` checkout began at `6ef717a`; GitHub showed no open issues. No subagents or real-device data were used.
 
 - `PresenceContext.ResetEverything` now clears saved networks in live memory as well as the transactionally reset database, including cached network display names. Previously the next save restored deleted network names. Regression coverage verifies both immediate reset and a subsequent save.
 - `VendorLookup` reads the quoted third CSV field, preserving embedded commas and doubled quotes. The former comma split truncated real names in the bundled IEEE table. Tests use the bundled Nokia and Teltonika entries.
 - `DeviceWindow` clears the editor's person name and primary-phone flag when a non-person tracking type is chosen. Previously the old person text silently overrode Known on Save. Entering a person again still assigns one; Cancel does not mutate the saved device.
-- No schema, discovery-policy or version changes. Release notes have an Unreleased fixes section. This request targets GitHub source; no public release or installed-app replacement is currently part of delivery.
+- No schema or discovery-policy changes. Release notes have an Unreleased fixes section; project version remains 1.9.0. No public release or installed-app replacement was requested or performed.
 
-Verification limits: the audit covers inspected code and deterministic/native fictional fixtures, not every possible bug. Physical LAN reconnect/sleep timing, alert sound and the user's installed profile were not exercised. The next step is the packaged fictional preview, then push/CI/merge and final handoffs. Earlier release/install records below are historical.
+Verification: core suite passed; all 353 native behavior checks passed; the broad UI smoke captured 26 fictional screens with zero layout findings. A self-contained Windows x64 publish and packaged fictional preview passed. The regression checks reproduced all three defects before fixes. Physical LAN reconnect/sleep timing, alert sound and the user's installed profile were not exercised; automated checks cannot establish that no other bugs remain. A versioned release/install is a separate future request. Earlier release/install records below are historical.
 
 # RESUME HERE — Presence 1.9.0
 
