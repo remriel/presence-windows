@@ -221,7 +221,7 @@ var unknownHourlyTimeline = PresenceTimeline.BuildHourly(
 Expect(unknownHourlyTimeline.Cells.All(hour => hour.Fraction is null),
     "The hourly timeline leaves hours without a recorded presence state unfilled.");
 
-foreach (var (hours, minutes) in new[] { (6, 30), (3, 15), (1, 5) })
+foreach (var (hours, minutes, expected) in new[] { (6, 30, 12), (4, 30, 8), (3, 5, 36), (2, 5, 24), (1, 5, 12) })
 {
     var end = DateTimeOffset.Parse("2026-11-01T03:40:27-08:00");
     var shortStart = end.AddHours(-hours).ToOffset(TimeSpan.FromHours(-7));
@@ -238,10 +238,10 @@ foreach (var (hours, minutes) in new[] { (6, 30), (3, 15), (1, 5) })
         PresenceEvent.Create(shortStart.Add(interval * 2), "arrived", device.Name, device.Mac)
     };
     var cells = PresenceTimeline.BuildIntervals([device], events, shortStart, end, interval).Single().Cells;
-    Expect(cells.Count == 12 && cells[0].Start == shortStart && cells[^1].End == end &&
+    Expect(cells.Count == expected && cells[0].Start == shortStart && cells[^1].End == end &&
            cells.All(cell => cell.Duration == interval) &&
            cells.Zip(cells.Skip(1)).All(pair => pair.First.End == pair.Second.Start),
-        $"The {hours}-hour timeline has twelve contiguous {minutes}-minute elapsed intervals across offset changes.");
+        $"The {hours}-hour timeline has {expected} contiguous {minutes}-minute elapsed intervals across offset changes.");
     Expect(Math.Abs(cells[0].Fraction!.Value - .5) < .00001 && Math.Abs(cells[1].Fraction!.Value - .5) < .00001 &&
            cells.Skip(2).All(cell => cell.Fraction == 1) && cells.All(cell => cell.Recorded == interval),
         $"The {hours}-hour timeline splits arrivals and departures at interval boundaries correctly.");
@@ -250,12 +250,6 @@ foreach (var (hours, minutes) in new[] { (6, 30), (3, 15), (1, 5) })
         [], shortStart, end, interval).Single().Cells;
     Expect(unknown.All(cell => cell.Fraction is null && cell.Recorded == TimeSpan.Zero),
         $"The {hours}-hour timeline leaves unrecorded intervals neutral.");
-}
-foreach (var (hours, minutes, expected) in new[] { (1, 1, 60), (2, 5, 24), (4, 30, 8) })
-{
-    var cells = PresenceTimeline.BuildIntervals([hourlyDevice], [], hourlyEnd.AddHours(-hours), hourlyEnd, TimeSpan.FromMinutes(minutes)).Single().Cells;
-    Expect(cells.Count == expected && cells.All(cell => cell.Duration == TimeSpan.FromMinutes(minutes)) && cells[0].Start == hourlyEnd.AddHours(-hours) && cells[^1].End == hourlyEnd,
-        $"The {hours}-hour timeline uses {expected} contiguous {minutes}-minute intervals.");
 }
 foreach (var (duration, interval) in new[]
 {

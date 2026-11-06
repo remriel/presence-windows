@@ -1,3 +1,9 @@
+# Wisdom — Presence 1.10.0, 2026-11-05
+
+1. **Least confident:** Five-minute cells estimate presence from the same stored transitions; they do not provide more frequent observations. I would describe them as estimates and inspect the release preview.
+2. **Biggest missing point:** Publishing doesn't update either installed copy by itself. I will back up the profile on each computer and verify its own target before installation.
+3. **Highest-impact assumption:** “Altogether” means ship the 1h/2h/3h interval changes, stronger timeline colors and already merged bug fixes in v1.10.0. If the second computer is offline, I can publish and update REMY but must wait for NOVA to be reachable before claiming both are updated.
+
 # Wisdom — bug audit, 2026-11-04
 
 1. **Least confident:** Physical LAN reconnect/sleep behavior and the installed app were not exercised. I would next compare real reconnect timing with observed events; automated fixtures cannot establish that every bug is gone.

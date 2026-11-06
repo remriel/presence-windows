@@ -1,8 +1,12 @@
-# Unreleased fixes
+# Presence 1.10.0
 
+- Use 5-minute cells in rolling 1h, 2h and 3h timelines (12, 24 and 36 cells, respectively); keep 4h and 6h at 30-minute cells.
+- Increase color separation between recorded presence and away/unrecorded time in both themes, with stronger green shades showing more presence.
 - Reset everything now clears saved network names from both the database and live app state, so later saves cannot restore them.
 - Preserve commas and escaped quotes in manufacturer names from the bundled IEEE OUI table.
 - Choosing Known, Unknown or Ignore in device details clears a previous person association in the editor; entering a person again remains an explicit way to assign one.
+
+Existing devices, settings, categories and activity history are preserved without a database migration or reset. Shorter cells estimate from existing history; they do not increase network scan frequency.
 
 # Presence 1.9.0
 
