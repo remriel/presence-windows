@@ -1,19 +1,21 @@
-# Current objective — bug audit and fixes, 2026-11-04
+# Current objective — Presence 1.10.0 timeline and release, 2026-11-05
 
-Progress: **100%** — three reproduced bugs fixed, locally verified, merged to GitHub `main`, and handoffs updated.
+Progress: **60%** — intervals, stronger colors, version and combined release notes updated; focused timeline regression and packaged preview pass. PR/CI, release and installs remain.
 
-- [x] Read repository instructions, project handoffs and relevant shared memory; inspect clean `main` and GitHub issues.
-- [x] Run the existing core and native UI suites and establish a build baseline.
-- [x] Reproduce and fix reset persistence, quoted vendor lookup, and device tracking reassignment bugs.
-- [x] Run the complete local verification suite, self-contained Windows publish and diff review.
-- [x] Pass GitHub Windows CI and merge the fixes.
-- [x] Update project state, progress and wisdom with final results and remaining limits.
+- [x] Re-read project/shared instructions, state, Git status, memory and current release metadata.
+- [x] Set 1h/2h/3h timelines to five-minute intervals; preserve 4h/6h and hourly/daily ranges.
+- [x] Increase occupied/away color contrast in light/dark and add visual contrast regression checks.
+- [x] Pass focused timeline regression: 145 checks, zero findings, 20 fictional captures.
+- [ ] Pass all core/native regressions and inspect fictional timeline previews.
+- [x] Pass self-contained Windows x64 publish and packaged fictional launch (1.10.0.0, exit 0).
+- [ ] Push a PR and pass Windows CI; merge with release title `Release Presence 1.10.0`.
+- [ ] Verify release assets/checksum; back up/update REMY and NOVA; finalize project/shared handoffs.
 
-Current state: PR [#12](https://github.com/remriel/presence-windows/pull/12) merged to `main` as `fdb691d140c0c34b01f74c7345bde924201f797c`. PR Windows CI [41977894334](https://github.com/remriel/presence-windows/actions/runs/41977894334) passed. Core checks and the warning-free native build/publish pass. All **353 native behavior checks** pass: interface 28, categories 112, saved networks 11, timeline 139, visibility 16, reliability 20 and reset/bulk 27. Broad native smoke produced 26 fictional captures with zero layout findings. Focused checks reproduced the reset, vendor-comma and tracking-assignment failures before their fixes. The packaged fictional preview exited successfully. No real device data was read or committed.
+Current base: `main` at `ca7bb02`; branch is `release/presence-1.10.0`. PR #12's reset, vendor CSV and stale person-assignment fixes are already on `main`. Latest release is v1.9.0; v1.10.0 is not published. REMY's `C:\Presence` v1.9.0 and profile are located, unchanged. NOVA now pings and RDP/SMB service ports respond; its admin share denies access, so installation/profile are not inspected yet.
 
-Blockers: none for the GitHub source fix. Physical LAN reconnect/sleep behavior and the installed app/profile were not tested; no new public release or installed-app replacement was requested.
+Blockers: none. Physical LAN reconnect/sleep behavior remains unverified.
 
-Next steps: none required for this request. A versioned release and installation would be needed to update the running app.
+Ordered next steps: push PR and wait for full Windows CI; merge with release title; verify assets/hash; safely back up and update REMY; inspect NOVA over RDP without automating login; have the user authenticate if prompted; back up/update NOVA; finalize handoffs.
 
 # Current objective — 1.9.0 timeline update
 

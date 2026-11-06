@@ -94,6 +94,20 @@ internal static partial class Program
     private static int TimelineChecks()
     {
         void Check(bool condition, string name) { if (condition) checks.Add(name); else failures.Add(name); }
+        double Luminance(System.Drawing.Color color)
+        {
+            static double Linear(byte value)
+            {
+                var channel = value / 255d;
+                return channel <= .04045 ? channel / 12.92 : Math.Pow((channel + .055) / 1.055, 2.4);
+            }
+            return .2126 * Linear(color.R) + .7152 * Linear(color.G) + .0722 * Linear(color.B);
+        }
+        double Contrast(System.Drawing.Color first, System.Drawing.Color second)
+        {
+            var a = Luminance(first); var b = Luminance(second);
+            return (Math.Max(a, b) + .05) / (Math.Min(a, b) + .05);
+        }
         bool FitsOrScrolls(DataGridView table) => table.DisplayedRowCount(false) == table.Rows.Count ||
             (table.DisplayedRowCount(false) > 0 && table.Rows.GetRowsHeight(DataGridViewElementStates.Visible) > table.ClientSize.Height - table.ColumnHeadersHeight - 2 &&
              table.Controls.OfType<VScrollBar>().Any(scroll => scroll.Visible));
@@ -120,6 +134,8 @@ internal static partial class Program
             PresenceEvent.Create(now.AddDays(-12), "arrived", home.Name, home.Mac),
             PresenceEvent.Create(now.AddDays(-6), "left", home.Name, home.Mac),
             PresenceEvent.Create(now.AddHours(-3), "arrived", home.Name, home.Mac),
+            PresenceEvent.Create(now.AddMinutes(-37), "left", home.Name, home.Mac),
+            PresenceEvent.Create(now.AddMinutes(-22), "arrived", home.Name, home.Mac),
             PresenceEvent.Create(now.AddDays(-7), "arrived", away.Name, away.Mac),
             PresenceEvent.Create(now.AddDays(-3), "left", away.Name, away.Mac)
         ]);
@@ -166,15 +182,15 @@ internal static partial class Program
             Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains("last 12 hours")), theme + " 12-hour legend");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-12h", 1);
 
-            foreach (var (range, minutes, filename) in new[]
+            foreach (var (range, minutes, filename, columns) in new[]
             {
-                ("6 hours", 30, "6h"), ("4 hours", 30, "4h"), ("3 hours", 15, "3h"), ("2 hours", 5, "2h"), ("1 hour", 1, "1h")
+                ("6 hours", 30, "6h", 13), ("4 hours", 30, "4h", 9), ("3 hours", 5, "3h", 37), ("2 hours", 5, "2h", 25), ("1 hour", 5, "1h", 13)
             })
             {
                 var button = All(form).OfType<Button>().Single(item => item.AccessibleName == range);
                 button.PerformClick(); Application.DoEvents();
                 grid = All(form).OfType<DataGridView>().Single();
-                Check(grid.Rows.Count == 20 && grid.Columns.Count == (range == "1 hour" ? 61 : range == "2 hours" ? 25 : range == "4 hours" ? 9 : 13), theme + $" {range} has the expected interval cells");
+                Check(grid.Rows.Count == 20 && grid.Columns.Count == columns, theme + $" {range} has the expected interval cells");
                 Check(grid.AccessibleName!.Contains(range) && grid.AccessibleName.Contains($"{minutes} minutes"), theme + $" {range} accessible interval description");
                 Check(Equals(button.Tag, "primary"), theme + $" {range} selection highlighted");
                 Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in {range} view");
@@ -183,6 +199,21 @@ internal static partial class Program
                 Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1)
                     .All(cell => cell.ToolTipText.Contains($"of {minutes}m")), theme + $" {range} device tooltips show the interval duration");
                 Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains($"{minutes} minutes per cell")), theme + $" {range} legend");
+                if (range == "1 hour")
+                {
+                    var homeCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
+                    var fullCell = homeCells.FirstOrDefault(cell => cell.ToolTipText.Contains("present 5m of 5m"));
+                    var partialCell = homeCells.FirstOrDefault(cell => cell.ToolTipText.Contains("present ") &&
+                        !cell.ToolTipText.Contains("present 0m of 5m") && !cell.ToolTipText.Contains("present 5m of 5m"));
+                    var absentColor = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, away)).Cells[1].Style.BackColor;
+                    var unknownColor = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, unknown)).Cells[1].Style.BackColor;
+                    Check(absentColor == unknownColor, theme + " away and unrecorded cells share the neutral color");
+                    Check(fullCell is not null && partialCell is not null, theme + " timeline fixture includes full and partial presence cells");
+                    if (fullCell is not null && partialCell is not null)
+                        Check(Contrast(fullCell.Style.BackColor, absentColor) >= 3 && Contrast(partialCell.Style.BackColor, absentColor) >= 2 &&
+                            Contrast(fullCell.Style.BackColor, partialCell.Style.BackColor) >= 1.4,
+                            theme + " presence levels have clear color contrast");
+                }
                 CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-" + filename, 1);
             }
 

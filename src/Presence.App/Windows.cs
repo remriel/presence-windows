@@ -302,7 +302,7 @@ internal sealed class PresenceTimelineWindow : Form
 {
     private static readonly (string Range, string Label, int Hours, int Minutes)[] RollingRanges =
     [
-        ("1 hour", "&1h", 1, 1), ("2 hours", "&2h", 2, 5), ("3 hours", "&3h", 3, 15), ("4 hours", "&4h", 4, 30), ("6 hours", "&6h", 6, 30),
+        ("1 hour", "&1h", 1, 5), ("2 hours", "&2h", 2, 5), ("3 hours", "&3h", 3, 5), ("4 hours", "&4h", 4, 30), ("6 hours", "&6h", 6, 30),
         ("12 hours", "1&2h", 12, 60), ("24 hours", "24&h", 24, 60)
     ];
     private readonly PresenceContext app;
@@ -333,7 +333,7 @@ internal sealed class PresenceTimelineWindow : Form
         }
         Ui.Add(header, ranges);
 
-        legend = Ui.Label("Green shows time present; gray shows away or unrecorded time. Hover over a day for details.", s, true);
+        legend = Ui.Label("Stronger green shades show more presence; gray means away or unrecorded. Hover for durations and coverage.", s, true);
         legend.Margin = Padding.Empty;
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel;
         close.Margin = Padding.Empty;
@@ -373,8 +373,8 @@ internal sealed class PresenceTimelineWindow : Form
         var isRolling = rollingRange.Range is not null;
         if (legend is not null)
             legend.Text = isRolling
-                ? $"Showing the last {range}, oldest to newest, {rollingRange.Minutes} minutes per cell. Green shows time present; gray shows away or unrecorded time. Hover for exact times and coverage."
-                : "Green shows time present; gray shows away or unrecorded time. Hover over a day for duration and coverage.";
+                ? $"Showing the last {range}, oldest to newest, {rollingRange.Minutes} minutes per cell. Stronger green shades show more presence; gray means away or unrecorded. Hover for exact times and coverage."
+                : "Stronger green shades show more presence; gray means away or unrecorded. Hover for durations and coverage.";
         foreach (Control control in body.Controls.Cast<Control>().ToArray())
         {
             body.Controls.Remove(control);
@@ -645,17 +645,17 @@ internal sealed class PresenceTimelineWindow : Form
     {
         if (Ui.Dark(settings))
         {
-            if (fraction is null or <= 0) return Color.FromArgb(68, 74, 82);
-            if (fraction < .25) return Color.FromArgb(63, 108, 78);
-            if (fraction < .6) return Color.FromArgb(52, 142, 76);
-            if (fraction < .9) return Color.FromArgb(42, 173, 79);
-            return Color.FromArgb(34, 112, 57);
+            if (fraction is null or <= 0) return Color.FromArgb(61, 70, 82);
+            if (fraction < .25) return Color.FromArgb(22, 138, 69);
+            if (fraction < .6) return Color.FromArgb(10, 169, 78);
+            if (fraction < .9) return Color.FromArgb(9, 199, 97);
+            return Color.FromArgb(88, 239, 145);
         }
         if (fraction is null or <= 0) return Color.FromArgb(230, 233, 237);
-        if (fraction < .25) return Color.FromArgb(191, 227, 199);
-        if (fraction < .6) return Color.FromArgb(124, 204, 141);
-        if (fraction < .9) return Color.FromArgb(66, 170, 91);
-        return Color.FromArgb(35, 111, 57);
+        if (fraction < .25) return Color.FromArgb(73, 167, 89);
+        if (fraction < .6) return Color.FromArgb(38, 140, 70);
+        if (fraction < .9) return Color.FromArgb(19, 118, 55);
+        return Color.FromArgb(6, 78, 44);
     }
 
     private static string Tooltip(Device device, PresenceTimelineCell day)
