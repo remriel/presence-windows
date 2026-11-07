@@ -116,8 +116,8 @@ internal static partial class Program
         app.Engine.Data.Devices.Clear();
         app.Engine.Data.People.Clear();
         var now = DateTimeOffset.Now;
-        var home = new Device { Mac = "02:00:00:00:00:21", Name = "Anne's fictional phone", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Home, ChangedAt = now.AddHours(-3) };
-        var away = new Device { Mac = "02:00:00:00:00:22", Name = "John's fictional tablet", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Away, ChangedAt = now.AddDays(-3) };
+        var home = new Device { Mac = "02:00:00:00:00:21", Name = "Anne's fictional phone", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Home, ChangedAt = now.AddMinutes(-22) };
+        var away = new Device { Mac = "02:00:00:00:00:22", Name = "John's fictional tablet", Network = "demo", FirstSeen = now.AddDays(-28), State = PresenceState.Away, LastSeen = now.AddMinutes(-42), ChangedAt = now.AddMinutes(-40) };
         var unknown = new Device { Mac = "02:00:00:00:00:23", Name = "Unrecorded fictional device", Network = "demo", FirstSeen = now.AddDays(-2), State = PresenceState.Unknown };
         var devices = new List<Device> { home, away, unknown };
         devices.AddRange(Enumerable.Range(0, 17).Select(i => new Device
@@ -137,7 +137,7 @@ internal static partial class Program
             PresenceEvent.Create(now.AddMinutes(-37), "left", home.Name, home.Mac),
             PresenceEvent.Create(now.AddMinutes(-22), "arrived", home.Name, home.Mac),
             PresenceEvent.Create(now.AddDays(-7), "arrived", away.Name, away.Mac),
-            PresenceEvent.Create(now.AddDays(-3), "left", away.Name, away.Mac)
+            PresenceEvent.Create(now.AddMinutes(-40), "left", away.Name, away.Mac)
         ]);
 
         foreach (var theme in new[] { "Light", "Dark" })
@@ -154,6 +154,7 @@ internal static partial class Program
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Length > 0), theme + " date tooltips");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells[1].ToolTipText.Contains("present"),
                 theme + " presence details are available per day");
+            CheckMarkers(grid, home, away, unknown, theme + " daily", Check);
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-14d", 1);
 
             All(form).OfType<Button>().Single(button => button.AccessibleName == "24 hours").PerformClick();
@@ -199,6 +200,7 @@ internal static partial class Program
                 Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1)
                     .All(cell => cell.ToolTipText.Contains($"of {minutes}m")), theme + $" {range} device tooltips show the interval duration");
                 Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains($"{minutes} minutes per cell")), theme + $" {range} legend");
+                CheckMarkers(grid, home, away, unknown, theme + " " + range, Check);
                 if (range == "1 hour")
                 {
                     var homeCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
@@ -213,6 +215,11 @@ internal static partial class Program
                         Check(Contrast(fullCell.Style.BackColor, absentColor) >= 3 && Contrast(partialCell.Style.BackColor, absentColor) >= 2 &&
                             Contrast(fullCell.Style.BackColor, partialCell.Style.BackColor) >= 1.4,
                             theme + " presence levels have clear color contrast");
+                    var colorMethod = typeof(PresenceTimelineWindow).GetMethod("PresenceColor", BindingFlags.NonPublic | BindingFlags.Static)!;
+                    var levels = new double?[] { null, 0, .1, .4, .7, 1 }
+                        .Select(level => (System.Drawing.Color)colorMethod.Invoke(null, [level, app.Engine.Data.Settings])!).ToArray();
+                    Check(levels[0] == levels[1] && levels.Skip(1).Zip(levels.Skip(2)).All(pair => Luminance(pair.First) < Luminance(pair.Second)),
+                        theme + " every increase in presence is lighter than the preceding level");
                 }
                 CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-" + filename, 1);
             }
@@ -246,6 +253,28 @@ internal static partial class Program
             Check(grid.ScrollBars != ScrollBars.None, theme + " 1-hour view can scroll at minimum size");
             Check(grid.Rows.Cast<DataGridViewRow>().All(row => row.Height >= TextRenderer.MeasureText("Ag", grid.DefaultCellStyle.Font ?? grid.Font).Height + 4), theme + " timeline row text fits at minimum size");
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-1h-minimum", 1);
+
+            var unchangedGrid = grid;
+            home.LastSeen = now.AddMinutes(-1);
+            app.Refresh(); Application.DoEvents();
+            Check(ReferenceEquals(unchangedGrid, All(form).OfType<DataGridView>().Single()), theme + " routine present observations do not rebuild the timeline");
+            grid.FirstDisplayedScrollingRowIndex = 10;
+            home.State = PresenceState.Away;
+            home.ChangedAt = now.AddSeconds(-30);
+            app.Refresh(); Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+            var liveCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>();
+            Check(liveCells.Any(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastSeen } marker && marker.At == home.LastSeen),
+                theme + " an open timeline updates to last seen when a device leaves");
+            Check(grid.Columns.Count == 13 && grid.FirstDisplayedScrollingRowIndex == 10, theme + " live update preserves the selected range and scroll position");
+            home.State = PresenceState.Home;
+            home.ChangedAt = now.AddSeconds(-10);
+            app.Refresh(); Application.DoEvents();
+            grid = All(form).OfType<DataGridView>().Single();
+            liveCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>();
+            Check(liveCells.Any(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastJoined } marker && marker.At == home.ChangedAt),
+                theme + " an open timeline updates to last joined when a device arrives");
+            home.ChangedAt = now.AddMinutes(-22); home.LastSeen = default;
         }
 
         app.Engine.Data.Devices.Clear();
@@ -257,6 +286,29 @@ internal static partial class Program
         Console.WriteLine($"Presence timeline: {checks.Count} checks, {failures.Count} findings, {captures.Count} captures.");
         foreach (var failure in failures) Console.WriteLine(failure);
         return failures.Count == 0 ? 0 : 1;
+    }
+
+    private static void CheckMarkers(DataGridView grid, Device home, Device away, Device unknown, string context, Action<bool, string> check)
+    {
+        var homeCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
+        var awayCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, away)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
+        var unknownCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, unknown)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
+        var join = homeCells.Where(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastJoined }).ToArray();
+        var seen = awayCells.Where(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastSeen }).ToArray();
+        check(join.Length == 1 && Equals(join[0].Value, "J") && join[0].ToolTipText.Contains("Last joined:") &&
+              join[0].AccessibilityObject.Name!.Contains("Last joined:"), context + " last-joined marker is visible and accessible");
+        check(seen.Length == 1 && Equals(seen[0].Value, "S") && seen[0].ToolTipText.Contains("Last seen:") &&
+              seen[0].AccessibilityObject.Name!.Contains("Last seen:") && seen[0].Tag is TimelineHighlight seenMarker && seenMarker.At == away.LastSeen,
+              context + " last-seen marker uses the observation time and is accessible");
+        check(unknownCells.All(cell => cell.Tag is not TimelineHighlight), context + " unknown state has no invented marker");
+        bool InCorrectColumn(DataGridViewCell cell, DateTimeOffset expected) => cell.OwningColumn?.Tag switch
+        {
+            PresenceIntervalTimelineCell interval => expected >= interval.Start && expected < interval.End,
+            DateOnly date => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(expected, TimeZoneInfo.Local).DateTime) == date,
+            _ => false
+        };
+        check(join.Length == 1 && InCorrectColumn(join[0], home.ChangedAt!.Value) &&
+              seen.Length == 1 && InCorrectColumn(seen[0], away.LastSeen), context + " highlights occupy the correct time cells");
     }
     private static int SavedNetworkChecks()
     {
