@@ -1,8 +1,12 @@
 # RESUME HERE — color-only timeline, 2026-11-06
 
-The user corrected the just-released timeline: remove the J/S letters and their highlighted outlines; keep the lighter-is-more-presence color scale. The earlier publication-and-PC-update authorization continues for this same task. Work is on `fix/timeline-colors-only`, based on `main` at `a5375b5`. Version 1.11.0 is currently running from `C:\Presence`. Use fictional screenshots only; never commit real device data or private backups.
+The user corrected the timeline to remove the J/S letters and outlines while keeping lighter colors for more presence. [Presence 1.11.1](https://github.com/remriel/presence-windows/releases/tag/v1.11.1) was published from commit `fbfb6a28574fca13c4e65d74037bf5d679cce124` and installed on this PC. Use fictional screenshots only; never commit real device data or private backups.
 
-RESUME HERE: remove marker UI, related model and tests while retaining the heatmap and transition-driven refresh; verify light/dark and rolling/daily ranges with fictional native captures; publish 1.11.1 through the existing workflow; verify and install the official package with profile backups and comparison. Windows input previously failed with `GetCursorPos: Access is denied`, so a direct process stop after a fresh SQLite write may be necessary.
+The marker UI, model, accessibility text and marker-specific tests were removed. The color scale, duration tooltips and transition-driven refresh remain. Core checks and 181 fictional native timeline checks passed; fictional light/dark screenshots were inspected. The self-contained package and fictional preview passed locally. The official ZIP SHA-256 `12a078e6503ad5285bc187e240c8fe4eb308307d02ba8881eaf06bdac0ddc3b5` matches both its checksum and GitHub asset digest. To honor the request for speed, the checked local package was published directly while the full [Windows CI run](https://github.com/remriel/presence-windows/actions/runs/42332381558) continued in the background.
+
+Version 1.11.1.0 runs from `C:\Presence`; its executable matches the release package. Startup and post-update SQLite integrity, devices, people, networks, settings and retained event history were verified against private backups. Because Windows input was previously denied, the old app was stopped directly after a recent SQLite write; a few seconds of buffered observations could have been lost. Interactive installed timeline and physical network transitions remain unverified.
+
+RESUME HERE: check the background Windows CI result if needed. No other required work remains. Keep private backups outside the public repository and do not move the 1.11.1 tag for documentation changes.
 
 # Previous handoff — timeline colors and device highlights, 2026-11-06
 

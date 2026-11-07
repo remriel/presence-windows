@@ -1,16 +1,16 @@
 # Current objective — color-only timeline, 2026-11-06
 
-Progress: **60%** — removed the markers, passed core checks and 181 fictional native timeline checks, and built the release candidate; publication and installation remain.
+Progress: **100%** — removed the markers, passed focused checks, published 1.11.1 and installed it on this PC. The additional full Windows CI run was still in progress at handoff.
 
 - [x] Reconcile instructions, shared memory, repository and installed state.
 - [x] Remove J/S letters, outlines, legend text, accessibility references and marker model while retaining the lighter-is-more color scale.
 - [x] Verify native light/dark and rolling/daily views and refresh behavior; inspect fictional screenshots.
-- [ ] Publish 1.11.1, verify the official package, back up and update this PC, and verify its profile and startup.
-- [ ] Update project/shared handoffs and wisdom.
+- [x] Publish 1.11.1, verify the official package, back up and update this PC, and verify its profile and startup.
+- [x] Update project/shared handoffs and wisdom.
 
-Current state: branch `fix/timeline-colors-only`, based on main `a5375b5`; 1.11.0 is published and installed. The new code retains live timeline refresh. Windows UI input was previously denied. A consistent profile backup and verified program backup for this update are private to the task workspace.
+Current state: [1.11.1](https://github.com/remriel/presence-windows/releases/tag/v1.11.1) is published from `fbfb6a28574fca13c4e65d74037bf5d679cce124` and running from `C:\Presence`. Its ZIP matches the checksum and GitHub digest. Core checks and 181 native timeline checks passed. The saved profile and startup entry were verified after the update. Private program/profile backups were made.
 
-Blockers: none. Next: finish the 1.11.1 build, publish and verify its package, install on this PC, compare the profile and startup entry, and complete handoffs.
+Blockers: none. The old app was stopped directly after a recent SQLite write because Windows input was previously denied; a few seconds of buffered observations could have been lost. The full [Windows CI run](https://github.com/remriel/presence-windows/actions/runs/42332381558) was still in progress. Next: optionally check that run and inspect the installed timeline with a real device.
 
 # Previous objective — timeline colors and highlights, 2026-11-06
 
