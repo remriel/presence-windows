@@ -1,20 +1,20 @@
 # Current objective — timeline colors and highlights, 2026-11-06
 
-Progress: **70%** — implementation and local behavior/visual regressions pass; release CI, publication and this PC's update remain.
+Progress: **100%** — implemented, verified, published and installed on the active PC; profile and startup checks passed.
 
 - [x] Read instructions, shared memory, source, tests, release metadata and clean Git state.
 - [x] Make more presence progressively lighter in both themes and all timeline ranges.
 - [x] Highlight the current device's last-seen time when away or last-joined time when present, with meaningful tooltips and accessible labels; update open timelines on changes.
 - [x] Run core and native visual regressions and inspect fictional screenshots.
-- [ ] Pass Windows PR CI and publish release 1.11.0 from the existing release workflow.
-- [ ] Back up this PC's program and profile, install the verified official release, and confirm saved state and startup behavior.
-- [ ] Finalize project and shared-memory handoffs.
+- [x] Pass Windows PR CI and publish release 1.11.0 from the existing release workflow.
+- [x] Back up this PC's program and profile, install the verified official release, and confirm saved state and startup behavior.
+- [x] Finalize project and shared-memory handoffs.
 
-Current state: branch `feature/timeline-presence-highlights` is based on `main` at `c830bd1`. The previous release handoff below is stale; v1.10.0 is published. The user has now requested publication and replacement on this PC, where v1.9.0 is running from `C:\Presence`. `LastSeen` is a last observation, whereas away `ChangedAt` is delayed by the departure grace period. Local native timeline checks pass at 144 DPI (203 checks) and simulated 96 DPI (201), and all other local regression suites pass.
+Current state: [Presence 1.11.0](https://github.com/remriel/presence-windows/releases/tag/v1.11.0) is published from merge commit `b1d85dee83209215d6873fd7b653c5107ea67c52`; PR and release Windows CI passed. Its official ZIP matches its checksum and GitHub digest, and the packaged fictional preview passed. This PC runs the matching 1.11.0 executable from `C:\Presence` with startup unchanged. The consistent post-update profile passes integrity, saved device/person/network/settings and in-retention history comparisons. Local native timeline checks passed at 144 DPI (203 checks) and simulated 96 DPI (201), along with the other local regressions.
 
-Blockers: none. The system `dotnet` lacks an SDK; the existing portable .NET 10 SDK at `D:\Codex\2026-11-04\fix-a\work\dotnet-sdk\dotnet.exe` is available.
+Blockers: none. Windows denied app input, so the previous process was stopped directly after a recent SQLite write; a few seconds of buffered observations may have been lost. Installed timeline interaction and physical reconnect/sleep behavior remain unverified.
 
-Next: finish release build and PR, wait for Windows CI, merge with `Release Presence 1.11.0` to trigger publication, verify the official package and checksum, safely back up/update this PC, verify profile and startup, and finalize handoffs.
+Next: no required steps. Optional acceptance is to inspect the installed timeline and compare its marker times with an actual device departure and rejoin.
 
 # Previous objective — Presence 1.10.0 timeline and release, 2026-11-05
 
