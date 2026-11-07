@@ -1,4 +1,22 @@
-# Current objective — Presence 1.10.0 timeline and release, 2026-11-05
+# Current objective — timeline colors and highlights, 2026-11-06
+
+Progress: **70%** — implementation and local behavior/visual regressions pass; release CI, publication and this PC's update remain.
+
+- [x] Read instructions, shared memory, source, tests, release metadata and clean Git state.
+- [x] Make more presence progressively lighter in both themes and all timeline ranges.
+- [x] Highlight the current device's last-seen time when away or last-joined time when present, with meaningful tooltips and accessible labels; update open timelines on changes.
+- [x] Run core and native visual regressions and inspect fictional screenshots.
+- [ ] Pass Windows PR CI and publish release 1.11.0 from the existing release workflow.
+- [ ] Back up this PC's program and profile, install the verified official release, and confirm saved state and startup behavior.
+- [ ] Finalize project and shared-memory handoffs.
+
+Current state: branch `feature/timeline-presence-highlights` is based on `main` at `c830bd1`. The previous release handoff below is stale; v1.10.0 is published. The user has now requested publication and replacement on this PC, where v1.9.0 is running from `C:\Presence`. `LastSeen` is a last observation, whereas away `ChangedAt` is delayed by the departure grace period. Local native timeline checks pass at 144 DPI (203 checks) and simulated 96 DPI (201), and all other local regression suites pass.
+
+Blockers: none. The system `dotnet` lacks an SDK; the existing portable .NET 10 SDK at `D:\Codex\2026-11-04\fix-a\work\dotnet-sdk\dotnet.exe` is available.
+
+Next: finish release build and PR, wait for Windows CI, merge with `Release Presence 1.11.0` to trigger publication, verify the official package and checksum, safely back up/update this PC, verify profile and startup, and finalize handoffs.
+
+# Previous objective — Presence 1.10.0 timeline and release, 2026-11-05
 
 Progress: **60%** — intervals, stronger colors, version and combined release notes updated; focused timeline regression and packaged preview pass. PR/CI, release and installs remain.
 

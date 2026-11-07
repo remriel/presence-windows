@@ -171,6 +171,36 @@ var unknownTimeline = PresenceTimeline.Build(
     [new Device { Mac = newcomer, FirstSeen = timelineStart, State = PresenceState.Unknown }],
     [], timelineStart, timelineEnd, TimeZoneInfo.Utc).Single();
 Expect(unknownTimeline.Days.All(day => day.Fraction is null), "Timeline leaves days without recorded presence state unfilled.");
+var markerDevice = new Device
+{
+    State = PresenceState.Away,
+    LastSeen = timelineStart.AddHours(2),
+    ChangedAt = timelineStart.AddHours(2).AddSeconds(30)
+};
+var marker = PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd);
+Expect(marker is { Kind: TimelineHighlightKind.LastSeen } && marker.At == markerDevice.LastSeen,
+    "An away device highlights its last observation rather than the later departure confirmation.");
+markerDevice.State = PresenceState.Home;
+marker = PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd);
+Expect(marker is { Kind: TimelineHighlightKind.LastJoined } && marker.At == markerDevice.ChangedAt,
+    "A present device highlights its last join time.");
+markerDevice.State = PresenceState.ProbablyHome;
+Expect(PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd)?.Kind == TimelineHighlightKind.LastJoined,
+    "A device in the departure grace period still highlights its last join.");
+Expect(PresenceTimeline.LatestHighlight(markerDevice, markerDevice.ChangedAt!.Value, timelineEnd) is not null &&
+       PresenceTimeline.LatestHighlight(markerDevice, timelineStart, markerDevice.ChangedAt.Value) is not null &&
+       PresenceTimeline.LatestHighlight(markerDevice, markerDevice.ChangedAt.Value.AddTicks(1), timelineEnd) is null &&
+       PresenceTimeline.LatestHighlight(markerDevice, timelineStart, markerDevice.ChangedAt.Value.AddTicks(-1)) is null,
+    "A latest highlight is included at either boundary and omitted outside the visible range.");
+markerDevice.State = PresenceState.Unknown;
+Expect(PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd) is null,
+    "Unknown device state does not invent a highlight.");
+markerDevice.State = PresenceState.Away; markerDevice.LastSeen = default;
+Expect(PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd) is null,
+    "Missing last-seen timestamps do not create a highlight.");
+markerDevice.State = PresenceState.Home; markerDevice.ChangedAt = null;
+Expect(PresenceTimeline.LatestHighlight(markerDevice, timelineStart, timelineEnd) is null,
+    "Missing last-join timestamps do not create a highlight.");
 var baselineAway = new Device
 {
     Mac = newcomer, FirstSeen = timelineStart.AddDays(-1), LastSeen = timelineStart.AddHours(6),

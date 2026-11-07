@@ -1,4 +1,14 @@
-# RESUME HERE — Presence 1.10.0, 2026-11-05
+# RESUME HERE — timeline colors and device highlights, 2026-11-06
+
+The user wants lighter timeline cells to mean more presence and darker cells to mean less presence, plus a highlight at the last-seen time for an away device or the last-joined time for a present device; they also explicitly requested publication and replacement on this PC. Work is on `feature/timeline-presence-highlights`, starting at `c830bd1` on `main`. The older 1.10.0 handoff below is stale: GitHub release `v1.10.0` was published on 2026-11-06 UTC. Use fictional device data for all screenshots and tests; do not commit real profile data. This PC runs v1.9.0 from `C:\Presence`; preserve its profile and startup entry.
+
+Timeline computation is in `src/Presence.Core/PresenceTimeline.cs`, the WinForms grids in `src/Presence.App/Windows.cs`, and native fictional visual checks in `tools/Presence.UiPreview/Program.cs`. `Device.LastSeen` is the last accepted observation; `Device.ChangedAt` is the current arrival/away confirmation time. These differ for departure because the engine waits for its grace period. A timeline is a snapshot when its range is rendered.
+
+Implementation is complete: J/S markers include exact local times and accessible names, the latest marker is omitted outside the selected range, and the open timeline updates on state transitions while preserving range and scroll. Local core tests, all native regression suites, and timeline previews at 144 DPI (203 checks) and simulated 96 DPI (201 checks) passed. Current release target is 1.11.0.
+
+RESUME HERE: finish the release PR and CI, merge with `Release Presence 1.11.0` to trigger the official release, verify its ZIP and checksum, back up and replace this PC's installed app, verify preserved profile/startup, and record results. Keep private backups outside the public repository.
+
+# Previous handoff — Presence 1.10.0, 2026-11-05
 
 Current request: set 1h/2h/3h rolling timelines to five-minute cells, strengthen timeline color contrast, publish these with the three bug fixes merged in PR [#12](https://github.com/remriel/presence-windows/pull/12), and update Presence on both REMY and NOVA. Latest release is v1.9.0; v1.10.0 is not published yet. Branch `release/presence-1.10.0` is based on `main` at `ca7bb02`. REMY is the current computer with an existing 1.9.0 install at `C:\Presence\Presence.exe` and profile at `%LOCALAPPDATA%\Presence\presence.db`. NOVA now responds on the local/Tailscale network, but SMB admin access is denied and PowerShell remoting requires WinRM trust/auth setup; its install path/profile are not yet inspected. No subagents, real device data, or real device screenshots.
 

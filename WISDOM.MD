@@ -1,3 +1,9 @@
+# Wisdom — timeline and 1.11.0 release, 2026-11-06
+
+1. **Least confident:** Live network arrival/departure timing has only been checked with fictional fixtures, not a physical device disconnect. I would compare the installed timeline with a real device's reconnect and last response.
+2. **Biggest missing point:** Last seen is the last successful observation, while an away transition is confirmed later after a grace period; timeline cells estimate presence rather than prove physical presence. I would use the exact-time tooltip and avoid treating a missed response as definitive proof of departure.
+3. **Highest-impact assumption:** The request means highlighting one latest state-relevant time per device: the last join while present or the last observation while away. If every historical transition should remain marked, I would extend the timeline to show all recorded transitions instead.
+
 # Wisdom — Presence 1.10.0, 2026-11-05
 
 1. **Least confident:** Five-minute cells estimate presence from the same stored transitions; they do not provide more frequent observations. I would describe them as estimates and inspect the release preview.

@@ -1,3 +1,8 @@
+# Presence 1.11.0
+
+- Make timeline cells lighter for more recorded presence and darker for less in both themes.
+- Highlight the latest join for a present device or its last observation for an away device, with exact-time tooltips. Update the open timeline when device state changes.
+
 # Presence 1.10.0
 
 - Use 5-minute cells in rolling 1h, 2h and 3h timelines (12, 24 and 36 cells, respectively); keep 4h and 6h at 30-minute cells.
