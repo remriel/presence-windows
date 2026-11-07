@@ -1,6 +1,6 @@
 # Current objective — color-only timeline, 2026-11-06
 
-Progress: **100%** — removed the markers, passed focused checks, published 1.11.1 and installed it on this PC. The additional full Windows CI run was still in progress at handoff.
+Progress: **100%** — removed the markers, passed focused and full Windows CI checks, published 1.11.1 and installed it on this PC.
 
 - [x] Reconcile instructions, shared memory, repository and installed state.
 - [x] Remove J/S letters, outlines, legend text, accessibility references and marker model while retaining the lighter-is-more color scale.
@@ -10,7 +10,7 @@ Progress: **100%** — removed the markers, passed focused checks, published 1.1
 
 Current state: [1.11.1](https://github.com/remriel/presence-windows/releases/tag/v1.11.1) is published from `fbfb6a28574fca13c4e65d74037bf5d679cce124` and running from `C:\Presence`. Its ZIP matches the checksum and GitHub digest. Core checks and 181 native timeline checks passed. The saved profile and startup entry were verified after the update. Private program/profile backups were made.
 
-Blockers: none. The old app was stopped directly after a recent SQLite write because Windows input was previously denied; a few seconds of buffered observations could have been lost. The full [Windows CI run](https://github.com/remriel/presence-windows/actions/runs/42332381558) was still in progress. Next: optionally check that run and inspect the installed timeline with a real device.
+Blockers: none. The old app was stopped directly after a recent SQLite write because Windows input was previously denied; a few seconds of buffered observations could have been lost. The full [Windows CI run](https://github.com/remriel/presence-windows/actions/runs/42332381558) passed. Next: optionally inspect the installed timeline with a real device.
 
 # Previous objective — timeline colors and highlights, 2026-11-06
 
