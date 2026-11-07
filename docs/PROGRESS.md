@@ -1,4 +1,18 @@
-# Current objective — timeline colors and highlights, 2026-11-06
+# Current objective — color-only timeline, 2026-11-06
+
+Progress: **60%** — removed the markers, passed core checks and 181 fictional native timeline checks, and built the release candidate; publication and installation remain.
+
+- [x] Reconcile instructions, shared memory, repository and installed state.
+- [x] Remove J/S letters, outlines, legend text, accessibility references and marker model while retaining the lighter-is-more color scale.
+- [x] Verify native light/dark and rolling/daily views and refresh behavior; inspect fictional screenshots.
+- [ ] Publish 1.11.1, verify the official package, back up and update this PC, and verify its profile and startup.
+- [ ] Update project/shared handoffs and wisdom.
+
+Current state: branch `fix/timeline-colors-only`, based on main `a5375b5`; 1.11.0 is published and installed. The new code retains live timeline refresh. Windows UI input was previously denied. A consistent profile backup and verified program backup for this update are private to the task workspace.
+
+Blockers: none. Next: finish the 1.11.1 build, publish and verify its package, install on this PC, compare the profile and startup entry, and complete handoffs.
+
+# Previous objective — timeline colors and highlights, 2026-11-06
 
 Progress: **100%** — implemented, verified, published and installed on the active PC; profile and startup checks passed.
 

@@ -1,4 +1,10 @@
-# RESUME HERE — timeline colors and device highlights, 2026-11-06
+# RESUME HERE — color-only timeline, 2026-11-06
+
+The user corrected the just-released timeline: remove the J/S letters and their highlighted outlines; keep the lighter-is-more-presence color scale. The earlier publication-and-PC-update authorization continues for this same task. Work is on `fix/timeline-colors-only`, based on `main` at `a5375b5`. Version 1.11.0 is currently running from `C:\Presence`. Use fictional screenshots only; never commit real device data or private backups.
+
+RESUME HERE: remove marker UI, related model and tests while retaining the heatmap and transition-driven refresh; verify light/dark and rolling/daily ranges with fictional native captures; publish 1.11.1 through the existing workflow; verify and install the official package with profile backups and comparison. Windows input previously failed with `GetCursorPos: Access is denied`, so a direct process stop after a fresh SQLite write may be necessary.
+
+# Previous handoff — timeline colors and device highlights, 2026-11-06
 
 The requested timeline changes, publication and update of this PC are complete. [PR #14](https://github.com/remriel/presence-windows/pull/14) merged as `b1d85dee83209215d6873fd7b653c5107ea67c52`; [Presence 1.11.0](https://github.com/remriel/presence-windows/releases/tag/v1.11.0) is published. The older 1.10.0 handoff below is historical and stale. Use fictional device data for all screenshots and tests; never commit real profile data.
 

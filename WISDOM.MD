@@ -1,3 +1,9 @@
+# Wisdom — color-only timeline, 2026-11-06
+
+1. **Least confident:** The installed interface and live device transitions still need hands-on verification; I would inspect the updated timeline and compare it with an actual reconnect.
+2. **Biggest missing point:** Dark gray represents either away or unrecorded time, and the shades are estimates from network observations. I would use the existing cell tooltip when the distinction matters.
+3. **Highest-impact assumption:** “Just colors” removes the J/S markers and outlines while retaining existing duration tooltips and automatic timeline refresh. If those should also go, I would remove them.
+
 # Wisdom — timeline and 1.11.0 release, 2026-11-06
 
 1. **Least confident:** Windows denied input, so the installed timeline and a physical device reconnect were not tested interactively. I would inspect the installed timeline and compare it with a real device's reconnect and last response.

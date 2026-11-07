@@ -154,7 +154,7 @@ internal static partial class Program
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Length > 0), theme + " date tooltips");
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells[1].ToolTipText.Contains("present"),
                 theme + " presence details are available per day");
-            CheckMarkers(grid, home, away, unknown, theme + " daily", Check);
+            CheckColorOnly(grid, theme + " daily", Check);
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-14d", 1);
 
             All(form).OfType<Button>().Single(button => button.AccessibleName == "24 hours").PerformClick();
@@ -166,6 +166,7 @@ internal static partial class Program
             Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).Any(cell => cell.ToolTipText.Contains("present")),
                 theme + " hourly presence details are available per device");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 24-hour timeline fits without horizontal clipping");
+            CheckColorOnly(grid, theme + " 24 hours", Check);
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-24h", 1);
 
             All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
@@ -181,6 +182,7 @@ internal static partial class Program
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " 12-hour view fits horizontally");
             Check(grid.Columns.Cast<DataGridViewColumn>().Skip(1).All(column => column.HeaderCell.ToolTipText.Contains("UTC")), theme + " 12-hour exact local intervals");
             Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains("last 12 hours")), theme + " 12-hour legend");
+            CheckColorOnly(grid, theme + " 12 hours", Check);
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-12h", 1);
 
             foreach (var (range, minutes, filename, columns) in new[]
@@ -200,7 +202,7 @@ internal static partial class Program
                 Check(grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1)
                     .All(cell => cell.ToolTipText.Contains($"of {minutes}m")), theme + $" {range} device tooltips show the interval duration");
                 Check(All(form).OfType<WrapLabel>().Any(label => label.Text.Contains($"{minutes} minutes per cell")), theme + $" {range} legend");
-                CheckMarkers(grid, home, away, unknown, theme + " " + range, Check);
+                CheckColorOnly(grid, theme + " " + range, Check);
                 if (range == "1 hour")
                 {
                     var homeCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
@@ -232,6 +234,7 @@ internal static partial class Program
                 Check(grid.Columns.Count == columns, theme + $" {days}-day range selector");
                 Check(FitsOrScrolls(grid), theme + $" rows fit or can be scrolled in the {days}-day view");
                 Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + $" {days}-day view fits without a horizontal scrollbar");
+                CheckColorOnly(grid, theme + $" {days} days", Check);
             }
             All(form).OfType<Button>().Single(button => button.AccessibleName == "14 days").PerformClick();
             Application.DoEvents();
@@ -241,6 +244,7 @@ internal static partial class Program
             Check(grid.Columns.Count == 29, theme + " 28-day range selector");
             Check(FitsOrScrolls(grid), theme + " rows fit or can be scrolled in the 28-day view");
             Check(grid.Columns.GetColumnsWidth(DataGridViewElementStates.Visible) <= grid.ClientSize.Width, theme + " timeline fits without horizontal clipping");
+            CheckColorOnly(grid, theme + " 28 days", Check);
             CaptureExisting(form, "timeline-" + theme.ToLowerInvariant() + "-28d", 1);
 
             All(form).OfType<Button>().Single(button => button.AccessibleName == "1 hour").PerformClick();
@@ -263,17 +267,16 @@ internal static partial class Program
             home.ChangedAt = now.AddSeconds(-30);
             app.Refresh(); Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
-            var liveCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>();
-            Check(liveCells.Any(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastSeen } marker && marker.At == home.LastSeen),
-                theme + " an open timeline updates to last seen when a device leaves");
+            Check(!ReferenceEquals(unchangedGrid, grid), theme + " an open timeline refreshes when a device leaves");
+            CheckColorOnly(grid, theme + " after departure", Check);
             Check(grid.Columns.Count == 13 && grid.FirstDisplayedScrollingRowIndex == 10, theme + " live update preserves the selected range and scroll position");
+            var awayGrid = grid;
             home.State = PresenceState.Home;
             home.ChangedAt = now.AddSeconds(-10);
             app.Refresh(); Application.DoEvents();
             grid = All(form).OfType<DataGridView>().Single();
-            liveCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>();
-            Check(liveCells.Any(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastJoined } marker && marker.At == home.ChangedAt),
-                theme + " an open timeline updates to last joined when a device arrives");
+            Check(!ReferenceEquals(awayGrid, grid), theme + " an open timeline refreshes when a device arrives");
+            CheckColorOnly(grid, theme + " after arrival", Check);
             home.ChangedAt = now.AddMinutes(-22); home.LastSeen = default;
         }
 
@@ -288,27 +291,13 @@ internal static partial class Program
         return failures.Count == 0 ? 0 : 1;
     }
 
-    private static void CheckMarkers(DataGridView grid, Device home, Device away, Device unknown, string context, Action<bool, string> check)
+    private static void CheckColorOnly(DataGridView grid, string context, Action<bool, string> check)
     {
-        var homeCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, home)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
-        var awayCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, away)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
-        var unknownCells = grid.Rows.Cast<DataGridViewRow>().Single(row => ReferenceEquals(row.Tag, unknown)).Cells.Cast<DataGridViewCell>().Skip(1).ToArray();
-        var join = homeCells.Where(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastJoined }).ToArray();
-        var seen = awayCells.Where(cell => cell.Tag is TimelineHighlight { Kind: TimelineHighlightKind.LastSeen }).ToArray();
-        check(join.Length == 1 && Equals(join[0].Value, "J") && join[0].ToolTipText.Contains("Last joined:") &&
-              join[0].AccessibilityObject.Name!.Contains("Last joined:"), context + " last-joined marker is visible and accessible");
-        check(seen.Length == 1 && Equals(seen[0].Value, "S") && seen[0].ToolTipText.Contains("Last seen:") &&
-              seen[0].AccessibilityObject.Name!.Contains("Last seen:") && seen[0].Tag is TimelineHighlight seenMarker && seenMarker.At == away.LastSeen,
-              context + " last-seen marker uses the observation time and is accessible");
-        check(unknownCells.All(cell => cell.Tag is not TimelineHighlight), context + " unknown state has no invented marker");
-        bool InCorrectColumn(DataGridViewCell cell, DateTimeOffset expected) => cell.OwningColumn?.Tag switch
-        {
-            PresenceIntervalTimelineCell interval => expected >= interval.Start && expected < interval.End,
-            DateOnly date => DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(expected, TimeZoneInfo.Local).DateTime) == date,
-            _ => false
-        };
-        check(join.Length == 1 && InCorrectColumn(join[0], home.ChangedAt!.Value) &&
-              seen.Length == 1 && InCorrectColumn(seen[0], away.LastSeen), context + " highlights occupy the correct time cells");
+        var cells = grid.Rows.Cast<DataGridViewRow>()
+            .SelectMany(row => row.Cells.Cast<DataGridViewCell>().Skip(1));
+        check(cells.All(cell => string.IsNullOrEmpty(Convert.ToString(cell.Value)) && cell.Tag is null &&
+                                cell.Style.BackColor != System.Drawing.Color.Empty && cell.GetType() == typeof(DataGridViewTextBoxCell)),
+            context + " timeline cells use colors without event letters or outlines");
     }
     private static int SavedNetworkChecks()
     {

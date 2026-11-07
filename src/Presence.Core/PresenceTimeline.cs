@@ -15,25 +15,8 @@ public sealed record PresenceIntervalTimelineCell(DateTimeOffset Start, DateTime
 
 public sealed record PresenceIntervalTimelineRow(Device Device, IReadOnlyList<PresenceIntervalTimelineCell> Cells);
 
-public enum TimelineHighlightKind { LastJoined, LastSeen }
-public sealed record TimelineHighlight(TimelineHighlightKind Kind, DateTimeOffset At);
-
 public static class PresenceTimeline
 {
-    // A departure is confirmed after a grace period, so ChangedAt is not the last observation.
-    public static TimelineHighlight? LatestHighlight(Device device, DateTimeOffset from, DateTimeOffset through)
-    {
-        var highlight = device.State switch
-        {
-            PresenceState.Home or PresenceState.ProbablyHome when device.ChangedAt is { } joined && joined != default
-                => new TimelineHighlight(TimelineHighlightKind.LastJoined, joined),
-            PresenceState.Away when device.LastSeen != default
-                => new TimelineHighlight(TimelineHighlightKind.LastSeen, device.LastSeen),
-            _ => null
-        };
-        return highlight is not null && highlight.At >= from && highlight.At <= through ? highlight : null;
-    }
-
     public static DateTimeOffset StartOfDay(DateOnly date, TimeZoneInfo? timeZone = null)
     {
         var zone = timeZone ?? TimeZoneInfo.Local;

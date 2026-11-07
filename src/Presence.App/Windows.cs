@@ -334,7 +334,7 @@ internal sealed class PresenceTimelineWindow : Form
         }
         Ui.Add(header, ranges);
 
-        legend = Ui.Label("Lighter green means more presence; dark gray means away or unrecorded. J = last joined; S = last seen. Hover for details.", s, true);
+        legend = Ui.Label("Lighter green means more presence; dark gray means away or unrecorded. Hover for details.", s, true);
         legend.Margin = Padding.Empty;
         var close = Ui.Button("&Close", Close, s); close.DialogResult = DialogResult.Cancel;
         close.Margin = Padding.Empty;
@@ -375,8 +375,8 @@ internal sealed class PresenceTimelineWindow : Form
         var isRolling = rollingRange.Range is not null;
         if (legend is not null)
             legend.Text = isRolling
-                ? $"Showing the last {range}, oldest to newest, {rollingRange.Minutes} minutes per cell. Lighter = more presence; dark gray = away or unrecorded. J = last joined; S = last seen. Hover for details."
-                : "Lighter = more presence; dark gray = away or unrecorded. J = last joined; S = last seen. Hover for durations and exact times.";
+                ? $"Showing the last {range}, oldest to newest, {rollingRange.Minutes} minutes per cell. Lighter = more presence; dark gray = away or unrecorded. Hover for details."
+                : "Lighter = more presence; dark gray = away or unrecorded. Hover for durations and coverage.";
         foreach (Control control in body.Controls.Cast<Control>().ToArray())
         {
             body.Controls.Remove(control);
@@ -403,7 +403,7 @@ internal sealed class PresenceTimelineWindow : Form
                 var from = now.AddHours(-rollingRange.Hours);
                 var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
                 var rows = PresenceTimeline.BuildIntervals(devices, events, from, now, TimeSpan.FromMinutes(rollingRange.Minutes));
-                ShowIntervalGrid(rows, s, range, rollingRange.Minutes, from, now);
+                ShowIntervalGrid(rows, s, range, rollingRange.Minutes);
             }
             else
             {
@@ -413,7 +413,7 @@ internal sealed class PresenceTimelineWindow : Form
                 var from = PresenceTimeline.StartOfDay(first);
                 var events = app.Store.TimelineHistory(from, devices.Select(device => device.Mac).ToArray());
                 var rows = PresenceTimeline.Build(devices, events, from, now);
-                ShowGrid(days, first, rows, s, from, now);
+                ShowGrid(days, first, rows, s);
             }
         }
 
@@ -463,12 +463,12 @@ internal sealed class PresenceTimelineWindow : Form
         base.Dispose(disposing);
     }
 
-    private void ShowIntervalGrid(IReadOnlyList<PresenceIntervalTimelineRow> rows, Settings settings, string range, int minutes, DateTimeOffset from, DateTimeOffset through)
+    private void ShowIntervalGrid(IReadOnlyList<PresenceIntervalTimelineRow> rows, Settings settings, string range, int minutes)
     {
         var table = Ui.Grid(settings);
         grid = table;
         var cellCount = rows[0].Cells.Count;
-        table.AccessibleName = $"Device presence for the last {range}. Each cell is {minutes} minutes and shows the share of that interval the device was present. J marks last joined; S marks last seen.";
+        table.AccessibleName = $"Device presence for the last {range}. Each cell is {minutes} minutes and shows the share of that interval the device was present.";
         table.ColumnHeadersHeight = 30;
         table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
         table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -493,14 +493,12 @@ internal sealed class PresenceTimelineWindow : Form
             var localEnd = TimeZoneInfo.ConvertTime(interval.End, zone);
             var column = Ui.Column("Interval" + i, localStart.ToString("HH:mm"), 10, DataGridViewAutoSizeColumnMode.None);
             column.Width = 24;
-            column.Tag = interval;
             column.HeaderCell.ToolTipText = $"{localStart:dddd, MMMM d HH:mm:ss}–{localEnd:dddd, MMMM d HH:mm:ss} local (UTC {localStart:zzz} to {localEnd:zzz})";
             table.Columns.Add(column);
         }
 
         foreach (var row in rows)
         {
-            var highlight = PresenceTimeline.LatestHighlight(row.Device, from, through);
             var values = new object[cellCount + 1];
             Array.Fill(values, "");
             values[0] = row.Device.DisplayName;
@@ -517,9 +515,6 @@ internal sealed class PresenceTimelineWindow : Form
                 cell.Style.BackColor = color;
                 cell.Style.SelectionBackColor = color;
                 cell.ToolTipText = IntervalTooltip(row.Device, interval);
-                if (highlight is not null && highlight.At >= interval.Start &&
-                    (highlight.At < interval.End || i == cellCount - 1 && highlight.At == interval.End))
-                    ApplyTimelineHighlight(cell, row.Device, highlight);
             }
         }
 
@@ -527,7 +522,6 @@ internal sealed class PresenceTimelineWindow : Form
         table.CellPainting += (_, e) =>
         {
             if (PaintTimelineDeviceName(e)) return;
-            if (PaintTimelineHighlight(table, e)) return;
             if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
             e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
             var cellIndex = e.ColumnIndex - 1;
@@ -561,11 +555,11 @@ internal sealed class PresenceTimelineWindow : Form
         FitTimelineRows(table);
     }
 
-    private void ShowGrid(int days, DateOnly first, IReadOnlyList<PresenceTimelineRow> rows, Settings settings, DateTimeOffset from, DateTimeOffset through)
+    private void ShowGrid(int days, DateOnly first, IReadOnlyList<PresenceTimelineRow> rows, Settings settings)
     {
         var table = Ui.Grid(settings);
         grid = table;
-        table.AccessibleName = "Daily device presence. Each day cell shows the share of the day the device was present. J marks last joined; S marks last seen.";
+        table.AccessibleName = "Daily device presence. Each day cell shows the share of the day the device was present.";
         table.ColumnHeadersHeight = 30;
         table.ColumnHeadersDefaultCellStyle.Padding = Padding.Empty;
         table.ColumnHeadersDefaultCellStyle.Alignment = DataGridViewContentAlignment.MiddleCenter;
@@ -585,15 +579,12 @@ internal sealed class PresenceTimelineWindow : Form
         {
             var column = Ui.Column("Day" + i, "", 16, DataGridViewAutoSizeColumnMode.None);
             column.Width = 24;
-            column.Tag = dates[i];
             column.HeaderCell.ToolTipText = dates[i].ToString("dddd, MMMM d");
             table.Columns.Add(column);
         }
 
         foreach (var row in rows)
         {
-            var highlight = PresenceTimeline.LatestHighlight(row.Device, from, through);
-            var highlightDate = highlight is null ? (DateOnly?)null : DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(highlight.At, TimeZoneInfo.Local).DateTime);
             var values = new object[days + 1];
             Array.Fill(values, "");
             values[0] = row.Device.DisplayName;
@@ -610,8 +601,6 @@ internal sealed class PresenceTimelineWindow : Form
                 cell.Style.BackColor = color;
                 cell.Style.SelectionBackColor = color;
                 cell.ToolTipText = Tooltip(row.Device, day);
-                if (highlight is not null && highlightDate == day.Date)
-                    ApplyTimelineHighlight(cell, row.Device, highlight);
             }
         }
 
@@ -619,7 +608,6 @@ internal sealed class PresenceTimelineWindow : Form
         table.CellPainting += (_, e) =>
         {
             if (PaintTimelineDeviceName(e)) return;
-            if (PaintTimelineHighlight(table, e)) return;
             if (e.RowIndex != -1 || e.ColumnIndex <= 0) return;
             e.Paint(e.CellBounds, DataGridViewPaintParts.Background | DataGridViewPaintParts.Border);
             var dayIndex = e.ColumnIndex - 1;
@@ -660,51 +648,6 @@ internal sealed class PresenceTimelineWindow : Form
         var color = (e.State & DataGridViewElementStates.Selected) != 0 ? e.CellStyle!.SelectionForeColor : e.CellStyle!.ForeColor;
         TextRenderer.DrawText(e.Graphics, Convert.ToString(e.Value) ?? "", e.CellStyle.Font ?? Ui.CompactFont, bounds, color,
             TextFormatFlags.Left | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.EndEllipsis | TextFormatFlags.NoPrefix);
-        e.Handled = true;
-        return true;
-    }
-
-    private static void ApplyTimelineHighlight(DataGridViewCell cell, Device device, TimelineHighlight highlight)
-    {
-        var label = highlight.Kind == TimelineHighlightKind.LastJoined ? "Last joined" : "Last seen";
-        var local = TimeZoneInfo.ConvertTime(highlight.At, TimeZoneInfo.Local);
-        var details = $"{label}: {local:dddd, MMMM d yyyy HH:mm:ss} local (UTC {local:zzz})";
-        var markerCell = new TimelineHighlightCell { Style = cell.Style.Clone(), ToolTipText = cell.ToolTipText };
-        cell.OwningRow!.Cells[cell.ColumnIndex] = markerCell;
-        cell = markerCell;
-        cell.Value = highlight.Kind == TimelineHighlightKind.LastJoined ? "J" : "S";
-        cell.Tag = highlight;
-        cell.Style.Alignment = DataGridViewContentAlignment.MiddleCenter;
-        cell.Style.Font = Ui.StrongFont;
-        var background = cell.Style.BackColor;
-        var brightness = (background.R * 299 + background.G * 587 + background.B * 114) / 1000;
-        var foreground = brightness >= 130 ? Color.FromArgb(12, 22, 16) : Color.White;
-        cell.Style.ForeColor = foreground;
-        cell.Style.SelectionForeColor = foreground;
-        cell.ToolTipText += "\n" + details;
-        markerCell.AccessibleDetails = device.DisplayName + ", " + details;
-    }
-
-    private sealed class TimelineHighlightCell : DataGridViewTextBoxCell
-    {
-        public string AccessibleDetails { get; set; } = "";
-        protected override AccessibleObject CreateAccessibilityInstance() => new HighlightAccessibleObject(this);
-
-        private sealed class HighlightAccessibleObject(TimelineHighlightCell owner) : DataGridViewCellAccessibleObject(owner)
-        {
-            public override string? Name { get => owner.AccessibleDetails; set { } }
-        }
-    }
-
-    private static bool PaintTimelineHighlight(DataGridView table, DataGridViewCellPaintingEventArgs e)
-    {
-        if (e.RowIndex < 0 || e.ColumnIndex <= 0 || e.Graphics is null ||
-            table.Rows[e.RowIndex].Cells[e.ColumnIndex].Tag is not TimelineHighlight) return false;
-        e.Paint(e.CellBounds, DataGridViewPaintParts.All);
-        var outer = Rectangle.Inflate(e.CellBounds, -1, -1);
-        var inner = Rectangle.Inflate(e.CellBounds, -2, -2);
-        if (outer.Width > 0 && outer.Height > 0) e.Graphics.DrawRectangle(Pens.Black, outer);
-        if (inner.Width > 0 && inner.Height > 0) e.Graphics.DrawRectangle(Pens.White, inner);
         e.Handled = true;
         return true;
     }

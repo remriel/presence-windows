@@ -1,3 +1,7 @@
+# Presence 1.11.1
+
+- Remove the J/S markers and their outlines from timeline cells, keeping the lighter-is-more-presence color scale.
+
 # Presence 1.11.0
 
 - Make timeline cells lighter for more recorded presence and darker for less in both themes.
