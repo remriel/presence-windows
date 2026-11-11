@@ -148,3 +148,5 @@ Manual acceptance after launch:
 ## Saved networks
 
 Open **Networks** in the main window, keep the default Wi-Fi SSID or enter a custom name, then choose **Save network**. Reopen Networks to rename the connected saved network or forget a saved name. Forgetting preserves devices, person assignments and activity. Names stay in the local profile and survive restarting. If Windows cannot expose the SSID (or you use Ethernet), the adapter/subnet description is the editable default. Recognition uses the existing physical adapter, subnet and gateway identity; replacing an adapter/router or changing subnet may require saving the network again. Saving a network does not change your Windows Wi-Fi connection or store its password.
+
+If you find this project useful, you can [buy me a coffee](https://buymeacoffee.com/remriel).
