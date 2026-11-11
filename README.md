@@ -149,6 +149,4 @@ Manual acceptance after launch:
 
 Open **Networks** in the main window, keep the default Wi-Fi SSID or enter a custom name, then choose **Save network**. Reopen Networks to rename the connected saved network or forget a saved name. Forgetting preserves devices, person assignments and activity. Names stay in the local profile and survive restarting. If Windows cannot expose the SSID (or you use Ethernet), the adapter/subnet description is the editable default. Recognition uses the existing physical adapter, subnet and gateway identity; replacing an adapter/router or changing subnet may require saving the network again. Saving a network does not change your Windows Wi-Fi connection or store its password.
 
-[![Buy me a coffee](https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png)](https://buymeacoffee.com/remriel)
-
-<script type="text/javascript" src="https://cdnjs.buymeacoffee.com/1.0.0/button.prod.min.js" data-name="bmc-button" data-slug="remriel" data-color="#FFDD00" data-emoji="☕" data-font="Comic" data-text="Buy me a coffee" data-outline-color="#000000" data-font-color="#000000" data-coffee-color="#ffffff" ></script>
+<a href="https://buymeacoffee.com/remriel"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy me a coffee" width="110"></a>
